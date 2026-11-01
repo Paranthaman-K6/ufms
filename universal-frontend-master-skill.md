@@ -1,4 +1,4 @@
-# universal-frontend-master
+# universal-frontend-master-skill
 
 Build, extend, integrate, audit, and continuously improve complete responsive websites from a
 brief, repository, backend, API documentation, screenshot, or reference site. Arch Linux-aware
