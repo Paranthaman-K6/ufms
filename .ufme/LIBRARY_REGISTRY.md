@@ -78,6 +78,42 @@ These directories are **discovery inputs**, not authority for package quality, l
 5. For browser utilities, assess whether input is processed locally or uploaded; do not send secrets, private source, customer data, credentials, or production payloads.
 6. Only convert a directory-sourced candidate into a library row after checking package identity, framework compatibility, maintenance, license and install instructions.
 
+## Directory-sourced form services and frontend QA tools
+
+The following are **hosted services/free-tier discoveries**, not open-source form libraries. Verify current plans and terms on each provider's site before use.
+
+| Name | Category | Official site | Free tier / terms | Use in UFME | Status |
+|------|----------|---------------|-------------------|-------------|--------|
+| Formspree | Hosted form endpoint | https://formspree.io/ | Free tier has submission limits; confirm current quota | Static-site contact forms without custom backend | candidate |
+| Web3Forms | Hosted form endpoint | https://web3forms.com/ | Free plan advertised; verify current limits | Static/JAMstack forms and contact pages | candidate |
+| FormSubmit | Hosted form endpoint | https://formsubmit.co/ | Free endpoint service; verify operational and privacy terms | Simple HTML form submission without backend | candidate |
+| Tally | Hosted form builder | https://tally.so/ | Free plan advertised; verify response and feature limits | Embedded forms, surveys and intake workflows | candidate |
+| Formcarry | Hosted form backend | https://formcarry.com/ | Free tier advertised with submission cap; verify current quota | Form submissions, notifications and integrations | candidate |
+| FabForm | Hosted form backend | https://fabform.io/ | Free tier advertised; verify current quota and terms | Form backend and integrations | candidate |
+| HeyForm | Hosted form builder | https://heyform.net/ | Free tier advertised; verify limits and data processing terms | Surveys and form builder embeds | candidate |
+| OpenWebhook | Webhook testing | https://openwebhook.io/ | Free service; verify retention and limits | Inspect incoming webhook payloads during development | candidate |
+| webhook.site | Webhook/email inspector | https://webhook.site/ | Free temporary endpoints; verify retention/privacy | Debug webhooks and outbound requests | candidate |
+| Requestly | API mocking/interception | https://requestly.com/ | Open-source extension plus hosted/free-tier features; verify product boundaries | Mock APIs, rewrite requests, inspect headers and GraphQL | candidate |
+| Argos | Visual regression testing | https://argos-ci.com/ | Free/open-source project allowance listed; verify current quota | Screenshot-based UI regression in CI | candidate |
+| Percy | Visual testing | https://percy.io/ | Free tier/usage limits; verify current plan | Visual snapshots and review workflows | candidate |
+| Cypress | Browser testing | https://www.cypress.io/ | Open-source test runner; dashboard services have separate terms | Browser-based UI and integration testing alternative | researched |
+| Selenium Gridlastic | Hosted Selenium grid | https://www.gridlastic.com/ | Free plan limits listed; verify current plan | Optional remote browser testing where local browsers are insufficient | candidate |
+| TestingBot | Hosted browser/device testing | https://testingbot.com/ | Open-source/free eligibility varies; verify current terms | Cross-browser testing service | candidate |
+
+### DevTools.tools utility shortlist (browser utilities, not packages)
+
+| Tool | Category | Official page | UFME use | Privacy note |
+|------|----------|---------------|----------|--------------|
+| Color Contrast Checker | Design/accessibility | https://www.devtools.tools/ | Early contrast checks during design token creation | Confirm page says local processing for the selected utility |
+| Color Blindness Simulator | Visual/accessibility | https://www.devtools.tools/ | Inspect palette distinction and visual states | Do not treat as a WCAG conformance test |
+| Theme / gradient / shadow generators | Design utilities | https://www.devtools.tools/ | Explore visual tokens and CSS values | Verify generated output and browser compatibility |
+| OpenAPI / Swagger Editor | API tooling | https://www.devtools.tools/ | Inspect/validate API specifications before frontend integration | Avoid uploading private API specs unless local processing is confirmed |
+| JSON Schema Builder | Form/schema tooling | https://www.devtools.tools/ | Draft JSON Schema for validation and schema-driven form prototypes | Validate generated schema against project requirements |
+| Mock Data Generator | Test data | https://www.devtools.tools/ | Generate synthetic fixtures for UI states and forms | Use synthetic data only |
+| Broken Link Checker | QA | https://www.devtools.tools/ | Manual pre-release link checks | Network utility may contact target URLs |
+| License Compatibility Matrix | License review helper | https://www.devtools.tools/ | Preliminary dependency-license screening | Informational only; not legal advice |
+| Offline Secret Leak Scanner | Security utility | https://www.devtools.tools/ | Local preflight scan for accidental secrets | Verify the specific tool is offline; still avoid pasting real secrets into web tools |
+
 ## Research findings and selection guidance
 
 ### Component systems
