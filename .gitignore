@@ -4,3 +4,7 @@ node_modules/
 .ufme/evidence/browser-results.json
 .ufme/evidence/browser-setup-error.txt
 .ufme-selenium-check.*.js
+.ufme/ASSET_MANIFEST.md
+.ufme/BACKEND_CONTRACTS.md
+prototypes/
+.libreoffice/
