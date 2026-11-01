@@ -60,6 +60,24 @@ A registry entry does not mean the dependency is installed or tested.
 | @rjsf/core | JSON Schema forms (React) | https://github.com/rjsf-team/react-jsonschema-form | Apache-2.0 (verify packages) | Generally yes under Apache-2.0 | `npm install @rjsf/core` plus theme package | Render React forms from JSON Schema with extensible widgets | researched |
 | FormKit | Vue form system | https://formkit.com/ | MIT for core (verify add-ons) | Generally yes under MIT for core | `npm install @formkit/vue` | Vue form inputs, validation and schema-based form generation | candidate |
 
+## External discovery directories
+
+These directories are **discovery inputs**, not authority for package quality, licensing, or security. The researcher must follow each candidate to its official repository/docs and verify it independently before adding a library row or recommending use.
+
+| Directory | Scope observed | How UFME should use it | Important limitation | Status |
+|-----------|---------------|------------------------|----------------------|--------|
+| DevTools.tools | Browser-based developer utilities; categories include design, visual, security, network/API, generators, data processing and AI utilities | Discover workflow helpers for color/contrast checks, schema generation, API/network debugging, image/visual utilities and prompt/context preparation; record useful tool URLs in project research notes | Primarily an online utility directory, not a catalog of installable open-source frontend packages. Verify privacy claims and whether processing is local before pasting project/customer data | researched |
+| free-for.dev | Free-tier SaaS/PaaS/IaaS and developer services; categories include testing/QA, API tools, design tools, fonts, forms/surveys, hosting, storage/media, analytics, security and AI | Discover hosted services for prototyping, preview deployments, form endpoints, API mocking/testing, visual QA, assets and monitoring when a project has a zero-cost constraint | A free tier is **not** the same as open source, self-hostable, unlimited, or production-suitable. Record plan limits, commercial restrictions, data handling, vendor lock-in and current terms | researched |
+| free-for.dev source repository | Community-maintained service list: https://github.com/ripienaar/free-for-dev | Prefer repository entries/PR history as a traceable source when investigating listed services; then verify the provider's own pricing, docs, terms and privacy policy | Repository is a curated directory, not a warranty or license approval for listed vendors | researched |
+
+### Research workflow for directory-sourced candidates
+1. Use the directory to discover a candidate and its category; do not copy claims as verified facts.
+2. Follow through to the official provider/repository, package registry, license, pricing/free-tier page, docs and security advisories.
+3. Classify the candidate as one of: open-source library, open-source self-hosted tool, hosted free-tier service, browser utility, template/asset source, or paid/commercial product.
+4. For hosted services, record the current free allowance and limits (quotas, retention, inactivity/sleep, build minutes, bandwidth, seats, commercial-use scope, and required payment method) with a checked date.
+5. For browser utilities, assess whether input is processed locally or uploaded; do not send secrets, private source, customer data, credentials, or production payloads.
+6. Only convert a directory-sourced candidate into a library row after checking package identity, framework compatibility, maintenance, license and install instructions.
+
 ## Research findings and selection guidance
 
 ### Component systems
