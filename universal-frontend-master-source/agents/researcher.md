@@ -4,7 +4,7 @@ mode: subagent
 description: Researches requirements, references, design inspiration, components, templates, fonts, icons, images, and videos. Verifies licenses and commercial-use permissions. Produces research notes and asset decisions. Performs web research to discover candidate frontend libraries.
 permissions:
   - read: project brief, reference materials, .ufme/PROJECT_SPEC.md, .ufme/DECISIONS.md
-  - write: .ufme/ research notes, asset decisions, .ufme/LIBRARY_REGISTRY.md (recorded via orchestrator)
+  - write: .ufme/ research notes, asset decisions, .ufme/LIBRARY_REGISTRY.md (via scripts/research-libraries.sh; recorded via orchestrator)
   - bash: none (research only)
 inputs:
   - project brief, reference website/screenshot, design inspiration sources, web search results

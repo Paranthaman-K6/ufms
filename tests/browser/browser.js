@@ -21,7 +21,9 @@ let failedRequests = [];
 function chromeOptions(binary) {
   const o = new chrome.Options();
   if (binary) o.setBinary(binary);
-  o.addArguments('--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+  // Preserve browser sandboxing by default. --no-sandbox removed for safety;
+  // only add it if the environment requires it and the user opts in.
+  o.addArguments('--headless=new', '--disable-dev-shm-usage',
     '--disable-gpu', '--window-size=1440,900');
   return o;
 }
@@ -43,19 +45,34 @@ async function launchBrowser(engine = 'chromium') {
     .setFirefoxOptions(opts)
     .build();
 
-  // Collect console errors via logging prefs (best-effort; WebDriver BiDi not universal).
+  // Enable browser logging so console errors can be collected on demand.
   try {
-    const logs = await driver.manage().logs().getAvailableLogTypes();
-    if (logs.includes('browser')) {
-      driver.manage().logs().get('browser').then((entries) => {
-        entries.forEach((e) => {
-          if (e.level.value >= 900) consoleErrors.push(e.message);
-        });
-      });
-    }
+    await driver.manage().logs().getAvailableLogTypes();
   } catch (e) { /* best-effort only */ }
 
   return driver;
+}
+
+async function collectConsoleErrors() {
+  if (!driver) return consoleErrors;
+  try {
+    const entries = await driver.manage().logs().get('browser');
+    const now = consoleErrors.length;
+    entries.forEach((e) => {
+      if (e.level.value >= 900 && !consoleErrors.includes(e.message)) {
+        consoleErrors.push(e.message);
+      }
+    });
+    // Deduplicate while preserving order.
+    const seen = new Set();
+    const unique = [];
+    for (const m of consoleErrors) {
+      if (!seen.has(m)) { seen.add(m); unique.push(m); }
+    }
+    consoleErrors.length = 0;
+    consoleErrors.push(...unique);
+  } catch (e) { /* best-effort only */ }
+  return consoleErrors;
 }
 
 async function goto(url) {
@@ -96,11 +113,52 @@ async function screenshot(name, viewport = 'desktop') {
   return base64;
 }
 
-async function collectConsoleErrors() {
-  return consoleErrors;
+async function executeScript(script) {
+  if (!driver) throw new Error('Browser not launched.');
+  return await driver.executeScript(script);
 }
 
 async function collectFailedRequests() {
+  if (!driver) return failedRequests;
+  try {
+    const entries = await driver.manage().logs().get('performance');
+    entries.forEach((e) => {
+      try {
+        const msg = JSON.parse(e.message).message;
+        const method = msg.method || '';
+        const params = msg.params || {};
+        if (method === 'Network.requestFailed') {
+          const req = params.request || {};
+          failedRequests.push({
+            url: req.url,
+            type: req.method,
+            error: params.errorText || 'failed',
+            timestamp: e.timestamp,
+          });
+        } else if (method === 'Network.responseReceived') {
+          const res = params.response || {};
+          if (res.status >= 400) {
+            failedRequests.push({
+              url: res.url,
+              type: res.requestMethod,
+              status: res.status,
+              error: `HTTP ${res.status}`,
+              timestamp: e.timestamp,
+            });
+          }
+        }
+      } catch (parseErr) { /* ignore unparseable performance log entries */ }
+    });
+    // Deduplicate by url + error.
+    const seen = new Set();
+    const unique = [];
+    for (const r of failedRequests) {
+      const key = `${r.url}|${r.error}`;
+      if (!seen.has(key)) { seen.add(key); unique.push(r); }
+    }
+    failedRequests.length = 0;
+    failedRequests.push(...unique);
+  } catch (e) { /* performance logs not available */ }
   return failedRequests;
 }
 
@@ -113,6 +171,6 @@ async function close() {
 
 module.exports = {
   launchBrowser, goto, click, type, submit, waitForSelector,
-  screenshot, setViewport, collectConsoleErrors, collectFailedRequests, close,
+  screenshot, setViewport, executeScript, collectConsoleErrors, collectFailedRequests, close,
   VIEWPORTS,
 };

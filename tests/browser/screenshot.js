@@ -15,7 +15,14 @@ async function captureFullPage(browser, outDir, name, theme = 'light') {
   for (const [vp, size] of Object.entries(VIEWPORTS)) {
     await browser.setViewport(vp);
     if (theme === 'dark') {
-      // Best-effort dark theme via CSS media override is page-dependent; note it.
+      // Best-effort dark theme: force color-scheme=dark on the root element.
+      // Page-dependent; wrapped in try/catch so a failure never aborts the run.
+      try {
+        await browser.executeScript(
+          `document.documentElement.style.colorScheme='dark';` +
+          `document.documentElement.classList.add('ufme-dark-theme');`
+        );
+      } catch (e) { /* dark theme override not applicable to this page */ }
     }
     const base64 = await browser.screenshot(name, vp);
     const file = path.join(outDir, `${name}-${vp}-${theme}.png`);

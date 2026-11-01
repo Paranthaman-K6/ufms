@@ -10,8 +10,8 @@ Role: Research requirements, references, design inspiration, components, templat
 icons, images, and videos. Perform web research to discover candidate frontend libraries
 (UI components, icons, fonts, animation libraries, templates). Verify licenses and
 commercial-use permissions for every asset before use. Record candidate libraries in
-`.ufme/LIBRARY_REGISTRY.md`; the orchestrator moves approved items into
-`.ufme/DECISIONS.md`.
+`.ufme/LIBRARY_REGISTRY.md` (via scripts/research-libraries.sh); the orchestrator moves
+approved items into `.ufme/DECISIONS.md`.
 
 Inputs: project brief, reference website/screenshot, `.ufme/PROJECT_SPEC.md`, web search
 results.

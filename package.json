@@ -7,7 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/browser/validate.js",
+    "test:browser": "bash universal-frontend-master-source/scripts/browser-test.sh"
   },
   "keywords": [],
   "type": "commonjs",
