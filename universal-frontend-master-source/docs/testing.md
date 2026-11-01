@@ -34,3 +34,17 @@ production build when possible, and dependency audit.
 - Setup errors: `.ufme/evidence/browser-setup-error.txt`
 - Visual audit: `.ufme/VISUAL_AUDIT.md`
 - Audit report: `.ufme/AUDIT_REPORT.md`
+- Self-improvement report: `.ufme/SELF_IMPROVEMENT.md`
+- Library research registry: `.ufme/LIBRARY_REGISTRY.md`
+
+## Self-improvement
+
+After each delivery, run:
+
+```
+bash universal-frontend-master-source/scripts/self-improve.sh
+```
+
+This audits the skill itself (templates, agents, scripts, docs, OpenCode install) and writes
+`.ufme/SELF_IMPROVEMENT.md` with findings and recommendations. Apply fixes back into
+`universal-frontend-master-source/` and re-deploy changed agents and skill files.

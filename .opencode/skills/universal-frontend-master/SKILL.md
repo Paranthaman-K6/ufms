@@ -37,6 +37,13 @@ At the start of every session, the primary orchestrator (`ufme-orchestrator`) mu
 11. Run visual, accessibility, performance, and security audits.
 12. Fix critical and major findings, then retest.
 13. Repeat until acceptance criteria pass or limitations are explicitly documented.
+14. Self-improvement: after each delivery, run `scripts/self-improve.sh` to audit the skill
+    itself (templates, agents, scripts, docs, OpenCode install) and apply fixes back into
+    `universal-frontend-master-source/`, re-deploying changed agents and skill files.
+15. Library research: before adding any web library (UI components, icons, fonts,
+    animation libraries, templates), record it in `.ufme/LIBRARY_REGISTRY.md` via the
+    researcher agent; only free and open-source, commercially usable assets are approved
+    into `.ufme/DECISIONS.md`.
 
 ## Browser engine
 
@@ -55,7 +62,7 @@ command. Browser testing stays BLOCKED until the user confirms installation.
 ## Installed agents
 
 - `ufme-orchestrator` (mode: primary) — `.opencode/agents/ufme-orchestrator.md`
-- `ufme-researcher` (mode: subagent)
+- `ufme-researcher` (mode: subagent) — now performs web research and maintains `.ufme/LIBRARY_REGISTRY.md`
 - `ufme-backend-analyst` (mode: subagent, mandatory)
 - `ufme-product-analyst` (mode: subagent)
 - `ufme-designer` (mode: subagent)
@@ -66,3 +73,17 @@ command. Browser testing stays BLOCKED until the user confirms installation.
 - `ufme-accessibility-auditor` (mode: subagent)
 - `ufme-performance-auditor` (mode: subagent)
 - `ufme-security-auditor` (mode: subagent)
+
+## Self-improvement
+
+The skill improves itself after each delivery via `scripts/self-improve.sh`, which audits
+all skill source files (core, agents, workflows, templates, scripts, docs, OpenCode install)
+and writes `.ufme/SELF_IMPROVEMENT.md` with findings and recommendations. The orchestrator
+applies fixes back into `universal-frontend-master-source/` and re-deploys changed agents and
+the skill file.
+
+## Library research
+
+The researcher agent discovers candidate frontend libraries from the web and records them in
+`.ufme/LIBRARY_REGISTRY.md`. Approved free/open-source/commercially-usable assets are moved
+into `.ufme/DECISIONS.md` before installation (project-local npm only).
