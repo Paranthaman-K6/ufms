@@ -98,7 +98,7 @@ get_frontmatter_field() { # get_frontmatter_field <file> <field>
 
   echo ""
   echo "## Script audit (executable + syntax-valid)"
-  for s in detect-stack backend-discovery check-native-browser browser-test screenshot quality-check self-improve research-libraries detect-platform discover-assets execution-profiles enhance-backend-discovery generate-prototype; do
+  for s in detect-stack backend-discovery check-native-browser browser-test screenshot quality-check self-improve research-libraries detect-platform discover-assets execution-profiles enhance-backend-discovery generate-prototype task-checkpoint; do
     f="$SOURCE_DIR/scripts/$s.sh"
     if [ ! -f "$f" ]; then
       note FAIL "$s.sh" "missing"
