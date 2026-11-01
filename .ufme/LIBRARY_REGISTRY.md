@@ -41,6 +41,25 @@ A registry entry does not mean the dependency is installed or tested.
 | React Email | Email templates | https://react.email/ | Verify project and each template's license | Verify template/dependency license | Follow official docs | Reusable email layout templates and React-based authoring | researched |
 | shadcn registry ecosystem | Component/template registry | https://ui.shadcn.com/docs/registry | Registry/component-specific; do not assume every third-party item is MIT | Verify each item | Use official CLI only after inspecting registry metadata/source | Discover reusable blocks and components; provenance and dependency review required | researched |
 
+| react-hook-form | React form state | https://react-hook-form.com/ | MIT | Generally yes under MIT | `npm install react-hook-form` | Performant, uncontrolled-first form state; supports schema resolvers | researched |
+| @tanstack/react-form | Multi-framework form state | https://tanstack.com/form/latest | MIT | Generally yes under MIT | `npm install @tanstack/react-form` | Type-safe, composable forms; React/Vue/Solid/Angular adapters | researched |
+| formik | React form state | https://formik.org/ | MIT | Generally yes under MIT | `npm install formik` | Established form state, validation and submission abstraction; useful in existing Formik projects | candidate |
+| final-form | Framework-agnostic form state | https://final-form.org/ | MIT | Generally yes under MIT | `npm install final-form` | Subscription-based form state core | candidate |
+| react-final-form | React adapter | https://final-form.org/react | MIT | Generally yes under MIT | `npm install react-final-form final-form` | React bindings for Final Form; field-level subscriptions | candidate |
+| @ngx-formly/core | Angular schema-driven forms | https://formly.dev/ | MIT (verify selected packages) | Generally yes under MIT | `npm install @ngx-formly/core` plus framework adapter | JSON/schema-driven dynamic Angular forms and custom field types | researched |
+| survey-core / survey-react-ui | Cross-framework dynamic forms/surveys | https://surveyjs.io/form-library/documentation/overview | MIT for Form Library | Generally yes under MIT | `npm install survey-react-ui` (or Angular/Vue/vanilla package) | JSON-driven multi-page forms, conditional logic, surveys and quizzes | researched |
+| vee-validate | Vue form state/validation | https://vee-validate.logaretm.com/ | MIT | Generally yes under MIT | `npm install vee-validate` | Vue-native form validation and schema integrations | candidate |
+| @vuelidate/core | Vue validation | https://vuelidate-next.netlify.app/ | MIT | Generally yes under MIT | `npm install @vuelidate/core` | Lightweight model-based validation for Vue | candidate |
+| Felte | Svelte form state | https://felte.dev/ | MIT (verify current package) | Generally yes under MIT | Follow official Svelte installation docs | Svelte-oriented form handling with validator adapters | candidate |
+| sveltekit-superforms | SvelteKit form handling | https://superforms.rocks/ | MIT (verify package) | Generally yes under MIT | Follow official SvelteKit docs | Server/client validation, progressive enhancement and form actions | candidate |
+| Angular Reactive Forms | Angular built-in forms API | https://angular.dev/guide/forms/reactive-forms | Angular framework license (MIT) | Generally yes under MIT | Built into Angular | Model-driven forms, validation and dynamic controls without third-party dependency | researched |
+| Zod | Schema validation | https://zod.dev/ | MIT | Generally yes under MIT | `npm install zod` | Type inference and runtime validation; integrates with form libraries | researched |
+| Valibot | Schema validation | https://valibot.dev/ | MIT | Generally yes under MIT | `npm install valibot` | Modular/tree-shakeable validation schemas | researched |
+| Yup | Schema validation | https://github.com/jquense/yup | MIT | Generally yes under MIT | `npm install yup` | Mature schema validation, widely used with Formik and resolvers | candidate |
+| Ajv | JSON Schema validation | https://ajv.js.org/ | MIT | Generally yes under MIT | `npm install ajv` | Fast JSON Schema validation for API contracts and generated forms | researched |
+| @rjsf/core | JSON Schema forms (React) | https://github.com/rjsf-team/react-jsonschema-form | Apache-2.0 (verify packages) | Generally yes under Apache-2.0 | `npm install @rjsf/core` plus theme package | Render React forms from JSON Schema with extensible widgets | researched |
+| FormKit | Vue form system | https://formkit.com/ | MIT for core (verify add-ons) | Generally yes under MIT for core | `npm install @formkit/vue` | Vue form inputs, validation and schema-based form generation | candidate |
+
 ## Research findings and selection guidance
 
 ### Component systems
@@ -84,6 +103,29 @@ Before adding or recommending an entry, the researcher should:
 - Google Fonts: https://fonts.google.com/
 - React Email templates: https://react.email/templates
 - LottieFiles web player: https://github.com/LottieFiles/dotlottie-web
+
+
+### Form libraries: selection notes
+- **React default shortlist:** React Hook Form for a conventional React form workflow; TanStack Form for strongly typed, composable forms and cross-framework reuse; Formik mainly for established projects already using it.
+- **Dynamic/schema-driven forms:** SurveyJS Form Library for complex surveys and conditional multi-step flows; RJSF when JSON Schema is the source of truth and React is the renderer; Angular Formly for Angular schema-driven forms.
+- **Framework-native options:** Angular Reactive Forms, vee-validate/Vuelidate for Vue, and Felte/SvelteKit Superforms for Svelte. Prefer framework-native integrations over wrapping a React library into another framework.
+- **Validation is a separate decision:** Zod, Valibot, Yup and Ajv are validators, not complete form-state libraries. Pick one schema system where possible and check whether the chosen form library supports it directly or through a resolver/Standard Schema adapter.
+- **Open-source scope:** SurveyJS Form Library is MIT, but Survey Creator/other products may have separate licensing. For all monorepos, verify the license of the exact package and optional commercial add-ons.
+- **Avoid duplication:** do not add multiple form-state libraries to one project without a migration or clear feature boundary. Avoid combining schema validators unnecessarily.
+
+### Official form-library sources
+- React Hook Form docs and repository/license: https://react-hook-form.com/ ; https://github.com/react-hook-form/react-hook-form
+- TanStack Form docs and repository: https://tanstack.com/form/latest/docs/framework/react/quick-start ; https://github.com/TanStack/form
+- Formik docs: https://formik.org/docs/overview
+- Final Form: https://final-form.org/ ; React Final Form: https://final-form.org/react
+- SurveyJS Form Library docs/license: https://surveyjs.io/form-library/documentation/overview ; https://github.com/surveyjs/survey-library
+- Angular Reactive Forms: https://angular.dev/guide/forms/reactive-forms
+- Angular Formly: https://formly.dev/ ; https://github.com/ngx-formly/ngx-formly
+- vee-validate: https://vee-validate.logaretm.com/ ; Vuelidate: https://vuelidate-next.netlify.app/
+- Felte: https://felte.dev/ ; SvelteKit Superforms: https://superforms.rocks/
+- React JSON Schema Form: https://github.com/rjsf-team/react-jsonschema-form
+- FormKit: https://formkit.com/ ; https://github.com/formkit/formkit
+- Zod: https://zod.dev/ ; Valibot: https://valibot.dev/ ; Yup: https://github.com/jquense/yup ; Ajv: https://ajv.js.org/
 
 ## Governance
 This registry is a research index, not a dependency lockfile or blanket legal opinion. Project decisions must cite the specific entry and context in `.ufme/DECISIONS.md`. Re-check licenses, package names, versions, APIs, and terms at implementation time because they can change. Use the narrowest dependency set that meets the design and functional requirements.
