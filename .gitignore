@@ -1,0 +1,6 @@
+node_modules/
+.package-lock.json
+.ufme/evidence/screenshots/*.png
+.ufme/evidence/browser-results.json
+.ufme/evidence/browser-setup-error.txt
+.ufme-selenium-check.*.js
