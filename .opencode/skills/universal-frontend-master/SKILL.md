@@ -61,18 +61,56 @@ command. Browser testing stays BLOCKED until the user confirms installation.
 
 ## Installed agents
 
-- `ufme-orchestrator` (mode: primary) — `.opencode/agents/ufme-orchestrator.md`
-- `ufme-researcher` (mode: subagent) — now performs web research and maintains `.ufme/LIBRARY_REGISTRY.md`
-- `ufme-backend-analyst` (mode: subagent, mandatory)
-- `ufme-product-analyst` (mode: subagent)
-- `ufme-designer` (mode: subagent)
-- `ufme-frontend-architect` (mode: subagent)
-- `ufme-implementer` (mode: subagent)
-- `ufme-integrator` (mode: subagent)
-- `ufme-visual-auditor` (mode: subagent, mandatory)
-- `ufme-accessibility-auditor` (mode: subagent)
-- `ufme-performance-auditor` (mode: subagent)
-- `ufme-security-auditor` (mode: subagent)
+| Agent | Mode | Role | Delegate with |
+|-------|------|------|---------------|
+| `ufme-orchestrator` | primary | Coordinates all work, owns memory & tasks, enforces acceptance criteria | N/A (user-facing) |
+| `ufme-researcher` | subagent | Researches requirements, assets, licenses; maintains library registry | `@ufme-researcher` |
+| `ufme-backend-analyst` | subagent (mandatory) | Evidence-based API, auth, capability, error maps | `@ufme-backend-analyst` |
+| `ufme-product-analyst` | subagent | PRD, sitemap, user flows, feature matrix | `@ufme-product-analyst` |
+| `ufme-designer` | subagent | Design system, wireframes, components | `@ufme-designer` |
+| `ufme-frontend-architect` | subagent | Architecture, routing, state, testing strategy | `@ufme-frontend-architect` |
+| `ufme-implementer` | subagent | Pages, components, forms, layouts | `@ufme-implementer` |
+| `ufme-integrator` | subagent | Typed API client, auth flows, validation, error handling | `@ufme-integrator` |
+| `ufme-visual-auditor` | subagent (mandatory) | Selenium screenshot review | `@ufme-visual-auditor` |
+| `ufme-accessibility-auditor` | subagent | WCAG 2.1 AA checks | `@ufme-accessibility-auditor` |
+| `ufme-performance-auditor` | subagent | Core Web Vitals, Lighthouse | `@ufme-performance-auditor` |
+| `ufme-security-auditor` | subagent | XSS, CSRF, CORS, CSP, secrets, dep audit | `@ufme-security-auditor` |
+
+## Multi-agent delegation protocol
+
+The orchestrator delegates work to specialist subagents using `@agent-name` syntax. Each
+subagent returns a structured result: status (`COMPLETE`/`BLOCKED`/`NEEDS_INPUT`), files
+created/updated, decisions made, open questions, blocking dependencies, and recommended next
+agent. The orchestrator updates `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md` after each
+delegation.
+
+### Delegation chain (executed in order unless parallel-safe)
+
+1. `@ufme-researcher` — research requirements, references, assets, licenses
+2. `@ufme-backend-analyst` — analyze backend/API, produce evidence-based maps (MANDATORY)
+3. `@ufme-product-analyst` — create PRD, sitemap, user flows, feature matrix
+4. `@ufme-designer` — create design system, wireframes, component architecture
+5. `@ufme-frontend-architect` — define architecture, routing, state, testing strategy
+6. `@ufme-implementer` — build pages, components, navigation, forms, responsive layouts
+7. `@ufme-integrator` — connect frontend to confirmed backend endpoints
+8. `@ufme-browser-execution` — run Selenium browser tests (via `scripts/browser-test.sh`)
+9. `@ufme-visual-auditor` — review Selenium screenshots (MANDATORY)
+10. `@ufme-accessibility-auditor` — WCAG 2.1 AA audit
+11. `@ufme-performance-auditor` — Core Web Vitals, Lighthouse
+12. `@ufme-security-auditor` — XSS, CSRF, CORS, CSP, secrets, dep audit
+
+Parallel work is allowed only when tasks do not modify the same files. If two agents
+disagree, the orchestrator resolves the conflict and records the decision in
+`.ufme/DECISIONS.md`.
+
+## How to invoke the skill
+
+```
+@universal-frontend-master Build a complete, professional, responsive website for this project.
+```
+
+The orchestrator will automatically delegate to the appropriate subagents based on the
+project type and current task state.
 
 ## Self-improvement
 
