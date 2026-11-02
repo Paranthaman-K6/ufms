@@ -57,6 +57,28 @@ Preserve the existing architecture and update relevant `.ufme/` artifacts.
 | ufme-performance-auditor | performance findings | accessibility auditor |
 | ufme-security-auditor | security findings | performance auditor |
 
+## Execution profiles
+
+The orchestrator selects an execution profile via
+`scripts/execution-profiles.sh <lite|standard|advanced|autonomous>`. Profile configs live in
+`universal-frontend-master-source/profiles/` and control max agents, research depth, allowed
+parallelism, verification depth, resource budgets, browser testing level, and self-improvement
+policy. Security constraints (no sudo/pacman/systemctl/doas/pkexec/su, no Playwright, no
+containers, project-local npm only, mandatory acceptance criteria) are never bypassed by any
+profile.
+
+## Task checkpoints
+
+Task state is managed via `scripts/task-checkpoint.sh` with dependency-aware transitions:
+- `list` — show all tasks
+- `status <id>` — show task status
+- `complete <id> [deps...]` — mark complete only after dependencies verified and mutation confirmed
+- `blocked <id> <reason>` — mark blocked with reason
+- `add <id> <desc>` — add a new task
+
+A task is never marked COMPLETE unless dependency completion is verified and the state change
+is confirmed by re-reading `.ufme/TASKS.md`.
+
 ## Conflict resolution
 
 The orchestrator is the final arbiter. Disagreements are recorded in `.ufme/DECISIONS.md`

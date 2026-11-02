@@ -75,9 +75,8 @@ main() {
   fi
 
   if [ "$OUTPUT_JSON" = "--json" ]; then
+    # Output valid JSON only: profile JSON already includes securityConstraints.
     echo "$profile_json"
-    echo ""
-    print_security_constraints
   else
     # Human-readable output
     local name research_depth parallel verification budget browser self_improve max_agents
