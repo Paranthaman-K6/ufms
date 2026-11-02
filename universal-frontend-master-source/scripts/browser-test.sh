@@ -34,10 +34,14 @@ fi
 if ! command -v curl >/dev/null 2>&1; then
   log "curl not available; skipping URL responsiveness check."
 else
-  if curl -sS -o /dev/null --max-time 10 "$URL" >/dev/null 2>&1; then
+  if curl -fsS -o /dev/null --max-time 10 "$URL" >/dev/null 2>&1; then
     log "URL responds: $URL"
   else
-    log "WARNING: URL did not respond: $URL (is the dev server running?)"
+    log "BLOCKED: URL did not respond: $URL (is the dev server running?)"
+    cat > "$RESULTS_FILE" <<JSON
+{"url":"$URL","status":"BLOCKED","reason":"URL did not respond","timestamp":"$(date -Iseconds)"}
+JSON
+    exit 1
   fi
 fi
 

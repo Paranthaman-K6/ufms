@@ -14,7 +14,7 @@
 | P0-4 | Actual full-page screenshots | tests/browser/screenshot.js | DONE |
 | P0-4 | Section screenshots via element lookup | tests/browser/screenshot.js | DONE |
 | P0-4 | Dark mode mode distinction | tests/browser/screenshot.js | DONE |
-| P0-5 | quality-report.json generation | scripts/quality-check.sh | DONE |
+| P0-5 | quality-report.json generation | scripts/quality-check.py | DONE |
 | P0-5 | Quality-gate exit-code tests | tests/regression/run.js | DONE |
 
 Regression test results: 5 passed, 0 failed, 3 skipped (real browser not requested)

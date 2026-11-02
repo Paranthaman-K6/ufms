@@ -20,3 +20,4 @@ prohibited_actions:
 escalation_rules:
   - Required asset is paid or license unclear -> escalate to orchestrator/researcher.
 source: universal-frontend-master-source/agents/designer.md
+---

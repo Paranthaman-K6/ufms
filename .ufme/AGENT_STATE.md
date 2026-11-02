@@ -18,12 +18,12 @@
   - Quality report: .ufme/evidence/quality-report.json generated
   - Regression tests: tests/regression/run.js (5 pass, 0 fail, 3 skip)
 - Priority 2 (design intelligence): COMPLETE — research-libraries.sh + LIBRARY_REGISTRY.md done; prototype generator upgraded to consume real project info
-- Priority 3 (asset intelligence): COMPLETE — discover-assets.sh enhanced (dedup, dimensions, broken assets)
-- Priority 4 (multi-agent orchestration): COMPLETE — task-checkpoint.sh with verification
+- Priority 3 (asset intelligence): COMPLETE — discover-assets.py enhanced (dedup, dimensions, broken assets)
+- Priority 4 (multi-agent orchestration): COMPLETE — task-checkpoint.py with verification
 - Priority 5 (MCP integration): COMPLETE (optional) — discover.js integration layer
-- Priority 6 (backend intelligence): COMPLETE — enhance-backend-discovery.sh parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
+- Priority 6 (backend intelligence): COMPLETE — enhance-backend-discovery.py parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
 - Priority 7 (visual engineering loop): EXISTING, enhanced
-- Priority 8 (production quality): COMPLETE — quality-check.sh with quality-report.json
+- Priority 8 (production quality): COMPLETE — quality-check.py with quality-report.json
 - Priority 9 (execution profiles): COMPLETE — profile config files + execution-profiles.sh reads them
 - Priority 10 (platform support): COMPLETE — detect-platform.sh
 
@@ -32,7 +32,7 @@
 - npm test: 16/16 validation checks pass
 - All 14 shell scripts: bash -n valid + executable
 - All JS files: node --check valid
-- self-improve.sh: 69 PASS / 0 FAIL
+- self-improve.py: 69 PASS / 0 FAIL
 - Regression tests: 5 pass, 0 fail, 3 skipped
 - Quality check: 4 PASS, 0 FAIL, 5 SKIPPED, 0 BLOCKED (overall PASS)
 - Native Selenium (Firefox headless): OK

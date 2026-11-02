@@ -1,7 +1,7 @@
 # Review Summary: UFME multi-agent frontend skill
 
 ## Overall Assessment
-The implementation successfully delivers all 10 priorities as described in the handoff. Core functionality works: npm test passes (16/16), all 14 shell scripts pass `bash -n` syntax validation and are executable, self-improve.sh reports 69 PASS / 0 FAIL, and Firefox Selenium headless launch is confirmed working. The skill is structurally complete with agents, workflows, templates, and runtime memory files all present.
+The implementation successfully delivers all 10 priorities as described in the handoff. Core functionality works: npm test passes (16/16), all 14 shell scripts pass `bash -n` syntax validation and are executable, self-improve.py reports 69 PASS / 0 FAIL, and Firefox Selenium headless launch is confirmed working. The skill is structurally complete with agents, workflows, templates, and runtime memory files all present.
 
 However, there are **significant adequacy gaps** between the claimed state and the actual implementation state, particularly around agent synchronization and Chromium compatibility.
 
@@ -29,7 +29,7 @@ However, there are **significant adequacy gaps** between the claimed state and t
 - Source: has `mode: primary`, `permissions`, `inputs`, `outputs`, `role_definition` with the full role description
 - Installed: has `model: nemotron-3.5-super-vl-free`, `role_definition` with truncated content, missing `permissions`/`inputs`/`outputs`
 
-**Impact:** The installed agents do not accurately represent the source-of-truth definitions. Any OpenCode operation that reads these agents will get a watered-down version missing critical role definition details (permissions, inputs, outputs). The self-improve.sh only checks for frontmatter presence + `mode` field, giving a false 69 PASS / 0 FAIL result despite the structural corruption.
+**Impact:** The installed agents do not accurately represent the source-of-truth definitions. Any OpenCode operation that reads these agents will get a watered-down version missing critical role definition details (permissions, inputs, outputs). The self-improve.py only checks for frontmatter presence + `mode` field, giving a false 69 PASS / 0 FAIL result despite the structural corruption.
 
 **Root cause:** OpenCode auto-wraps agent definitions when installing them into `.opencode/agents/` and `.opencode/skills/`, adding `model` and `role_definition` fields but not preserving the original `mode`/`permissions`/`inputs`/`outputs` structure.
 
@@ -54,7 +54,7 @@ However, there are **significant adequacy gaps** between the claimed state and t
 
 ### ⚠️ Non-blocker: Self-improve.sh validation is shallow
 
-**Affected path:** `universal-frontend-master-source/scripts/self-improve.sh`
+**Affected path:** `universal-frontend-master-source/scripts/self-improve.py`
 
 **The problem:** The script only validates 2 of ~10 frontmatter fields per agent:
 1. File exists
@@ -69,11 +69,11 @@ It does NOT validate: `permissions`, `inputs`, `outputs`, full `role_definition`
 
 ---
 
-### ⚠️ Non-blocker: quality-check.sh browser tests require external dev server
+### ⚠️ Non-blocker: quality-check.py browser tests require external dev server
 
-**Affected path:** `universal-frontend-master-source/scripts/browser-test.sh` + `quality-check.sh`
+**Affected path:** `universal-frontend-master-source/scripts/browser-test.sh` + `quality-check.py`
 
-**The problem:** `browser-test.sh` checks URL responsiveness with `curl` but does not start a dev server. The quality-check.sh selenium browser test section (line 57) runs `browser-test.sh` which expects a running server at the default URL `http://localhost:5173`.
+**The problem:** `browser-test.sh` checks URL responsiveness with `curl` but does not start a dev server. The quality-check.py selenium browser test section (line 57) runs `browser-test.sh` which expects a running server at the default URL `http://localhost:5173`.
 
 **Evidence:** Line 40 of browser-test.sh: `log "WARNING: URL did not respond: $URL (is the dev server running?)"` — this is a warning, not an error, but the implication is that the test assumes a dev server is running.
 
@@ -117,11 +117,11 @@ Both are present and correctly structured. No gap.
 
 1. **Fix agent synchronization:** Either (a) modify the OpenCode installation process to preserve the original `mode`/`permissions`/`inputs`/`outputs` fields, or (b) update the source agents to match the OpenCode-wrapped format that the system actually uses. The current state where they differ and neither is truly "correct" is unacceptable.
 
-2. **Expand self-improve.sh validation:** Add checks for `permissions`, `inputs`, `outputs` fields, or adjust the upgrade report to not claim "validated by self-improve" when the validation is known to be incomplete.
+2. **Expand self-improve.py validation:** Add checks for `permissions`, `inputs`, `outputs` fields, or adjust the upgrade report to not claim "validated by self-improve" when the validation is known to be incomplete.
 
 3. **Document Chromium limitation:** Add a clear note in the README and `DECISIONS.md` that Firefox is the only working Selenium engine with this selenium-webdriver build, and Chromium launch will fail with `setBinary` error. This sets correct expectations for users.
 
-4. **Add dev server startup to browser-test.sh or quality-check.sh:** Either start a dev server as part of the test flow, or add an explicit requirement that callers must have `npm run dev` running first. The current "assume dev server is running" approach is fragile.
+4. **Add dev server startup to browser-test.sh or quality-check.py:** Either start a dev server as part of the test flow, or add an explicit requirement that callers must have `npm run dev` running first. The current "assume dev server is running" approach is fragile.
 
 5. **Consider making LIBRARY_REGISTRY entries actionable:** If the goal is to eventually install libraries, add a `STATUS: approved` / `STATUS: rejected` field and a `DECISIONS.md` reference for each candidate, so the research leads to decisions.
 

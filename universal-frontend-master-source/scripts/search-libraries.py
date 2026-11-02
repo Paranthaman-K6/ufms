@@ -3,8 +3,9 @@
 search-libraries.py
 Library research tool for UFME agents.
 
-Searches the local .ufme/LIBRARY_REGISTRY.md file first, then the npm registry
-for candidate frontend libraries. Displays results as a selectable table so
+Searches the user-level ~/.config/ufme/LIBRARY_REGISTRY.md first, then the
+project .ufme/LIBRARY_REGISTRY.md file, then the npm registry for candidate
+frontend libraries. Displays results as a selectable table so
 agents can choose which libraries to approve for the project.
 
 Usage:
@@ -45,6 +46,12 @@ def find_project_root():
 ROOT_DIR = find_project_root()
 UFME_DIR = os.path.join(ROOT_DIR, ".ufme")
 REGISTRY_OUT = os.path.join(UFME_DIR, "LIBRARY_REGISTRY.md")
+# User-level registry shared by every project (seeded by install.sh).
+GLOBAL_REGISTRY = os.path.join(
+    os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"),
+    "ufme",
+    "LIBRARY_REGISTRY.md",
+)
 SEARCH_RESULTS = os.path.join(UFME_DIR, "library-search-results.md")
 CHOSEN_FILE = os.path.join(UFME_DIR, "library-chosen.md")
 DECISIONS = os.path.join(UFME_DIR, "DECISIONS.md")
@@ -165,35 +172,40 @@ def category_terms(category: str) -> str:
     }
     return mapping.get(category, category)
 
-def search_local_registry(term: str) -> List[dict]:
-    """Search the local LIBRARY_REGISTRY.md file for matching entries."""
-    if not os.path.exists(REGISTRY_OUT) or os.path.getsize(REGISTRY_OUT) == 0:
-        return []
+def registry_files() -> List[str]:
+    """User-level registry first, then the project registry."""
+    return [
+        p for p in (GLOBAL_REGISTRY, REGISTRY_OUT)
+        if os.path.exists(p) and os.path.getsize(p) > 0
+    ]
 
+def search_local_registry(term: str) -> List[dict]:
+    """Search the user-level and local LIBRARY_REGISTRY.md files for matching entries."""
     lc_term = term.lower()
     results = []
 
-    with open(REGISTRY_OUT, "r", encoding="utf-8") as f:
-        for line in f:
-            if not line.startswith("|") or line.strip().startswith("|---"):
-                continue
-            parts = [p.strip() for p in line.strip().strip("|").split("|")]
-            if len(parts) < 8:
-                continue
-            name = parts[0]
-            if name in ("Name", "------"):
-                continue
-            combined = " ".join(parts).lower()
-            if lc_term in combined:
-                results.append({
-                    "name": name,
-                    "category": parts[1] if len(parts) > 1 else "",
-                    "site": parts[2] if len(parts) > 2 else "",
-                    "license": parts[3] if len(parts) > 3 else "",
-                    "commercial": parts[4] if len(parts) > 4 else "",
-                    "install": parts[5] if len(parts) > 5 else "",
-                    "status": parts[7] if len(parts) > 7 else "",
-                })
+    for path in registry_files():
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.startswith("|") or line.strip().startswith("|---"):
+                    continue
+                parts = [p.strip() for p in line.strip().strip("|").split("|")]
+                if len(parts) < 8:
+                    continue
+                name = parts[0]
+                if name in ("Name", "------"):
+                    continue
+                combined = " ".join(parts).lower()
+                if lc_term in combined:
+                    results.append({
+                        "name": name,
+                        "category": parts[1] if len(parts) > 1 else "",
+                        "site": parts[2] if len(parts) > 2 else "",
+                        "license": parts[3] if len(parts) > 3 else "",
+                        "commercial": parts[4] if len(parts) > 4 else "",
+                        "install": parts[5] if len(parts) > 5 else "",
+                        "status": parts[7] if len(parts) > 7 else "",
+                    })
     return results
 
 def record_package(pkg: str) -> bool:
@@ -217,7 +229,7 @@ def record_package(pkg: str) -> bool:
         f.write(
             f"| {meta['name']} | {cat} | {meta['homepage']} | "
             f"{meta['license']} | {meta['commercial']} | {meta['install']} | "
-            f"{reason} | candidate |\\n"
+            f"{reason} | candidate |\n"
         )
     log(f"Registered: {meta['name']} ({cat}, {meta['license']}, {meta['commercial']} commercial-use)")
     return True
@@ -230,8 +242,8 @@ def approve_package(pkg: str) -> bool:
         with open(REGISTRY_OUT, "r", encoding="utf-8") as f:
             content = f.read()
         content = re.sub(
-            rf"(\\| {re.escape(pkg)} \\| [^|]* \\| [^|]* \\| [^|]* \\| [^|]* \\| [^|]* \\| )candidate \\|",
-            r"\\1approved |",
+            rf"\| {re.escape(pkg)} \| [^|]* \| [^|]* \| [^|]* \| [^|]* \| [^|]* \| candidate \|",
+            r"\1approved |",
             content,
         )
         with open(REGISTRY_OUT, "w", encoding="utf-8") as f:
@@ -240,9 +252,9 @@ def approve_package(pkg: str) -> bool:
     if not os.path.exists(DECISIONS):
         with open(DECISIONS, "w", encoding="utf-8") as f:
             f.write(
-                "# Decisions\\n\\n"
-                "| Decision | Name | Repo/site | License | Commercial use | Install method | Reason |\\n"
-                "|----------|------|-----------|---------|----------------|----------------|--------|\\n"
+                "# Decisions\n\n"
+                "| Decision | Name | Repo/site | License | Commercial use | Install method | Reason |\n"
+                "|----------|------|-----------|---------|----------------|----------------|--------|\n"
             )
 
     if os.path.exists(DECISIONS):
@@ -257,19 +269,22 @@ def approve_package(pkg: str) -> bool:
             f.write(
                 f"| UI library | {meta['name']} | {meta['homepage']} | "
                 f"{meta['license']} | {meta['commercial']} | {meta['install']} | "
-                f"{meta['desc']} |\\n"
+                f"{meta['desc']} |\n"
             )
     log(f"Approved: {pkg} recorded in .ufme/DECISIONS.md")
     return True
 
 def list_registry() -> None:
-    """List current registry contents."""
-    if not os.path.exists(REGISTRY_OUT) or os.path.getsize(REGISTRY_OUT) == 0:
+    """List user-level registry plus current project registry contents."""
+    files = registry_files()
+    if not files:
         print("Library registry is empty or not initialized.")
         print("Run: python3 universal-frontend-master-source/scripts/search-libraries.py <search terms> to discover libraries.")
         return
-    with open(REGISTRY_OUT, "r", encoding="utf-8") as f:
-        print(f.read())
+    for path in files:
+        print(f"\n=== {path} ===\n")
+        with open(path, "r", encoding="utf-8") as f:
+            print(f.read())
 
 def show_chosen() -> None:
     """Show chosen libraries for implementation."""

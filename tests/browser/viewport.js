@@ -1,5 +1,5 @@
 // tests/browser/viewport.js
-// Viewport constants shared across the browser abstraction.
+// Single source of truth for the four UFME viewports.
 const VIEWPORTS = {
   mobile: { width: 390, height: 844 },
   tablet: { width: 768, height: 1024 },

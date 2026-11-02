@@ -2,12 +2,14 @@
   "name": "myskills",
   "version": "1.0.0",
   "description": "Build, extend, integrate, audit, and continuously improve complete responsive websites from a brief, repository, backend, API documentation, screenshot, or reference site. Arch Linux-aware multi-agent frontend engineering with native Selenium WebDriver browser testing, visual auditing, accessibility, performance, security, and production readiness.",
-  "main": "index.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/browser/validate.js",
+    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js",
+    "test:validate": "node tests/browser/validate.js",
+    "test:security": "node tests/browser/security.js",
+    "test:regression": "node tests/regression/run.js",
     "test:browser": "bash universal-frontend-master-source/scripts/browser-test.sh"
   },
   "keywords": [],

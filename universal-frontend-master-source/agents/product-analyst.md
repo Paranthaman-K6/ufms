@@ -19,3 +19,4 @@ prohibited_actions:
 escalation_rules:
   - Conflicting requirements -> escalate to orchestrator for resolution in .ufme/DECISIONS.md.
 source: universal-frontend-master-source/agents/product-analyst.md
+---

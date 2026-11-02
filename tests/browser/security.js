@@ -17,8 +17,8 @@ const PROHIBITED_FLAGS = [
 
 const LAUNCH_FILES = [
   'tests/browser/browser.js',
-  'tests/browser/chromium.js',
-  'tests/browser/firefox.js',
+  'tests/browser/engines/chromium.js',
+  'tests/browser/engines/firefox.js',
   'universal-frontend-master-source/scripts/check-native-browser.sh',
 ];
 

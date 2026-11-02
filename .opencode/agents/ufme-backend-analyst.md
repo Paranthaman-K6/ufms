@@ -1,7 +1,6 @@
 ---
 name: ufme-backend-analyst
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Mandatory specialist. Analyzes Spring Boot, Express, Fastify, NestJS, Django, Flask, FastAPI, Laravel, Rails, ASP.NET, Go HTTP services, REST, GraphQL, OpenAPI, Swagger, Postman, and AsyncAPI. Produces evidence-based API, authentication, authorization, error, and capability maps. Never invents endpoints, fields, roles, permissions, or responses.
 permissions:
   - read: backend repository, API docs, OpenAPI/Swagger/Postman/AsyncAPI specs, .ufme/PROJECT_SPEC.md

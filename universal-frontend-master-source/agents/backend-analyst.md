@@ -21,3 +21,4 @@ prohibited_actions:
 escalation_rules:
   - A backend capability cannot be confirmed -> mark INFERRED or MISSING_BACKEND and flag to orchestrator.
 source: universal-frontend-master-source/agents/backend-analyst.md
+---

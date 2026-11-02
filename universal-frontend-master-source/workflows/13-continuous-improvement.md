@@ -11,7 +11,7 @@ limitations are documented.
 3. Return fixes to implementer/integrator via orchestrator; retest after each fix.
 4. Record conflict resolutions and dependency decisions in `.ufme/DECISIONS.md`.
 5. Update `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md`.
-6. **Self-improvement**: run `scripts/self-improve.sh` to audit the skill itself
+6. **Self-improvement**: run `scripts/self-improve.py` to audit the skill itself
    (templates, agents, scripts, docs, OpenCode install). Apply fixes to
    `universal-frontend-master-source/` and re-deploy changed agents/skill files.
 7. Repeat until acceptance criteria pass or limitations explicitly documented.

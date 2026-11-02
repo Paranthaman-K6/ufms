@@ -1,7 +1,6 @@
 ---
 name: ufme-integrator
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Connects the frontend to confirmed backend endpoints. Implements typed API clients, authentication flows, authorization-aware UI, validation, error handling, retries where appropriate, and network failure states.
 permissions:
   - read: .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, .ufme/ERROR_HANDLING.md, .ufme/BACKEND_CAPABILITIES.md

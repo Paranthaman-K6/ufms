@@ -19,3 +19,4 @@ prohibited_actions:
 escalation_rules:
   - Visual fix requires code change -> return to implementer via orchestrator.
 source: universal-frontend-master-source/agents/visual-auditor.md
+---

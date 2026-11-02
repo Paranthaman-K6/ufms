@@ -26,3 +26,4 @@ escalation_rules:
   - License unclear or asset is paid/premium -> escalate to orchestrator; mark rejected.
   - Web research returns conflicting license info -> flag for manual verification.
 source: universal-frontend-master-source/agents/researcher.md
+---

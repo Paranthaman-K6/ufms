@@ -10,10 +10,10 @@
 | 6 | Failed requests / HTTP errors not detected | tests/browser/browser.js | DONE |
 | 7 | Browser lifecycle / timeout handling | tests/browser/run.js | DONE |
 | 8 | Unsafe Chromium --no-sandbox default | tests/browser/browser.js | DONE |
-| 9 | Quality-check suppresses failures / exit 0 | quality-check.sh | DONE |
-| 10 | Silent failure suppression (|| true, || log) | quality-check.sh | DONE |
-| 11 | No PASS/FAIL/SKIPPED/BLOCKED distinction | run.js, quality-check.sh | DONE |
+| 9 | Quality-check suppresses failures / exit 0 | quality-check.py | DONE |
+| 10 | Silent failure suppression (|| true, || log) | quality-check.py | DONE |
+| 11 | No PASS/FAIL/SKIPPED/BLOCKED distinction | run.js, quality-check.py | DONE |
 | 12 | Incomplete JSON test report | tests/browser/run.js | DONE |
-| 13 | Self-improvement was file-existence only | self-improve.sh | DONE |
+| 13 | Self-improvement was file-existence only | self-improve.py | DONE |
 
 Verification: npm test passes (16/16), all scripts bash -n clean, self-improve 62 PASS / 0 FAIL.

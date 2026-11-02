@@ -44,12 +44,13 @@ detect_browsers() {
 
   # Test Selenium with available browsers
   if [ -n "$CHROMIUM_BIN" ]; then
-    if timeout "${TIMEOUT_SEC}s" python3 -c "
+    if timeout --kill-after=2 "${TIMEOUT_SEC}s" python3 -c "
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 opts = Options()
 opts.add_argument('--headless')
-opts.add_argument('--no-sandbox')
+# Sandbox omitted only in isolated CI containers; not default for normal operation.
+# This agent never adds --no-sandbox by default. If needed, user must set via env.
 opts.add_argument('--disable-dev-shm-usage')
 try:
     driver = webdriver.Chrome(options=opts)
@@ -59,13 +60,13 @@ try:
     exit(0)
 except Exception as e:
     exit(1)
-    " 2>/dev/null; then
+    " 2>>"$BROWSER_ERROR"; then
       SELENIUM_WORKS_CHROMIUM=true
     fi
   fi
 
   if [ -n "$FIREFOX_BIN" ]; then
-    if timeout "${TIMEOUT_SEC}s" python3 -c "
+    if timeout --kill-after=2 "${TIMEOUT_SEC}s" python3 -c "
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 opts = Options()
@@ -78,7 +79,7 @@ try:
     exit(0)
 except Exception as e:
     exit(1)
-    " 2>/dev/null; then
+    " 2>>"$BROWSER_ERROR"; then
       SELENIUM_WORKS_FIREFOX=true
     fi
   fi
@@ -113,6 +114,7 @@ try_selenium_launch() {
   local bin="$2"
   local tmpfile
   tmpfile="$(mktemp "$ROOT_DIR/.ufme-selenium-check.XXXXXX.js")"
+  trap 'rm -f "$tmpfile"' RETURN
   cat > "$tmpfile" <<EOF
 const {Builder, Browser} = require('selenium-webdriver');
 (async () => {
@@ -123,7 +125,9 @@ const {Builder, Browser} = require('selenium-webdriver');
     // Preserve Chromium sandboxing by default; --no-sandbox omitted for security.
     // setBinary() is not available on Chrome Options in selenium-webdriver v4;
     // Chrome locates its binary automatically via CHROME_BIN env var or PATH.
-    opts = new (require('selenium-webdriver/chrome').Options)().addArguments('--headless=new', '--disable-dev-shm-usage');
+    opts = new (require('selenium-webdriver/chrome').Options)();
+    if (process.env.CHROMIUM_BIN) opts.setChromeBinaryPath(process.env.CHROMIUM_BIN);
+    opts.addArguments('--headless=new', '--disable-dev-shm-usage');
   }
   // Selenium Manager recognizes 'chrome' (not 'chromium') as the browser name.
   let browserName = process.argv[2] === 'chromium' ? 'chrome' : process.argv[2];

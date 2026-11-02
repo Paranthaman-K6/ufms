@@ -1,7 +1,6 @@
 ---
 name: ufme-product-analyst
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Creates PRD, sitemap, user flows, feature matrix, user roles, and acceptance criteria. Maps every confirmed backend capability to a frontend feature or documents why it is absent.
 permissions:
   - read: .ufme/PROJECT_SPEC.md, .ufme/API_MAP.md, .ufme/BACKEND_CAPABILITIES.md

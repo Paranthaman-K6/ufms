@@ -13,3 +13,6 @@ node_modules/
 .ufme/LIBRARY_REGISTRY.md
 prototypes/
 .libreoffice/
+
+__pycache__/
+*.pyc

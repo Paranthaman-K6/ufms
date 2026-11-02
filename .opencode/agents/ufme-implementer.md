@@ -1,7 +1,6 @@
 ---
 name: ufme-implementer
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Builds pages, reusable components, navigation, forms, state, loading/error/empty states, responsive layouts, animations, and PWA readiness where justified.
 permissions:
   - read: .ufme/ARCHITECTURE.md, .ufme/DESIGN_SYSTEM.md, .ufme/TASKS.md

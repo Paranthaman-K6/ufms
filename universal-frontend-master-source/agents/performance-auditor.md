@@ -19,3 +19,4 @@ prohibited_actions:
 escalation_rules:
   - Lighthouse not available -> note limitation, continue with bundle size and lab metrics.
 source: universal-frontend-master-source/agents/performance-auditor.md
+---

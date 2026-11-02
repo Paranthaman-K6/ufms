@@ -22,7 +22,7 @@ bash universal-frontend-master-source/scripts/check-native-browser.sh
 
 ## Full quality check
 ```
-bash universal-frontend-master-source/scripts/quality-check.sh
+python3 universal-frontend-master-source/scripts/quality-check.py
 ```
 Runs TypeScript check, lint, unit tests, production build, Selenium browser tests,
 axe-core accessibility (where a browser is available), Lighthouse against a locally served
@@ -42,7 +42,7 @@ production build when possible, and dependency audit.
 After each delivery, run:
 
 ```
-bash universal-frontend-master-source/scripts/self-improve.sh
+python3 universal-frontend-master-source/scripts/self-improve.py
 ```
 
 This audits the skill itself (templates, agents, scripts, docs, OpenCode install) and writes

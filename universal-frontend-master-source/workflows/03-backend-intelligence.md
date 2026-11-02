@@ -7,7 +7,7 @@ capability maps. Never invent endpoints, fields, roles, permissions, or response
 ## Steps
 1. Read backend repo and API docs (OpenAPI, Swagger, Postman, AsyncAPI).
 2. Run `scripts/backend-discovery.sh` to detect the backend framework.
-3. Run `scripts/enhance-backend-discovery.sh` to parse OpenAPI/Swagger/Postman/GraphQL/
+3. Run `scripts/enhance-backend-discovery.py` to parse OpenAPI/Swagger/Postman/GraphQL/
    AsyncAPI contracts and extract operations, schemas, auth, errors; results go to
    `.ufme/BACKEND_CONTRACTS.md` classified CONFIRMED / INFERRED / UNKNOWN /
    NOT_FOUND / NOT_APPLICABLE.

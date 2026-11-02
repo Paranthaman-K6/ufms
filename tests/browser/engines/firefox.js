@@ -15,8 +15,8 @@ const { Builder } = require('selenium-webdriver');
 const firefox = require('selenium-webdriver/firefox');
 const { EVENT_TYPES, makeEvent, makeNetworkResult } = require('./schema');
 
-function firefoxLoggingPrefs() {
-  const o = new firefox.Options();
+function firefoxLoggingPrefs(options) {
+  const o = options || new firefox.Options();
   o.setPreference('devtools.toolbox.feature.enabled', true);
   return o;
 }
@@ -126,7 +126,6 @@ async function launchFirefoxWithNetwork(binary) {
   if (binary) o.setBinary(binary);
   o.addArguments('-headless');
   firefoxLoggingPrefs(o);
-
   const driver = await new Builder()
     .forBrowser('firefox')
     .setFirefoxOptions(o)

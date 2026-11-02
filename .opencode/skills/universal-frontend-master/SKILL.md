@@ -37,7 +37,7 @@ At the start of every session, the primary orchestrator (`ufme-orchestrator`) mu
 11. Run visual, accessibility, performance, and security audits.
 12. Fix critical and major findings, then retest.
 13. Repeat until acceptance criteria pass or limitations are explicitly documented.
-14. Self-improvement: after each delivery, run `scripts/self-improve.sh` to audit the skill
+14. Self-improvement: after each delivery, run `scripts/self-improve.py` to audit the skill
     itself (templates, agents, scripts, docs, OpenCode install) and apply fixes back into
     `universal-frontend-master-source/`, re-deploying changed agents and skill files.
 15. Library research: before adding any web library (UI components, icons, fonts,
@@ -114,7 +114,7 @@ project type and current task state.
 
 ## Self-improvement
 
-The skill improves itself after each delivery via `scripts/self-improve.sh`, which audits
+The skill improves itself after each delivery via `scripts/self-improve.py`, which audits
 all skill source files (core, agents, workflows, templates, scripts, docs, OpenCode install)
 and writes `.ufme/SELF_IMPROVEMENT.md` with findings and recommendations. The orchestrator
 applies fixes back into `universal-frontend-master-source/` and re-deploys changed agents and
@@ -151,8 +151,10 @@ the skill file.
 ### Library research
 
 The researcher agent discovers candidate frontend libraries using
-`scripts/search-libraries.py`. The tool searches the local `.ufme/LIBRARY_REGISTRY.md`
-first, then the npm registry, and displays results as a selectable table. Agents choose
+`scripts/search-libraries.py`. The tool searches the user-level
+`~/.config/ufme/LIBRARY_REGISTRY.md` (seeded by `install.sh` and shared by every
+project), then the project `.ufme/LIBRARY_REGISTRY.md`, then the npm registry,
+and displays results as a selectable table. Agents choose
 libraries with `--select <package-name>` and approve them for implementation with
 `--approve <package-name>`. Approved free/open-source/commercially-usable assets are
 recorded in `.ufme/DECISIONS.md` before installation (project-local npm only).
@@ -160,7 +162,7 @@ recorded in `.ufme/DECISIONS.md` before installation (project-local npm only).
 ## Asset intelligence
 
 The researcher/designer agents discover and manage project assets via
-`scripts/discover-assets.sh`. Assets are recorded in `.ufme/ASSET_MANIFEST.md` with
+`scripts/discover-assets.py`. Assets are recorded in `.ufme/ASSET_MANIFEST.md` with
 hash-based duplicate detection, dimensions, aspect ratio, broken-asset detection, and
 license hints (labeled as unverified until manually confirmed). Status tracking:
 locally discovered / duplicate / broken / remotely discovered candidate / downloaded /
@@ -169,7 +171,7 @@ license verified / approved for production use.
 ## Backend contract discovery
 
 The backend-analyst agent discovers and parses backend contracts via
-`scripts/enhance-backend-discovery.sh`. Supported formats: OpenAPI JSON/YAML, Swagger,
+`scripts/enhance-backend-discovery.py`. Supported formats: OpenAPI JSON/YAML, Swagger,
 Postman collections, GraphQL schemas, AsyncAPI. Extracted capabilities include methods,
 paths, parameters, request/response schemas, authentication requirements, error responses,
 pagination, WebSocket channels, SSE events. Every extracted capability includes an evidence
@@ -188,7 +190,7 @@ never bypassed by any profile.
 
 ## Task checkpoints
 
-The orchestrator tracks task state via `scripts/task-checkpoint.sh`. Supported actions:
+The orchestrator tracks task state via `scripts/task-checkpoint.py`. Supported actions:
 `list`, `status <id>`, `complete <id> [deps...]`, `blocked <id> <reason>`, `add <id> <desc>`.
 A task is marked COMPLETE only after dependency completion is verified AND the state
 mutation is confirmed by re-reading `.ufme/TASKS.md`. Duplicate task entries are prevented.
@@ -202,15 +204,15 @@ mutation is confirmed by re-reading `.ufme/TASKS.md`. Duplicate task entries are
 | `scripts/check-native-browser.sh` | Detects Chromium/Firefox + Selenium Manager; minimal headless launch check |
 | `scripts/browser-test.sh` | Runs Selenium tests against a URL; captures screenshots/console/network; writes browser-results.json |
 | `scripts/screenshot.sh` | Captures full-page + section screenshots at all viewports, dark+light themes |
-| `scripts/quality-check.sh` | Type check, lint, formatting, unit tests, build, browser tests, a11y, perf, dep audit; writes quality-report.json |
-| `scripts/self-improve.sh` | Audits all skill source files; writes SELF_IMPROVEMENT.md |
-| `scripts/search-libraries.py` | Searches local registry + npm registry for candidate libraries; agents select/approve |
+| `scripts/quality-check.py` | Type check, lint, formatting, unit tests, build, browser tests, a11y, perf, dep audit; writes quality-report.json |
+| `scripts/self-improve.py` | Audits all skill source files; writes SELF_IMPROVEMENT.md |
+| `scripts/search-libraries.py` | Searches user-level `~/.config/ufme/` + project registry + npm registry for candidate libraries; agents select/approve |
 | `scripts/detect-platform.sh` | Detects OS/distro and reports UFME compatibility |
-| `scripts/discover-assets.sh` | Discovers images/fonts/videos; duplicate detection; license hints; manifest |
-| `scripts/enhance-backend-discovery.sh` | Parses backend contracts; writes BACKEND_CONTRACTS.md |
+| `scripts/discover-assets.py` | Discovers images/fonts/videos; duplicate detection; license hints; manifest |
+| `scripts/enhance-backend-discovery.py` | Parses backend contracts; writes BACKEND_CONTRACTS.md |
 | `scripts/execution-profiles.sh` | Reads profile configs; validates and outputs profile settings |
 | `scripts/generate-prototype.py` | Generates HTML/CSS prototypes from .ufme/ memory files (integrated with approved libs) |
-| `scripts/task-checkpoint.sh` | Dependency-aware task state transitions in TASKS.md |
+| `scripts/task-checkpoint.py` | Dependency-aware task state transitions in TASKS.md |
 
 ## Browser abstraction (tests/browser/)
 

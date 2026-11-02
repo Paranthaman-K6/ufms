@@ -8,6 +8,8 @@
 #   INSTALL_DIR=/path/to/project curl -fsSL ... | bash
 #
 # Installs: .opencode/skills/universal-frontend-master/, .opencode/agents/ufme-*.md, .ufme/
+# Also seeds the user-level library registry (~/.config/ufme/LIBRARY_REGISTRY.md)
+# so the same catalog is available to every project.
 set -euo pipefail
 
 REPO="Paranthaman-K6/ufms"
@@ -35,12 +37,23 @@ SRC="$TMP/ufms-${BRANCH}"
 
 cp -R "$SRC/.opencode/skills/universal-frontend-master" "$TARGET/.opencode/skills/"
 cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+cp -R "$SRC/universal-frontend-master-source" "$TARGET/"
 
-# Seed UFME memory scaffolds (never overwrite existing).
+# Seed the user-level library registry shared by every project (never overwrite).
+UFME_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/ufme"
+mkdir -p "$UFME_CONFIG"
+if [ ! -f "$UFME_CONFIG/LIBRARY_REGISTRY.md" ]; then
+  cp "$SRC/universal-frontend-master-source/templates/LIBRARY_REGISTRY.md" "$UFME_CONFIG/LIBRARY_REGISTRY.md"
+fi
+
+# Seed UFME memory from templates (never overwrite existing).
 for f in TASKS.md ENVIRONMENT.md SKILL_VALIDATION.md AGENT_STATE.md; do
-  [ -f "$TARGET/.ufme/$f" ] || touch "$TARGET/.ufme/$f"
+  [ -f "$TARGET/.ufme/$f" ] && continue
+  tpl="$SRC/universal-frontend-master-source/templates/$f"
+  if [ -f "$tpl" ]; then cp "$tpl" "$TARGET/.ufme/$f"; else echo "# ${f%.md}" > "$TARGET/.ufme/$f"; fi
 done
 
 log "Installed skill: .opencode/skills/universal-frontend-master"
+log "Installed source: universal-frontend-master-source"
 log "Installed agents: $(ls "$TARGET/.opencode/agents"/ufme-*.md 2>/dev/null | wc -l)"
 log "Done. Start OpenCode in $TARGET and run the universal-frontend-master skill."

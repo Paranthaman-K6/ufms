@@ -32,3 +32,4 @@ escalation_rules:
   - Agent disagreement -> resolve, record in .ufme/DECISIONS.md.
   - Acceptance criteria cannot be met -> document limitation in .ufme/AUDIT_REPORT.md.
 source: universal-frontend-master-source/agents/orchestrator.md
+---

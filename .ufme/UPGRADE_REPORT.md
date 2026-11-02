@@ -25,10 +25,10 @@ All 14 workflows were executed against the test project with verified results.
 | 5-6 | Network monitoring via WebDriver performance logs; failed requests + HTTP 4xx/5xx | `tests/browser/browser.js` | DONE |
 | 7 | Browser lifecycle — `close()` in finally | `tests/browser/run.js` | DONE |
 | 8 | Chromium `--no-sandbox` removed (sandboxing preserved by default) | `tests/browser/browser.js` | DONE |
-| 9-10 | `quality-check.sh` exits non-zero on failure; silent suppression removed | `quality-check.sh` | DONE |
-| 11 | PASS/FAIL/SKIPPED/BLOCKED distinction + summary counts | `run.js`, `quality-check.sh` | DONE |
+| 9-10 | `quality-check.py` exits non-zero on failure; silent suppression removed | `quality-check.py` | DONE |
+| 11 | PASS/FAIL/SKIPPED/BLOCKED distinction + summary counts | `run.js`, `quality-check.py` | DONE |
 | 12 | `browser-results.json` includes summary object | `run.js` | DONE |
-| 13 | `self-improve.sh` content validation (frontmatter, mode, syntax, JSON) | `self-improve.sh` | DONE |
+| 13 | `self-improve.py` content validation (frontmatter, mode, syntax, JSON) | `self-improve.py` | DONE |
 
 ### P0 — Browser security inconsistencies (COMPLETE, verified)
 
@@ -40,9 +40,9 @@ All 14 workflows were executed against the test project with verified results.
 | `setBinary()` not available in check-native-browser | `scripts/check-native-browser.sh` | Removed; Chrome finds binary automatically |
 | `forBrowser('chromium')` not recognized by Selenium Manager | `scripts/check-native-browser.sh` | Changed to `forBrowser('chrome')` |
 | No automated test for prohibited browser flags | `tests/browser/security.js` | New file: scans all launch paths |
-| `local` keyword outside function | `scripts/quality-check.sh` | Removed `local` keyword |
-| `local` keyword outside function | `scripts/task-checkpoint.sh` | Removed `local` keyword |
-| Task deps capturing task ID itself | `scripts/task-checkpoint.sh` | Added `shift` after getting task ID |
+| `local` keyword outside function | `scripts/quality-check.py` | Removed `local` keyword |
+| `local` keyword outside function | `scripts/task-checkpoint.py` | Removed `local` keyword |
+| Task deps capturing task ID itself | `scripts/task-checkpoint.py` | Added `shift` after getting task ID |
 | Summary object key casing mismatch | `tests/browser/run.js` | Changed to uppercase keys (PASS/FAIL/SKIPPED/BLOCKED) |
 
 ### P0 — Browser network monitoring (COMPLETE, verified)
@@ -75,10 +75,10 @@ All 14 workflows were executed against the test project with verified results.
 
 | Issue | File | Fix |
 |-------|------|-----|
-| No machine-readable report | `scripts/quality-check.sh` | Generates `.ufme/evidence/quality-report.json` |
-| Silent failure suppression | `scripts/quality-check.sh` | Removed |
-| Counters not tracked | `scripts/quality-check.sh` | PASS/FAIL/SKIPPED/BLOCKED counts in report |
-| `local` outside function | `scripts/quality-check.sh` | Fixed |
+| No machine-readable report | `scripts/quality-check.py` | Generates `.ufme/evidence/quality-report.json` |
+| Silent failure suppression | `scripts/quality-check.py` | Removed |
+| Counters not tracked | `scripts/quality-check.py` | PASS/FAIL/SKIPPED/BLOCKED counts in report |
+| `local` outside function | `scripts/quality-check.py` | Fixed |
 
 ### Priority 2 — Design Intelligence Engine (COMPLETE)
 
@@ -92,14 +92,14 @@ All 14 workflows were executed against the test project with verified results.
 
 | Component | File | Status |
 |-----------|------|--------|
-| Asset discovery | `scripts/discover-assets.sh` | DONE: hash dedup, dimensions, aspect ratio, broken detection, license hints, status tracking |
+| Asset discovery | `scripts/discover-assets.py` | DONE: hash dedup, dimensions, aspect ratio, broken detection, license hints, status tracking |
 | Asset manifest | `.ufme/ASSET_MANIFEST.md` | DONE: generated |
 
 ### Priority 4 — Multi-Agent Orchestration (COMPLETE)
 
 | Component | File | Status |
 |-----------|------|--------|
-| Task checkpoints | `scripts/task-checkpoint.sh` | DONE: dependency-aware, modification verification, duplicate prevention |
+| Task checkpoints | `scripts/task-checkpoint.py` | DONE: dependency-aware, modification verification, duplicate prevention |
 | Agent specs | `.opencode/agents/` + `universal-frontend-master-source/agents/` | DONE: 12 agents synchronized |
 | Workflows | `universal-frontend-master-source/workflows/` | DONE: 14 workflows updated to reference new scripts |
 
@@ -114,7 +114,7 @@ All 14 workflows were executed against the test project with verified results.
 
 | Component | File | Status |
 |-----------|------|--------|
-| Contract discovery | `scripts/enhance-backend-discovery.sh` | DONE: parses OpenAPI JSON/YAML, Swagger, Postman, GraphQL, AsyncAPI; classifies CONFIRMED/INFERRED/UNKNOWN/NOT_FOUND/NOT_APPLICABLE |
+| Contract discovery | `scripts/enhance-backend-discovery.py` | DONE: parses OpenAPI JSON/YAML, Swagger, Postman, GraphQL, AsyncAPI; classifies CONFIRMED/INFERRED/UNKNOWN/NOT_FOUND/NOT_APPLICABLE |
 | Contracts output | `.ufme/BACKEND_CONTRACTS.md` | DONE |
 
 ### Priority 7 — Visual Engineering Loop (EXISTING, enhanced)
@@ -125,7 +125,7 @@ Browser execution + screenshots + visual audit workflows + auditor agents; fresh
 
 | Component | File | Status |
 |-----------|------|--------|
-| Quality gate | `scripts/quality-check.sh` | DONE: unit tests, lint, formatting, build, browser tests, a11y, performance, dependency audit |
+| Quality gate | `scripts/quality-check.py` | DONE: unit tests, lint, formatting, build, browser tests, a11y, performance, dependency audit |
 | Quality report | `.ufme/evidence/quality-report.json` | DONE: machine-readable with execution ID, timestamps, per-check status, overall result |
 
 ### Priority 9 — Execution Profiles (COMPLETE)
@@ -149,16 +149,16 @@ Browser execution + screenshots + visual audit workflows + auditor agents; fresh
 | JS syntax | `node --check` on 13 JS files | All OK |
 | Browser abstraction tests | `npm test` | 16/16 pass |
 | Regression tests | `node tests/regression/run.js` | 5 pass, 0 fail, 3 skip |
-| Self-improvement audit | `bash scripts/self-improve.sh` | 69 PASS / 0 FAIL |
-| Quality check | `bash scripts/quality-check.sh` | 4 PASS, 0 FAIL, 5 SKIPPED, 0 BLOCKED; overall PASS |
+| Self-improvement audit | `python3 scripts/self-improve.py` | 69 PASS / 0 FAIL |
+| Quality check | `python3 scripts/quality-check.py` | 4 PASS, 0 FAIL, 5 SKIPPED, 0 BLOCKED; overall PASS |
 | Native Selenium (Firefox) | `bash scripts/check-native-browser.sh` | OK |
 | Native Selenium (Chromium) | `bash scripts/check-native-browser.sh` | OK (after fixing forBrowser) |
 | Prohibited flags | `node tests/browser/security.js` | PASS |
-| Backend contract parsing | `bash scripts/enhance-backend-discovery.sh` | 4 REST endpoints CONFIRMED |
-| Asset discovery | `bash scripts/discover-assets.sh` | 1 asset found, 0 duplicates, 0 broken |
+| Backend contract parsing | `python3 scripts/enhance-backend-discovery.py` | 4 REST endpoints CONFIRMED |
+| Asset discovery | `python3 scripts/discover-assets.py` | 1 asset found, 0 duplicates, 0 broken |
 | Prototype generation | `bash scripts/generate-prototype.sh` | index.html generated |
 | Execution profiles | `bash scripts/execution-profiles.sh autonomous` | All 4 profiles load correctly |
-| Task checkpoints | `bash scripts/task-checkpoint.sh` | Dependency-aware transitions verified |
+| Task checkpoints | `python3 scripts/task-checkpoint.py` | Dependency-aware transitions verified |
 | MCP discovery | `node integrations/mcp/discover.js` | 0 servers available, native fallback works |
 
 ## Browser support status
@@ -215,7 +215,7 @@ Browser execution + screenshots + visual audit workflows + auditor agents; fresh
 - Chromium requires `forBrowser('chrome')` not `forBrowser('chromium')` for Selenium Manager
 - Orchestrator does not yet read execution profiles at runtime (profiles are available but not auto-applied)
 - MCP integration is optional and host-dependent
-- quality-check.sh defaults to http://localhost:5173 for browser tests; URL must match dev server
+- quality-check.py defaults to http://localhost:5173 for browser tests; URL must match dev server
 
 ## Outstanding tasks
 

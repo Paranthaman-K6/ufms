@@ -18,3 +18,4 @@ prohibited_actions:
 escalation_rules:
   - No browser available for a11y check -> mark BLOCKED, record in .ufme/ENVIRONMENT.md.
 source: universal-frontend-master-source/agents/accessibility-auditor.md
+---

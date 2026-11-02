@@ -73,7 +73,6 @@ const POLICY = {
     }
     if (!launched) {
       results.status = 'BLOCKED';
-      results.summary.blocked += 1;
       addCheck('browserLaunch:all', 'BLOCKED', 'No browser could launch via Selenium WebDriver');
       throw new Error('No browser could launch via Selenium WebDriver');
     }

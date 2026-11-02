@@ -20,3 +20,4 @@ prohibited_actions:
 escalation_rules:
   - Critical security finding (exposed secret, broken auth) -> escalate immediately to orchestrator.
 source: universal-frontend-master-source/agents/security-auditor.md
+---

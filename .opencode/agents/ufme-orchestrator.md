@@ -1,7 +1,6 @@
 ---
 name: ufme-orchestrator
 mode: primary
-model: nemotron-3.5-super-vl-free
 description: Primary user-facing coordinator for universal-frontend-master. Reads project memory and environment, creates the implementation plan, delegates to specialist subagents, tracks tasks/decisions/defects, resolves conflicting changes, enforces acceptance criteria, and never silently bypasses missing system dependencies.
 permissions:
   - read: all project files

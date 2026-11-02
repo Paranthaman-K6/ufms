@@ -12,7 +12,7 @@ Create the design system, wireframes, and component architecture from the PRD an
    sitemap routes and design tokens; output isolated in `prototypes/`.
 4. Produce wireframes (low-fidelity page layouts).
 5. Record any new asset (font, icon, image) in `.ufme/DECISIONS.md`.
-6. Run `scripts/discover-assets.sh` to inventory project images/fonts/videos with license
+6. Run `scripts/discover-assets.py` to inventory project images/fonts/videos with license
    hints into `.ufme/ASSET_MANIFEST.md`.
 7. Update `.ufme/TASKS.md` (T-06) and `.ufme/AGENT_STATE.md`.
 8. Delegate next: frontend architecture.

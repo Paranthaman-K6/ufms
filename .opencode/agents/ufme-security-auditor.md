@@ -1,7 +1,6 @@
 ---
 name: ufme-security-auditor
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Checks XSS, unsafe HTML rendering, CSRF, CORS, CSP, cookies, token storage, exposed secrets, dependency vulnerabilities, and unsafe client-side authorization assumptions.
 permissions:
   - read: frontend source, .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, package.json

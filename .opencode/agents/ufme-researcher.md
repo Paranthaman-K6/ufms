@@ -1,7 +1,6 @@
 ---
 name: ufme-researcher
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Researches requirements, references, design inspiration, components, templates, fonts, icons, images, and videos. Verifies licenses and commercial-use permissions. Produces research notes and asset decisions. Performs web research to discover candidate frontend libraries.
 permissions:
   - read: project brief, reference materials, .ufme/PROJECT_SPEC.md, .ufme/DECISIONS.md

@@ -40,10 +40,10 @@ All skill source lives in `universal-frontend-master-source/` and is installed i
 All 14 scripts live in `universal-frontend-master-source/scripts/`:
 - Stack/backend detection: `detect-stack.sh`, `backend-discovery.sh`
 - Browser setup/test/screenshots: `check-native-browser.sh`, `browser-test.sh`, `screenshot.sh`
-- Quality/self-improvement: `quality-check.sh`, `self-improve.sh`
-- Research/assets/platform: `research-libraries.sh`, `discover-assets.sh`, `detect-platform.sh`
-- Backend contracts: `enhance-backend-discovery.sh`
-- Profiles/checkpoints/prototype: `execution-profiles.sh`, `task-checkpoint.sh`, `generate-prototype.sh`
+- Quality/self-improvement: `quality-check.py`, `self-improve.py`
+- Research/assets/platform: `research-libraries.sh`, `discover-assets.py`, `detect-platform.sh`
+- Backend contracts: `enhance-backend-discovery.py`
+- Profiles/checkpoints/prototype: `execution-profiles.sh`, `task-checkpoint.py`, `generate-prototype.sh`
 
 ## Execution profiles
 
@@ -54,7 +54,7 @@ testing level. Security constraints are never bypassed by any profile.
 
 ## Task checkpoints
 
-Task state is managed via `scripts/task-checkpoint.sh` with dependency-aware transitions
+Task state is managed via `scripts/task-checkpoint.py` with dependency-aware transitions
 and post-modification verification.
 
 ## MCP integration (optional)

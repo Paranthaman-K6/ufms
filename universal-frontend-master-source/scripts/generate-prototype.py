@@ -5,6 +5,7 @@ Priority 2 — Design Intelligence: Prototype generation.
 Reads .ufme/ project memory files and produces working HTML/CSS prototype pages.
 """
 
+import html
 import os
 import re
 import sys
@@ -141,23 +142,23 @@ button, .btn {{
     with open(os.path.join(OUT_DIR, "style.css"), "w", encoding="utf-8") as f:
         f.write(css_content)
 
-def write_page(name: str, title: str, body: str, nav: str) -> None:
-    # Add a timestamp hash to the filename to prevent browser caching issues
-    timestamp = int(time.time())
-    filename = f"{name}_{timestamp}.html"
+def write_page(name: str, title: str, body: str, nav: str, run_id: int) -> None:
+    # One run id for every page and nav link, so links never point at another run.
+    filename = f"{name}_{run_id}.html"
+    safe_title = html.escape(title)
     
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title}</title>
+<title>{safe_title}</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <nav class="nav">{nav}</nav>
 <div class="container">
-<h1>{title}</h1>
+<h1>{safe_title}</h1>
 {body}
 </div>
 </body>
@@ -172,30 +173,34 @@ def write_page(name: str, title: str, body: str, nav: str) -> None:
 
 def main():
     log("Reading project memory from " + UFME_DIR)
-    
+
     write_css()
-    
+
+    run_id = int(time.time())
     routes = parse_routes(SITEMAP)
-    nav = "".join([f'<a href="{slugify(r)}_{int(time.time())}.html">{r}</a>' for r in routes])
-    
+    nav = "".join(
+        f'<a href="{slugify(r)}_{run_id}.html">{html.escape(r)}</a>' for r in routes
+    )
+
     if routes:
         for route in routes:
             page = slugify(route)
             title = route
-            
+            safe_route = html.escape(route)
+
             if any(x in route for x in ["Home", "Index", "Dashboard"]):
-                body = f"<p>Welcome to {route}.</p><div class='grid'><div class='card'><h3>Overview</h3><p>Key metrics for {route}.</p></div><div class='card'><h3>Recent Activity</h3><p>Latest updates.</p></div></div>"
+                body = f"<p>Welcome to {safe_route}.</p><div class='grid'><div class='card'><h3>Overview</h3><p>Key metrics for {safe_route}.</p></div><div class='card'><h3>Recent Activity</h3><p>Latest updates.</p></div></div>"
             elif any(x in route for x in ["Login", "Sign", "Auth"]):
                 body = f"<div class='card' style='max-width: 400px; margin: 0 auto;'><h3>Sign In</h3><form><label>Email</label><br><input type='email' style='width:100%;padding:0.5rem;margin:0.5rem 0;'><br><label>Password</label><br><input type='password' style='width:100%;padding:0.5rem;margin:0.5rem 0;'><br><button class='btn' type='button'>Sign In</button></form></div>"
             elif any(x in route for x in ["Profile", "Account"]):
                 body = f"<div class='card'><h3>Profile Settings</h3><p>Manage account preferences.</p><div class='state-loading'><p>Loading profile...</p></div></div>"
             else:
-                body = f"<p>Content for {route}.</p><div class='state-empty'><p>No items found.</p><button class='btn'>Refresh</button></div>"
-            
-            write_page(page, title, body, nav)
+                body = f"<p>Content for {safe_route}.</p><div class='state-empty'><p>No items found.</p><button class='btn'>Refresh</button></div>"
+
+            write_page(page, title, body, nav, run_id)
             log(f"Generated prototype: {page}.html")
     else:
-        write_page("index", "Home", "<p>Welcome to the generated prototype.</p><button class='btn'>Get Started</button>", nav)
+        write_page("index", "Home", "<p>Welcome to the generated prototype.</p><button class='btn'>Get Started</button>", nav, run_id)
         log("Generated prototype: index.html (no sitemap routes found)")
 
     log("Prototype output: " + OUT_DIR)

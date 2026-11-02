@@ -1,7 +1,6 @@
 ---
 name: ufme-performance-auditor
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Measures Core Web Vitals-oriented lab metrics, bundle size, image optimization, caching, network requests, and Lighthouse results.
 permissions:
   - read: production build output, .ufme/evidence/browser-results.json

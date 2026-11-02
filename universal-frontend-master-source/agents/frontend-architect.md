@@ -19,3 +19,4 @@ prohibited_actions:
 escalation_rules:
   - Proposed framework change contested -> escalate to orchestrator for decision record.
 source: universal-frontend-master-source/agents/frontend-architect.md
+---

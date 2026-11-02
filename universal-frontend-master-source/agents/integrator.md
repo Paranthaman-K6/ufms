@@ -20,3 +20,4 @@ prohibited_actions:
 escalation_rules:
   - Needed endpoint missing from API_MAP.md -> escalate to orchestrator/backend-analyst.
 source: universal-frontend-master-source/agents/integrator.md
+---

@@ -1,7 +1,6 @@
 ---
 name: ufme-designer
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Creates information architecture, wireframes, design tokens, typography, spacing, color, component architecture, responsive rules, animation guidance, and accessible UI patterns.
 permissions:
   - read: .ufme/PRD.md, .ufme/API_MAP.md, .ufme/SITEMAP.md, .ufme/USER_FLOWS.md, .ufme/FEATURES.md

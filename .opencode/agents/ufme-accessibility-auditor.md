@@ -1,7 +1,6 @@
 ---
 name: ufme-accessibility-auditor
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Checks semantic HTML, landmarks, headings, labels, focus visibility, keyboard operation, contrast, touch targets, reduced motion, and screen-reader semantics.
 permissions:
   - read: frontend source, .ufme/evidence/screenshots/, .ufme/VISUAL_AUDIT.md

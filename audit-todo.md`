@@ -9,7 +9,7 @@ This todo list tracks the resolution of findings from the senior developer audit
 ## Should Fix (Reliability & UX)
 - [x] **Fragile Path Resolution**: Update `universal-frontend-master-source/scripts/search-libraries.py` to find root via marker file (e.g., `.git` or `opencode.json`) instead of fixed `dirname` depth.
 - [x] **Browser Binary Detection**: Update `universal-frontend-master-source/scripts/check-native-browser.sh` to support more binary names (`chromium-bin`, `firefox-developer-edition`, etc.) via `command -v`.
-- [x] **Deduplicate Self-Improvement Logic**: Refactor `universal-frontend-master-source/scripts/self-improve.sh` to use a shared `check_file` helper function.
+- [x] **Deduplicate Self-Improvement Logic**: Refactor `universal-frontend-master-source/scripts/self-improve.py` to use a shared `check_file` helper function.
 - [x] **Dead Link Validation**: Update `tests/browser/browser.js` to explicitly flag broken anchor links (`#nonexistent`).
 
 ## Nice to Have (Maintenance & Lean)
@@ -21,7 +21,7 @@ This todo list tracks the resolution of findings from the senior developer audit
 - [x] **Configurable Browser Timeout**: Move 10s timeout in `check-native-browser.sh` to an environment variable.
 - [x] **Agent Template**: Create a base agent template to reduce duplication across auditor agents.
 - [x] **Evidence Retention Policy**: Add cleanup script/policy for `.ufme/evidence/`.
-- [x] **Asset Path Sanitization**: Quote and validate inputs in `universal-frontend-master-source/scripts/discover-assets.sh`.
-- [x] **Task ID Validation**: Enforce regex format (e.g., `T[0-9]+`) in `universal-frontend-master-source/scripts/task-checkpoint.sh`.
+- [x] **Asset Path Sanitization**: Quote and validate inputs in `universal-frontend-master-source/scripts/discover-assets.py`.
+- [x] **Task ID Validation**: Enforce regex format (e.g., `T[0-9]+`) in `universal-frontend-master-source/scripts/task-checkpoint.py`.
 - [x] **Dynamic Test Loading**: Use `fs.readdirSync` in `tests/regression/run.js` instead of hardcoded list.
 - [x] **Doc Link Validation**: Add script to verify relative links in `docs/`.

@@ -1,7 +1,6 @@
 ---
 name: ufme-visual-auditor
 mode: subagent
-model: nemotron-3.5-super-vl-free
 description: Mandatory specialist. Reviews actual Selenium browser screenshots. Checks alignment, spacing, typography, contrast, hierarchy, overflow, broken assets, responsive failures, and consistency. Produces severity-ranked issues and verifies fixes with fresh screenshots.
 permissions:
   - read: .ufme/evidence/screenshots/*.png, .ufme/VISUAL_AUDIT.md (if exists)

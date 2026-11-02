@@ -70,10 +70,10 @@ deny npm publish.
 1. check-native-browser.sh temp script: `setBinary()` not available on Chrome Options → removed
 2. check-native-browser.sh: `forBrowser('chromium')` not recognized by Selenium Manager → changed to `forBrowser('chrome')`
 3. run.js summary object: lowercase keys not incremented by addCheck() → changed to uppercase keys
-4. quality-check.sh: `local rc=$?` outside function → removed `local`
-5. task-checkpoint.sh: `local` keyword outside function → removed `local`
-6. task-checkpoint.sh: `deps="$*"` captured task ID itself as dependency → added `shift` after getting id
-7. quality-check.sh: browser-test.sh called without URL (defaults to port 5173) → documented limitation
+4. quality-check.py: `local rc=$?` outside function → removed `local`
+5. task-checkpoint.py: `local` keyword outside function → removed `local`
+6. task-checkpoint.py: `deps="$*"` captured task ID itself as dependency → added `shift` after getting id
+7. quality-check.py: browser-test.sh called without URL (defaults to port 5173) → documented limitation
 
 ## Test evidence from test project
 
@@ -83,16 +83,16 @@ deny npm publish.
 | JS syntax | `node --check` on 13 JS files | All OK |
 | Browser abstraction tests | `npm test` | 16/16 pass |
 | Regression tests | `node tests/regression/run.js` | 5 pass, 0 fail, 3 skip |
-| Self-improvement audit | `bash scripts/self-improve.sh` | 69 PASS / 0 FAIL |
-| Quality check | `bash scripts/quality-check.sh` | 4 PASS, 0 FAIL, 5 SKIPPED, 0 BLOCKED |
+| Self-improvement audit | `python3 scripts/self-improve.py` | 69 PASS / 0 FAIL |
+| Quality check | `python3 scripts/quality-check.py` | 4 PASS, 0 FAIL, 5 SKIPPED, 0 BLOCKED |
 | Native Selenium (Firefox) | `bash scripts/check-native-browser.sh` | OK |
 | Native Selenium (Chromium) | `bash scripts/check-native-browser.sh` | OK |
 | Prohibited flags | `node tests/browser/security.js` | PASS |
-| Backend contract parsing | `bash scripts/enhance-backend-discovery.sh` | 4 REST endpoints CONFIRMED |
-| Asset discovery | `bash scripts/discover-assets.sh` | 1 asset found, 0 duplicates, 0 broken |
+| Backend contract parsing | `python3 scripts/enhance-backend-discovery.py` | 4 REST endpoints CONFIRMED |
+| Asset discovery | `python3 scripts/discover-assets.py` | 1 asset found, 0 duplicates, 0 broken |
 | Prototype generation | `bash scripts/generate-prototype.sh` | index.html generated |
 | Execution profiles | `bash scripts/execution-profiles.sh autonomous` | All 4 profiles load |
-| Task checkpoints | `bash scripts/task-checkpoint.sh` | Dependency-aware transitions verified |
+| Task checkpoints | `python3 scripts/task-checkpoint.py` | Dependency-aware transitions verified |
 | MCP discovery | `node integrations/mcp/discover.js` | 0 servers, native fallback works |
 
 ## Known Arch limitations
@@ -100,7 +100,7 @@ deny npm publish.
 - No system packages installed (sudo/pacman denied)
 - No containers, no Playwright, no WebKit
 - axe-core / Lighthouse not installed (skipped in quality-check)
-- quality-check.sh defaults to http://localhost:5173 for browser tests
+- quality-check.py defaults to http://localhost:5173 for browser tests
 
 ## Implementation status by priority
 
@@ -114,11 +114,11 @@ deny npm publish.
 | P0 Quality report | COMPLETE | quality-report.json generated, overall PASS |
 | P0 Regression tests | COMPLETE | 5 pass, 0 fail, 3 skip |
 | P2 Design intelligence | COMPLETE | research-libraries.sh, LIBRARY_REGISTRY.md, generate-prototype.sh |
-| P3 Asset intelligence | COMPLETE | discover-assets.sh, ASSET_MANIFEST.md |
-| P4 Orchestration | COMPLETE | task-checkpoint.sh with verification |
+| P3 Asset intelligence | COMPLETE | discover-assets.py, ASSET_MANIFEST.md |
+| P4 Orchestration | COMPLETE | task-checkpoint.py with verification |
 | P5 MCP integration | COMPLETE (optional) | discover.js integration layer |
-| P6 Backend intelligence | COMPLETE | enhance-backend-discovery.sh, 4 endpoints CONFIRMED |
+| P6 Backend intelligence | COMPLETE | enhance-backend-discovery.py, 4 endpoints CONFIRMED |
 | P7 Visual engineering | EXISTING | workflows + auditor agents |
-| P8 Production quality | COMPLETE | quality-check.sh, quality-report.json |
+| P8 Production quality | COMPLETE | quality-check.py, quality-report.json |
 | P9 Execution profiles | COMPLETE | profile JSON configs + runner |
 | P10 Platform support | COMPLETE | detect-platform.sh |

@@ -8,7 +8,7 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 
 ## Research & intelligence
 - [x] T-03 Research requirements, references, design inspiration, components, fonts, icons; verify licenses. (research-libraries.sh, LIBRARY_REGISTRY.md)
-- [x] T-04 Backend intelligence: produce API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md. (enhance-backend-discovery.sh, BACKEND_CONTRACTS.md)
+- [x] T-04 Backend intelligence: produce API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md. (enhance-backend-discovery.py, BACKEND_CONTRACTS.md)
 - [ ] T-05 Product intelligence: PRD.md, SITEMAP.md, USER_FLOWS.md, FEATURES.md. — TODO
 
 ## Design & architecture
@@ -31,9 +31,9 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 - [ ] T-16 Security audit: XSS, CSRF, CORS, CSP, secrets, deps. — TODO
 
 ## Quality & delivery
-- [x] T-17 quality-check.sh: exit codes, PASS/FAIL/SKIPPED/BLOCKED, quality-report.json.
+- [x] T-17 quality-check.py: exit codes, PASS/FAIL/SKIPPED/BLOCKED, quality-report.json.
 - [ ] T-18 Fix critical/major findings; retest. — TODO
-- [x] T-19 Continuous improvement: self-improve.sh (69 PASS/0 FAIL), AGENT_STATE.md.
+- [x] T-19 Continuous improvement: self-improve.py (69 PASS/0 FAIL), AGENT_STATE.md.
 - [ ] T-20 Delivery. — TODO
 
 ## Additional (P0 defect fixes — COMPLETE, verified)
@@ -45,9 +45,9 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 - [x] Regression tests: tests/regression/run.js (5 pass, 0 fail, 3 skip)
 
 ## Additional (P1 implementation — IN PROGRESS)
-- [x] Asset intelligence: discover-assets.sh enhanced (dedup, dimensions, broken assets)
+- [x] Asset intelligence: discover-assets.py enhanced (dedup, dimensions, broken assets)
 - [x] Execution profiles: profile config files + execution-profiles.sh reads them
-- [x] Backend contract parsing: enhance-backend-discovery.sh parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
+- [x] Backend contract parsing: enhance-backend-discovery.py parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
 - [x] MCP integration: discover.js integration layer (optional, docs only)
 - [x] Prototype generator: consumes real project info from .ufme/ memory files
 - [x] Task checkpoint safety: verification after modification

@@ -21,3 +21,4 @@ prohibited_actions:
 escalation_rules:
   - Backend capability needed but unconfirmed -> escalate to orchestrator/backend-analyst.
 source: universal-frontend-master-source/agents/implementer.md
+---

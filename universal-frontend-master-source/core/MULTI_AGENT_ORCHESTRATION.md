@@ -69,7 +69,7 @@ profile.
 
 ## Task checkpoints
 
-Task state is managed via `scripts/task-checkpoint.sh` with dependency-aware transitions:
+Task state is managed via `scripts/task-checkpoint.py` with dependency-aware transitions:
 - `list` — show all tasks
 - `status <id>` — show task status
 - `complete <id> [deps...]` — mark complete only after dependencies verified and mutation confirmed

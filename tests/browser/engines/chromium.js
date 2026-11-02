@@ -40,11 +40,13 @@ function applyLoggingPrefs(options) {
 }
 
 async function startMonitoring(driver) {
-  // Enable performance logging domain via CDP if available.
+  // Enable performance logging domain via CDP if available (best-effort).
   try {
-    const cdp = await driver.createCDPSession ? await driver.createCDPSession() : null;
-    if (cdp) {
-      await cdp.send('Network.enable');
+    if (typeof driver.createCDPSession === 'function') {
+      const cdp = await driver.createCDPSession();
+      if (cdp && typeof cdp.send === 'function') {
+        await cdp.send('Network.enable');
+      }
     }
   } catch (e) {
     // CDP not available in this WebDriver implementation; fall back to

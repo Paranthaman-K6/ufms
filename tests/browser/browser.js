@@ -1,57 +1,36 @@
 // tests/browser/browser.js
 // Native Selenium WebDriver browser abstraction.
-// Exposes: launchBrowser, goto, click, type, submit, waitForSelector,
-// screenshot, collectConsoleErrors, collectFailedRequests, close.
-// Backend engines: tests/browser/engines/chromium.js, tests/browser/engines/firefox.js
-const chrome = require('selenium-webdriver/chrome');
-const firefox = require('selenium-webdriver/firefox');
+// Engine-specific launch and network capture live in tests/browser/engines/.
+'use strict';
+
 const chromiumEngine = require('./engines/chromium');
 const firefoxEngine = require('./engines/firefox');
-
-const VIEWPORTS = {
-  mobile: { width: 390, height: 844 },
-  tablet: { width: 768, height: 1024 },
-  laptop: { width: 1280, height: 800 },
-  desktop: { width: 1440, height: 900 },
-};
+const { VIEWPORTS } = require('./viewport');
 
 let driver = null;
+let engineName = null;
 let consoleErrors = [];
-let networkResult = { events: [], httpErrors: [], networkFailures: [], total: 0, hasErrors: false };
-let engine = null; // 'chromium' | 'firefox'
+let consoleSupported = false;
+let networkResult = {
+  events: [], httpErrors: [], networkFailures: [], total: 0, hasErrors: false, supported: false,
+};
 
-function chromeOptions(binary) {
-  const o = new chrome.Options();
-  if (binary) o.setBinary(binary);
-  // Preserve Chromium sandboxing by default. --no-sandbox intentionally omitted.
-  o.addArguments('--headless=new', '--disable-dev-shm-usage',
-    '--disable-gpu', '--window-size=1440,900');
-  return o;
-}
-
-function firefoxOptions(binary) {
-  const o = new firefox.Options();
-  if (binary) o.setBinary(binary);
-  o.addArguments('-headless');
-  return o;
-}
-
-async function launchBrowser(engineName = 'chromium') {
-  const isFirefox = engineName === 'firefox';
+async function launchBrowser(name = 'chromium') {
+  const isFirefox = name === 'firefox';
   const binary = process.env[isFirefox ? 'FIREFOX_BIN' : 'CHROMIUM_BIN'];
 
-  if (isFirefox) {
-    driver = await firefoxEngine.launchFirefoxWithNetwork(binary);
-  } else {
-    driver = await chromiumEngine.launchChromiumWithNetwork(binary);
-  }
-  engine = engineName;
+  driver = isFirefox
+    ? await firefoxEngine.launchFirefoxWithNetwork(binary)
+    : await chromiumEngine.launchChromiumWithNetwork(binary);
+  engineName = name;
 
-  // Enable browser logging so console errors can be collected on demand.
+  // Console capture needs the 'browser' log type; not every engine exposes it.
   try {
-    await driver.manage().logs().getAvailableLogTypes();
-  } catch (e) { /* best-effort only */ }
-
+    const types = await driver.manage().logs().getAvailableLogTypes();
+    consoleSupported = types.includes('browser');
+  } catch (e) {
+    consoleSupported = false;
+  }
   return driver;
 }
 
@@ -86,34 +65,37 @@ async function setViewport(name) {
   await driver.manage().window().setRect({ width: v.width, height: v.height });
 }
 
-async function screenshot(name, viewport = 'desktop') {
+async function setWindowSize(width, height) {
   if (!driver) throw new Error('Browser not launched.');
-  if (viewport) await setViewport(viewport);
-  const base64 = await driver.takeScreenshot();
-  return base64;
+  await driver.manage().window().setRect({ width: Math.round(width), height: Math.round(height) });
 }
 
-async function executeScript(script) {
+async function screenshot(name, viewport) {
   if (!driver) throw new Error('Browser not launched.');
-  return await driver.executeScript(script);
+  if (viewport) await setViewport(viewport);
+  return await driver.takeScreenshot();
+}
+
+async function screenshotElement(selector) {
+  if (!driver) throw new Error('Browser not launched.');
+  const el = await driver.findElement({ css: selector });
+  return await el.takeScreenshot();
+}
+
+async function executeScript(script, ...args) {
+  if (!driver) throw new Error('Browser not launched.');
+  return await driver.executeScript(script, ...args);
 }
 
 async function collectConsoleErrors() {
-  if (!driver) return consoleErrors;
+  if (!driver || !consoleSupported) return consoleErrors;
   try {
     const entries = await driver.manage().logs().get('browser');
-    entries.forEach((e) => {
+    for (const e of entries) {
       if (e.level.value >= 900 && !consoleErrors.includes(e.message)) {
         consoleErrors.push(e.message);
       }
-    });
-    const seen = new Set();
-    const unique = [];
-    for (const m of consoleErrors) {
-      if (!seen.has(m)) { seen.add(m); unique.push(m); }
     }
-    consoleErrors.length = 0;
-    consoleErrors.push(...unique);
   } catch (e) { /* best-effort only */ }
   return consoleErrors;
 }
@@ -121,43 +103,52 @@ async function collectConsoleErrors() {
 async function collectFailedRequests() {
   if (!driver) return networkResult.networkFailures;
   try {
-    if (engine === 'chromium') {
-      networkResult = await chromiumEngine.collectEvents(driver);
-    } else if (engine === 'firefox') {
-      networkResult = await firefoxEngine.collectEvents(driver);
-    }
+    networkResult = engineName === 'firefox'
+      ? await firefoxEngine.collectEvents(driver)
+      : await chromiumEngine.collectEvents(driver);
   } catch (e) {
-    // Network collection failed; keep previous result.
+    networkResult = { ...networkResult, supported: false };
   }
   return networkResult.networkFailures;
 }
 
 async function getNetworkResult() {
+  await collectFailedRequests();
   return networkResult;
 }
 
 async function validateLinks() {
   if (!driver) throw new Error('Browser not launched.');
-  const links = await driver.findElements({ css: 'a' });
+  const hrefs = await driver.executeScript(
+    () => Array.from(document.querySelectorAll('a[href]')).map((a) => a.getAttribute('href'))
+  );
   const brokenLinks = [];
-  for (const link of links) {
-    const href = await link.getAttribute('href');
-    if (!href) continue;
-  
-      const id = href.substring(1);
-      const element = await driver.findElements({ css: `#${id}` });
-      if (element.length === 0) {
-        brokenLinks.push({ href, type: 'broken-anchor' });
-      }
-    }
-    // External links are checked via collectFailedRequests (4xx/5xx)
+  for (const href of hrefs) {
+    if (!href || !href.startsWith('#') || href === '#') continue;
+    const found = await driver.executeScript((id) => !!document.getElementById(id), href.slice(1));
+    if (!found) brokenLinks.push({ href, type: 'broken-anchor' });
   }
   return brokenLinks;
 }
 
+async function close() {
+  if (driver) {
+    try { await driver.quit(); } finally { driver = null; engineName = null; }
+  }
+  consoleErrors = [];
+  consoleSupported = false;
+  networkResult = {
+    events: [], httpErrors: [], networkFailures: [], total: 0, hasErrors: false, supported: false,
+  };
+}
+
+function isConsoleSupported() {
+  return consoleSupported;
+}
+
 module.exports = {
   launchBrowser, goto, click, type, submit, waitForSelector,
-  screenshot, setViewport, executeScript, collectConsoleErrors,
-  collectFailedRequests, getNetworkResult, close, validateLinks,
-  VIEWPORTS,
+  screenshot, setViewport, setWindowSize, executeScript, collectConsoleErrors,
+  collectFailedRequests, getNetworkResult, validateLinks, isConsoleSupported,
+  close, screenshotElement, VIEWPORTS,
 };
