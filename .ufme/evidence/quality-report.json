@@ -1,7 +1,7 @@
 {
-  "executionId": "ufme-quality-1793599224",
-  "startTime": "2026-11-02T11:30:24+05:30",
-  "finishTime": "2026-11-02T11:30:42+05:30",
+  "executionId": "ufme-quality-1793599381",
+  "startTime": "2026-11-02T11:33:01+05:30",
+  "finishTime": "2026-11-02T11:43:28+05:30",
   "project": {
     "name": "unknown",
     "packageManager": "npm",
@@ -9,10 +9,10 @@
   },
   "overall": "FAIL",
   "counts": {
-    "pass": 2,
-    "fail": 1,
+    "pass": 1,
+    "fail": 2,
     "skipped": 6,
     "blocked": 0
   },
-  "checks": [{"status":"SKIPPED","label":"TypeScript check","exitCode":0,"detail":"no tsconfig.json"},{"status":"SKIPPED","label":"Lint","exitCode":0,"detail":"not configured"},{"status":"SKIPPED","label":"Formatting","exitCode":0,"detail":"not configured"},{"status":"PASS","label":"Unit tests","exitCode":0,"detail":""},{"status":"SKIPPED","label":"Production build","exitCode":0,"detail":"no build script"},{"status":"FAIL","label":"Browser tests","exitCode":1,"detail":"browser tests failed"},{"status":"SKIPPED","label":"Accessibility (axe-core)","exitCode":0,"detail":"no browser available"},{"status":"SKIPPED","label":"Performance (Lighthouse)","exitCode":0,"detail":"no browser available"},{"status":"PASS","label":"Dependency audit","exitCode":0,"detail":""}]
+  "checks": [{"status":"SKIPPED","label":"TypeScript check","exitCode":0,"detail":"no tsconfig.json"},{"status":"SKIPPED","label":"Lint","exitCode":0,"detail":"not configured"},{"status":"SKIPPED","label":"Formatting","exitCode":0,"detail":"not configured"},{"status":"PASS","label":"Unit tests","exitCode":0,"detail":""},{"status":"SKIPPED","label":"Production build","exitCode":0,"detail":"no build script"},{"status":"FAIL","label":"Browser tests","exitCode":1,"detail":"browser tests failed"},{"status":"SKIPPED","label":"Accessibility (axe-core)","exitCode":0,"detail":"no browser available"},{"status":"SKIPPED","label":"Performance (Lighthouse)","exitCode":0,"detail":"no browser available"},{"status":"FAIL","label":"Dependency audit","exitCode":1,"detail":"npm audit found vulnerabilities"}]
 }

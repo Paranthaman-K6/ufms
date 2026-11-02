@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-02T06:01:35.340Z",
-  "mcpAvailable": false,
+  "generatedAt": "2026-11-02T06:13:29.204Z",
+  "mcpAvailable": true,
   "servers": [
     {
       "name": "context7",
@@ -8,10 +8,10 @@
         "documentation-search",
         "library-lookup"
       ],
-      "available": false,
+      "available": true,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     },
     {
       "name": "figma",
@@ -20,10 +20,10 @@
         "component-lookup",
         "design-tokens"
       ],
-      "available": false,
+      "available": true,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     },
     {
       "name": "firecrawl",
@@ -32,10 +32,10 @@
         "web-scrape",
         "pdf-parse"
       ],
-      "available": false,
+      "available": true,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     },
     {
       "name": "opencode",
@@ -47,7 +47,7 @@
       "available": false,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     },
     {
       "name": "rea",
@@ -55,26 +55,26 @@
         "reverse-engineering",
         "binary-analysis"
       ],
-      "available": false,
+      "available": true,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     },
     {
       "name": "skillspector",
       "capabilities": [
         "skill-security-scan"
       ],
-      "available": false,
+      "available": true,
       "permissionError": false,
       "timeout": false,
-      "source": "none"
+      "source": "host-discovery"
     }
   ],
   "summary": {
     "total": 6,
-    "available": 0,
-    "unsupported": 6,
+    "available": 5,
+    "unsupported": 1,
     "blocked": 0
   },
   "fallback": "native Selenium WebDriver + local scripts",
