@@ -103,7 +103,6 @@ case "$cmd" in
       echo "task $id not found (no TASKS.md)"
       exit 1
     fi
-    local status
     status=$(get_task_status "$id")
     if [ "$status" = "not_found" ]; then
       echo "task $id not found"
@@ -142,6 +141,7 @@ case "$cmd" in
     ;;
   complete)
     id="${1:-}"
+    shift || true
     [ -z "$id" ] && usage
     if ! validate_task_id "$id"; then
       log "ERROR: Invalid task ID: $id"
@@ -155,13 +155,12 @@ case "$cmd" in
       log "ERROR: Task $id not found"
       exit 1
     fi
-    local current
     current=$(get_task_status "$id")
     if [ "$current" = "complete" ]; then
       log "Task $id already complete"
       exit 0
     fi
-    # Check dependencies first.
+    # Check dependencies first (remaining args after task ID).
     deps="$*"
     if [ -n "$deps" ]; then
       if ! check_dependencies $deps; then

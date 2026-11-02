@@ -36,7 +36,7 @@ const POLICY = {
     networkFailures: [],
     errors: [],
     checks: [],
-    summary: { pass: 0, fail: 0, skipped: 0, blocked: 0 },
+    summary: { PASS: 0, FAIL: 0, SKIPPED: 0, BLOCKED: 0 },
   };
 
   function addCheck(name, status, detail = '') {

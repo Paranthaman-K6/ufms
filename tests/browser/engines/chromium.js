@@ -130,7 +130,9 @@ async function collectEvents(driver) {
 
 async function launchChromiumWithNetwork(binary) {
   const o = new chrome.Options();
-  if (binary) o.setBinary(binary);
+  // setBinary() is not available on Chrome Options in selenium-webdriver v4.
+  // Chrome locates its binary automatically via the CHROME_BIN env var or
+  // system PATH. Do not call setBinary() to avoid incompatibility.
   o.addArguments('--headless=new', '--disable-dev-shm-usage',
     '--disable-gpu', '--window-size=1440,900');
   applyLoggingPrefs(o);

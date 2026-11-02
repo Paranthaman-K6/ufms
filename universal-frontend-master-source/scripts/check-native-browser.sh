@@ -56,9 +56,19 @@ const {Builder, Browser} = require('selenium-webdriver');
     opts = new (require('selenium-webdriver/firefox').Options)().setBinary(process.env.FIREFOX_BIN || '/usr/bin/firefox').addArguments('-headless');
   } else {
     // Preserve Chromium sandboxing by default; --no-sandbox omitted for security.
-    opts = new (require('selenium-webdriver/chrome').Options)().setBinary(process.env.CHROMIUM_BIN || '/usr/bin/chromium').addArguments('--headless=new', '--disable-dev-shm-usage');
+    // setBinary() is not available on Chrome Options in selenium-webdriver v4;
+    // Chrome locates its binary automatically via CHROME_BIN env var or PATH.
+    opts = new (require('selenium-webdriver/chrome').Options)().addArguments('--headless=new', '--disable-dev-shm-usage');
   }
-  const driver = await new Builder().forBrowser(process.argv[2]).setChromeOptions(opts).setFirefoxOptions(opts).build();
+  // Selenium Manager recognizes 'chrome' (not 'chromium') as the browser name.
+  let browserName = process.argv[2] === 'chromium' ? 'chrome' : process.argv[2];
+  let builder = new Builder().forBrowser(browserName);
+  if (process.argv[2] === 'firefox') {
+    builder = builder.setFirefoxOptions(opts);
+  } else {
+    builder = builder.setChromeOptions(opts);
+  }
+  const driver = await builder.build();
   try {
     await driver.get('data:text/html,<html><body>ok</body></html>');
     const title = await driver.getTitle();

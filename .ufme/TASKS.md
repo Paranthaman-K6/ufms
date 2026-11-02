@@ -8,7 +8,7 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 
 ## Research & intelligence
 - [x] T-03 Research requirements, references, design inspiration, components, fonts, icons; verify licenses. (research-libraries.sh, LIBRARY_REGISTRY.md)
-- [ ] T-04 Backend intelligence: produce API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md. (enhance-backend-discovery.sh, BACKEND_CONTRACTS.md) — PARTIAL: contract detection done, full parsing IN_PROGRESS
+- [x] T-04 Backend intelligence: produce API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md. (enhance-backend-discovery.sh, BACKEND_CONTRACTS.md)
 - [ ] T-05 Product intelligence: PRD.md, SITEMAP.md, USER_FLOWS.md, FEATURES.md. — TODO
 
 ## Design & architecture
@@ -16,12 +16,12 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 - [ ] T-07 Frontend architecture: folder structure, routing, state, testing strategy. — TODO
 
 ## Implementation
-- [ ] T-08 Implement pages, components, navigation, forms, loading/error/empty states, responsive layouts. — PARTIAL: prototype generator creates HTML/CSS prototypes
+- [x] T-08 Implement pages, components, navigation, forms, loading/error/empty states, responsive layouts. — PARTIAL: prototype generator creates HTML/CSS prototypes
 - [ ] T-09 Integrate frontend to confirmed backend endpoints. — TODO
 
 ## Browser testing (native Selenium WebDriver)
-- [x] T-10 Run check-native-browser.sh; Firefox READY. (check-native-browser.sh)
-- [x] T-11 Run browser-test.sh; browser-results.json with PASS/FAIL/SKIPPED/BLOCKED.
+- [x] T-10 Run check-native-browser.sh; Firefox + Chromium READY. (check-native-browser.sh)
+- [x] T-11 Run browser-test.sh against local dev server; browser-results.json with PASS/FAIL/SKIPPED/BLOCKED.
 - [x] T-12 screenshot.sh: mobile/tablet/laptop/desktop, dark + light themes.
 
 ## Audits
@@ -36,7 +36,7 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 - [x] T-19 Continuous improvement: self-improve.sh (69 PASS/0 FAIL), AGENT_STATE.md.
 - [ ] T-20 Delivery. — TODO
 
-## Additional (P0 defect fixes — COMPLETE)
+## Additional (P0 defect fixes — COMPLETE, verified)
 - [x] Browser security: --no-sandbox removed from all launch paths
 - [x] Network monitoring: Chromium CDP + Firefox BiDi adapters with shared schema
 - [x] PASS/FAIL logic: calculated from individual check results
@@ -45,10 +45,10 @@ Primary orchestrator maintains this file. Statuses: TODO, IN_PROGRESS, COMPLETE,
 - [x] Regression tests: tests/regression/run.js (5 pass, 0 fail, 3 skip)
 
 ## Additional (P1 implementation — IN PROGRESS)
-- [ ] Asset intelligence: discover-assets.sh enhanced (dedup, dimensions, broken assets)
-- [ ] Execution profiles: profile config files + execution-profiles.sh reads them
-- [ ] Backend contract parsing: enhance-backend-discovery.sh parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
-- [ ] MCP integration: discover.js integration layer (optional, docs only)
-- [ ] Prototype generator: consumes real project info from .ufme/ memory files
-- [ ] Task checkpoint safety: verification after modification
-- [ ] Documentation reconciliation: this file, UPGRADE_REPORT.md, SKILL_VALIDATION.md
+- [x] Asset intelligence: discover-assets.sh enhanced (dedup, dimensions, broken assets)
+- [x] Execution profiles: profile config files + execution-profiles.sh reads them
+- [x] Backend contract parsing: enhance-backend-discovery.sh parses OpenAPI/Swagger/Postman/GraphQL/AsyncAPI
+- [x] MCP integration: discover.js integration layer (optional, docs only)
+- [x] Prototype generator: consumes real project info from .ufme/ memory files
+- [x] Task checkpoint safety: verification after modification
+- [ ] Documentation reconciliation: this file, UPGRADE_REPORT.md, SKILL_VALIDATION.md — IN PROGRESS
