@@ -93,11 +93,13 @@ delegation.
 5. `@ufme-frontend-architect` — define architecture, routing, state, testing strategy
 6. `@ufme-implementer` — build pages, components, navigation, forms, responsive layouts
 7. `@ufme-integrator` — connect frontend to confirmed backend endpoints
-8. `@ufme-browser-execution` — run Selenium browser tests (via `scripts/browser-test.sh`)
-9. `@ufme-visual-auditor` — review Selenium screenshots (MANDATORY)
-10. `@ufme-accessibility-auditor` — WCAG 2.1 AA audit
-11. `@ufme-performance-auditor` — Core Web Vitals, Lighthouse
-12. `@ufme-security-auditor` — XSS, CSRF, CORS, CSP, secrets, dep audit
+8. `@ufme-visual-auditor` — review Selenium screenshots (MANDATORY)
+9. `@ufme-accessibility-auditor` — WCAG 2.1 AA audit
+10. `@ufme-performance-auditor` — Core Web Vitals, Lighthouse
+11. `@ufme-security-auditor` — XSS, CSRF, CORS, CSP, secrets, dep audit
+
+Browser execution is orchestrated directly by the orchestrator via
+`scripts/browser-test.sh` (no separate `browser-execution` agent).
 
 Parallel work is allowed only when tasks do not modify the same files. If two agents
 disagree, the orchestrator resolves the conflict and records the decision in

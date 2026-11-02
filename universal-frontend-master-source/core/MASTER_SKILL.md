@@ -1,3 +1,9 @@
+---
+name: universal-frontend-master
+description: Build, extend, integrate, audit, and continuously improve complete responsive websites from a brief, repository, backend, API documentation, screenshot, or reference site. Arch Linux-aware multi-agent frontend engineering with native Selenium WebDriver browser testing, visual auditing, accessibility, performance, security, and production readiness.
+license: MIT
+---
+
 # universal-frontend-master — Master Skill
 
 OpenCode skill that transforms a project brief, existing frontend, backend repository, API
@@ -41,9 +47,9 @@ All 14 scripts live in `universal-frontend-master-source/scripts/`:
 - Stack/backend detection: `detect-stack.sh`, `backend-discovery.sh`
 - Browser setup/test/screenshots: `check-native-browser.sh`, `browser-test.sh`, `screenshot.sh`
 - Quality/self-improvement: `quality-check.py`, `self-improve.py`
-- Research/assets/platform: `research-libraries.sh`, `discover-assets.py`, `detect-platform.sh`
+- Research/assets/platform: `search-libraries.py`, `discover-assets.py`, `detect-platform.sh`
 - Backend contracts: `enhance-backend-discovery.py`
-- Profiles/checkpoints/prototype: `execution-profiles.sh`, `task-checkpoint.py`, `generate-prototype.sh`
+- Profiles/checkpoints/prototype: `execution-profiles.sh`, `task-checkpoint.py`, `generate-prototype.py`
 
 ## Execution profiles
 

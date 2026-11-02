@@ -8,7 +8,7 @@ Create the design system, wireframes, and component architecture from the PRD an
    `.ufme/FEATURES.md`.
 2. Create `.ufme/DESIGN_SYSTEM.md` (tokens: typography, spacing, color; component
    architecture; responsive rules; animation guidance; accessible UI patterns).
-3. Run `scripts/generate-prototype.sh` to produce HTML/CSS prototype pages from the
+3. Run `scripts/generate-prototype.py` to produce HTML/CSS prototype pages from the
    sitemap routes and design tokens; output isolated in `prototypes/`.
 4. Produce wireframes (low-fidelity page layouts).
 5. Record any new asset (font, icon, image) in `.ufme/DECISIONS.md`.
