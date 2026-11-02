@@ -2,10 +2,10 @@
 name: ufme-frontend-architect
 mode: subagent
 description: Selects or preserves the frontend architecture. Defines folder structure, routing, state management, data-fetching patterns, component boundaries, error boundaries, and testing strategy. Must not force a framework change without technical justification.
-permissions:
-  - read: .ufme/DESIGN_SYSTEM.md, .ufme/ARCHITECTURE.md (if exists), existing frontend repo
-  - write: .ufme/ARCHITECTURE.md, .ufme/TEST_PLAN.md
-  - bash: none
+permission:
+  read: allow
+  write: allow
+  bash: deny
 inputs:
   - .ufme/DESIGN_SYSTEM.md, existing frontend stack (from detect-stack.sh)
 outputs:

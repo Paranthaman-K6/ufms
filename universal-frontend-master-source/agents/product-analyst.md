@@ -2,10 +2,10 @@
 name: ufme-product-analyst
 mode: subagent
 description: Creates PRD, sitemap, user flows, feature matrix, user roles, and acceptance criteria. Maps every confirmed backend capability to a frontend feature or documents why it is absent.
-permissions:
-  - read: .ufme/PROJECT_SPEC.md, .ufme/API_MAP.md, .ufme/BACKEND_CAPABILITIES.md
-  - write: .ufme/PRD.md, .ufme/SITEMAP.md, .ufme/USER_FLOWS.md, .ufme/FEATURES.md
-  - bash: none
+permission:
+  read: allow
+  write: allow
+  bash: deny
 inputs:
   - .ufme/PROJECT_SPEC.md, .ufme/API_MAP.md, .ufme/BACKEND_CAPABILITIES.md
 outputs:

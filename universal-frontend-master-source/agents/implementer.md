@@ -2,10 +2,10 @@
 name: ufme-implementer
 mode: subagent
 description: Builds pages, reusable components, navigation, forms, state, loading/error/empty states, responsive layouts, animations, and PWA readiness where justified.
-permissions:
-  - read: .ufme/ARCHITECTURE.md, .ufme/DESIGN_SYSTEM.md, .ufme/TASKS.md
-  - write: frontend source files (pages, components, layouts), updates to .ufme/TASKS.md via orchestrator
-  - bash: local builds, lint, type check, unit tests, dev server
+permission:
+  read: allow
+  write: allow
+  bash: allow
 inputs:
   - .ufme/ARCHITECTURE.md, .ufme/DESIGN_SYSTEM.md, .ufme/TASKS.md (approved feature slice)
 outputs:

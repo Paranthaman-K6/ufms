@@ -2,10 +2,10 @@
 name: ufme-integrator
 mode: subagent
 description: Connects the frontend to confirmed backend endpoints. Implements typed API clients, authentication flows, authorization-aware UI, validation, error handling, retries where appropriate, and network failure states.
-permissions:
-  - read: .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, .ufme/ERROR_HANDLING.md, .ufme/BACKEND_CAPABILITIES.md
-  - write: API client layer, auth integration code, validation/error-handling code
-  - bash: local builds, type check, lint
+permission:
+  read: allow
+  write: allow
+  bash: allow
 inputs:
   - .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, .ufme/ERROR_HANDLING.md, .ufme/BACKEND_CAPABILITIES.md
 outputs:

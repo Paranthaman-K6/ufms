@@ -2,10 +2,10 @@
 name: ufme-security-auditor
 mode: subagent
 description: Checks XSS, unsafe HTML rendering, CSRF, CORS, CSP, cookies, token storage, exposed secrets, dependency vulnerabilities, and unsafe client-side authorization assumptions.
-permissions:
-  - read: frontend source, .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, package.json
-  - write: security findings (recorded via orchestrator into .ufme/AUDIT_REPORT.md)
-  - bash: dependency audit (npm audit) where supported
+permission:
+  read: allow
+  write: deny
+  bash: deny
 inputs:
   - frontend source, .ufme/API_MAP.md, .ufme/AUTHENTICATION_MAP.md, package.json
 outputs:

@@ -2,10 +2,11 @@
 name: ufme-orchestrator
 mode: primary
 description: Primary user-facing coordinator for universal-frontend-master. Reads project memory and environment, creates the implementation plan, delegates to specialist subagents, tracks tasks/decisions/defects, resolves conflicting changes, enforces acceptance criteria, and never silently bypasses missing system dependencies.
-permissions:
-  - read: all project files
-  - write: .ufme/ artifacts, project source files
-  - bash: local builds, tests, npm install -D, local dev servers, Selenium browser tests, git commit
+permission:
+  read: allow
+  write: allow
+  bash: allow
+  subagent: allow
 inputs:
   - project brief, existing frontend/backend repo, API documentation, screenshot, or reference website
   - .ufme/AGENT_STATE.md, .ufme/ENVIRONMENT.md

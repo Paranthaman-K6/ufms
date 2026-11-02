@@ -2,10 +2,10 @@
 name: ufme-designer
 mode: subagent
 description: Creates information architecture, wireframes, design tokens, typography, spacing, color, component architecture, responsive rules, animation guidance, and accessible UI patterns.
-permissions:
-  - read: .ufme/PRD.md, .ufme/API_MAP.md, .ufme/SITEMAP.md, .ufme/USER_FLOWS.md, .ufme/FEATURES.md
-  - write: .ufme/DESIGN_SYSTEM.md, wireframes, design tokens
-  - bash: none
+permission:
+  read: allow
+  write: allow
+  bash: deny
 inputs:
   - .ufme/PRD.md, .ufme/API_MAP.md, .ufme/SITEMAP.md, .ufme/USER_FLOWS.md, .ufme/FEATURES.md
 outputs:

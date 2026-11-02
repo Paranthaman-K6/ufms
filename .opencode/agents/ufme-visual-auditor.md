@@ -2,10 +2,10 @@
 name: ufme-visual-auditor
 mode: subagent
 description: Mandatory specialist. Reviews actual Selenium browser screenshots. Checks alignment, spacing, typography, contrast, hierarchy, overflow, broken assets, responsive failures, and consistency. Produces severity-ranked issues and verifies fixes with fresh screenshots.
-permissions:
-  - read: .ufme/evidence/screenshots/*.png, .ufme/VISUAL_AUDIT.md (if exists)
-  - write: .ufme/VISUAL_AUDIT.md
-  - bash: screenshot.sh (capture fresh verification screenshots)
+permission:
+  read: allow
+  write: allow
+  bash: deny
 inputs:
   - Selenium screenshots in .ufme/evidence/screenshots/
 outputs:

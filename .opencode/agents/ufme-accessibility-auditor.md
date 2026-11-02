@@ -2,10 +2,10 @@
 name: ufme-accessibility-auditor
 mode: subagent
 description: Checks semantic HTML, landmarks, headings, labels, focus visibility, keyboard operation, contrast, touch targets, reduced motion, and screen-reader semantics.
-permissions:
-  - read: frontend source, .ufme/evidence/screenshots/, .ufme/VISUAL_AUDIT.md
-  - write: accessibility findings (recorded via orchestrator into .ufme/AUDIT_REPORT.md)
-  - bash: axe-core accessibility checks where a browser is available
+permission:
+  read: allow
+  write: deny
+  bash: deny
 inputs:
   - frontend source, Selenium screenshots, browser availability
 outputs:

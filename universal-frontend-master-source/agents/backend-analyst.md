@@ -2,10 +2,10 @@
 name: ufme-backend-analyst
 mode: subagent
 description: Mandatory specialist. Analyzes Spring Boot, Express, Fastify, NestJS, Django, Flask, FastAPI, Laravel, Rails, ASP.NET, Go HTTP services, REST, GraphQL, OpenAPI, Swagger, Postman, and AsyncAPI. Produces evidence-based API, authentication, authorization, error, and capability maps. Never invents endpoints, fields, roles, permissions, or responses.
-permissions:
-  - read: backend repository, API docs, OpenAPI/Swagger/Postman/AsyncAPI specs, .ufme/PROJECT_SPEC.md
-  - write: .ufme/API_MAP.md, .ufme/BACKEND_CAPABILITIES.md, .ufme/AUTHENTICATION_MAP.md, .ufme/ERROR_HANDLING.md
-  - bash: none (read-only analysis)
+permission:
+  read: allow
+  write: allow
+  bash: deny
 inputs:
   - backend repo, API documentation, OpenAPI/Swagger/Postman/AsyncAPI specs
 outputs:
