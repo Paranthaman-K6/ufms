@@ -20,12 +20,13 @@ usage() {
 }
 
 # Validate task identifier: alphanumeric, hyphens, underscores only.
+# Enforced format: T[0-9]+ (e.g., T1, T123)
 validate_task_id() {
   local id="$1"
   if [ -z "$id" ]; then
     return 1
   fi
-  if ! echo "$id" | grep -qE '^[A-Za-z0-9][A-Za-z0-9_-]*$'; then
+  if ! echo "$id" | grep -qE '^T[0-9]+$'; then
     return 1
   fi
   return 0

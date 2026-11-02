@@ -38,14 +38,16 @@ load_profile() {
   if ! python3 -c "
 import json, sys
 try:
-    with open('$file') as f:
+    # Use sys.argv[1] to avoid shell interpolation in the string
+    file_path = sys.argv[1]
+    with open(file_path, 'r') as f:
         content = f.read()
         json.loads(content)  # Validate
         sys.stdout.write(content)  # Output raw content
 except Exception as e:
     sys.stderr.write(str(e))
     sys.exit(1)
-" 2>/dev/null; then
+" "$file" 2>/dev/null; then
     log "ERROR: Invalid JSON in profile: $file"
     return 1
   fi

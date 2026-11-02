@@ -30,20 +30,17 @@ import urllib.error
 from typing import List, Tuple, Optional
 
 def find_project_root():
-    """Walk up the directory tree to find the project root (marked by .ufme directory)."""
-    start = os.path.abspath(os.path.dirname(__file__))
-    current = start
+    """Walk up the directory tree to find the project root (marked by .ufme directory or opencode.json)."""
+    current = os.path.abspath(os.path.dirname(__file__))
     while True:
-        if os.path.exists(os.path.join(current, '.ufme')):
+        if os.path.exists(os.path.join(current, '.ufme')) or os.path.exists(os.path.join(current, 'opencode.json')):
             return current
         parent = os.path.dirname(current)
         if parent == current:
-            # We've reached the root of the filesystem; break to avoid infinite loop.
             break
         current = parent
-    # Fallback: assume the script is in universal-frontend-master-source/scripts/
-    # and go up three levels.
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Fallback to a safe default relative to script location
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 ROOT_DIR = find_project_root()
 UFME_DIR = os.path.join(ROOT_DIR, ".ufme")

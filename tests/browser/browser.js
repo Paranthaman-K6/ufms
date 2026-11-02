@@ -136,17 +136,28 @@ async function getNetworkResult() {
   return networkResult;
 }
 
-async function close() {
-  if (driver) {
-    try { await driver.quit(); } catch (e) { /* ignore close errors */ }
-    driver = null;
-    engine = null;
+async function validateLinks() {
+  if (!driver) throw new Error('Browser not launched.');
+  const links = await driver.findElements({ css: 'a' });
+  const brokenLinks = [];
+  for (const link of links) {
+    const href = await link.getAttribute('href');
+    if (!href) continue;
+  
+      const id = href.substring(1);
+      const element = await driver.findElements({ css: `#${id}` });
+      if (element.length === 0) {
+        brokenLinks.push({ href, type: 'broken-anchor' });
+      }
+    }
+    // External links are checked via collectFailedRequests (4xx/5xx)
   }
+  return brokenLinks;
 }
 
 module.exports = {
   launchBrowser, goto, click, type, submit, waitForSelector,
   screenshot, setViewport, executeScript, collectConsoleErrors,
-  collectFailedRequests, getNetworkResult, close,
+  collectFailedRequests, getNetworkResult, close, validateLinks,
   VIEWPORTS,
 };

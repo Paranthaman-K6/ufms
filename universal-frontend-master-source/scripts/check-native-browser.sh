@@ -17,6 +17,9 @@ mkdir -p "$EVIDENCE_DIR"
 
 log() { echo "[check-native-browser] $*"; }
 
+# Configurable timeout for Selenium tests
+TIMEOUT_SEC="${BROWSER_TIMEOUT_SEC:-10}"
+
 detect_browsers() {
   CHROMIUM_BIN=""
   CHROME_BIN=""
@@ -24,14 +27,24 @@ detect_browsers() {
   SELENIUM_WORKS_CHROMIUM=false
   SELENIUM_WORKS_FIREFOX=false
 
-  if command -v chromium >/dev/null 2>&1; then CHROMIUM_BIN="$(command -v chromium)"; fi
-  if command -v google-chrome-stable >/dev/null 2>&1; then CHROME_BIN="$(command -v google-chrome-stable)"; fi
-  if command -v google-chrome >/dev/null 2>&1; then CHROME_BIN="${CHROME_BIN:-$(command -v google-chrome)}"; fi
-  if command -v firefox >/dev/null 2>&1; then FIREFOX_BIN="$(command -v firefox)"; fi
+  # Check for a wider range of common binary names
+  for bin in chromium chromium-bin google-chrome-stable google-chrome; do
+    if command -v "$bin" >/dev/null 2>&1; then
+      CHROMIUM_BIN="$(command -v "$bin")"
+      break
+    fi
+  done
+
+  for bin in firefox firefox-developer-edition firefox-bin; do
+    if command -v "$bin" >/dev/null 2>&1; then
+      FIREFOX_BIN="$(command -v "$bin")"
+      break
+    fi
+  done
 
   # Test Selenium with available browsers
-  if [ -n "$CHROMIUM_BIN" ] || [ -n "$CHROME_BIN" ]; then
-    if timeout 10s python3 -c "
+  if [ -n "$CHROMIUM_BIN" ]; then
+    if timeout "${TIMEOUT_SEC}s" python3 -c "
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 opts = Options()
@@ -52,7 +65,7 @@ except Exception as e:
   fi
 
   if [ -n "$FIREFOX_BIN" ]; then
-    if timeout 10s python3 -c "
+    if timeout "${TIMEOUT_SEC}s" python3 -c "
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 opts = Options()
@@ -70,8 +83,7 @@ except Exception as e:
     fi
   fi
 
-  log "Chromium: ${CHROMIUM_BIN:-NOT FOUND}"
-  log "Google Chrome: ${CHROME_BIN:-NOT FOUND}"
+  log "Chromium/Chrome: ${CHROMIUM_BIN:-NOT FOUND}"
   log "Firefox: ${FIREFOX_BIN:-NOT FOUND}"
   if [ "$SELENIUM_WORKS_CHROMIUM" = true ]; then
     log "Selenium with Chromium: WORKING"

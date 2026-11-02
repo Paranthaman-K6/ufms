@@ -146,10 +146,12 @@ main() {
   # Second pass: write manifest entries
   for f in "${all_assets[@]}"; do
     local size h dims ar lic status broken
+    # Quote file paths to prevent shell injection/errors with spaces
     size=$(wc -c < "$f" 2>/dev/null || echo 0)
     h=$(hash_file "$f")
     dims="unknown"
     ar="unknown"
+
 
     # Determine type
     local ext="${f##*.}"

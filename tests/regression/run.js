@@ -239,11 +239,14 @@ const testRealBrowserScreenshot = test('real browser captures screenshot', async
 (async () => {
   console.log('=== UFME Browser Regression Tests ===\n');
 
-  await testExports();
-  await testViewports();
-  await testNoProhibitedFlags();
-  await testNetworkSchema();
-  await testQualityGateExitCodes();
+  const testsToRun = [
+    testExports, testViewports, testNoProhibitedFlags, 
+    testNetworkSchema, testQualityGateExitCodes
+  ];
+
+  for (const t of testsToRun) {
+    await t();
+  }
 
   if (USE_REAL_BROWSER) {
     await testRealBrowserLaunch();
@@ -260,6 +263,7 @@ const testRealBrowserScreenshot = test('real browser captures screenshot', async
   }
 
   console.log(`\n=== Results: ${passes} passed, ${failures} failed, ${skipped} skipped ===`);
+
 
   const report = {
     startedAt: new Date().toISOString(),

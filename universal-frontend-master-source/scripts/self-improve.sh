@@ -28,6 +28,31 @@ note() { # note <status> <label> [detail]
   esac
 }
 
+check_file() { # check_file <path> <label> [check_type]
+  local path="$1" label="$2" type="${3:-exists}"
+  if [ ! -f "$path" ]; then
+    note FAIL "$label" "missing"
+    return 1
+  fi
+  case "$type" in
+    exists)
+      if [ -s "$path" ]; then note PASS "$label"; else note FAIL "$label" "empty"; fi
+      ;;
+    syntax)
+      if [[ "$path" == *.py ]]; then
+        if python3 -m py_compile "$path" 2>/dev/null; then note PASS "$label" "executable + syntax valid"; else note FAIL "$label" "syntax invalid"; fi
+      elif [[ "$path" == *.js ]]; then
+        if node --check "$path" 2>/dev/null; then note PASS "$label" "syntax valid"; else note FAIL "$label" "syntax invalid"; fi
+      else
+        if bash -n "$path" 2>/dev/null; then note PASS "$label" "executable + syntax valid"; else note FAIL "$label" "syntax invalid"; fi
+      fi
+      ;;
+    exec)
+      if [ -x "$path" ]; then note PASS "$label" "executable"; else note FAIL "$label" "not executable"; fi
+      ;;
+  esac
+}
+
 has_frontmatter() { # has_frontmatter <file>
   head -1 "$1" | grep -q '^---$'
 }
@@ -53,23 +78,14 @@ get_frontmatter_field() { # get_frontmatter_field <file> <field>
     "$SOURCE_DIR/core/SAFETY.md" \
     "$SOURCE_DIR/core/ARCH_LINUX.md" \
     "$SOURCE_DIR/core/SYSTEM_ARCHITECTURE.md"; do
-    if [ -f "$f" ]; then
-      if [ -s "$f" ]; then
-        note PASS "$(basename "$f")"
-      else
-        note FAIL "$(basename "$f")" "file is empty"
-      fi
-    else
-      note FAIL "$(basename "$f")" "missing"
-    fi
+    check_file "$f" "$(basename "$f")"
   done
 
   echo ""
   echo "## Agent audit (frontmatter + mode)"
   for a in orchestrator researcher backend-analyst product-analyst designer frontend-architect implementer integrator visual-auditor accessibility-auditor performance-auditor security-auditor; do
     f="$SOURCE_DIR/agents/$a.md"
-    if [ ! -f "$f" ]; then
-      note FAIL "ufme-$a" "missing"
+    if ! check_file "$f" "ufme-$a" exists; then
       continue
     fi
     if ! has_frontmatter "$f"; then
@@ -103,33 +119,14 @@ get_frontmatter_field() { # get_frontmatter_field <file> <field>
     else
       f="$SOURCE_DIR/scripts/$s.sh"
     fi
-    if [ ! -f "$f" ]; then
-      note FAIL "$s" "missing"
-    elif [ ! -x "$f" ]; then
-      note FAIL "$s" "not executable"
-    elif [[ "$f" == *.py ]]; then
-      if ! python3 -m py_compile "$f" 2>/dev/null; then
-        note FAIL "$s" "syntax invalid"
-      else
-        note PASS "$s" "executable + syntax valid"
-      fi
-    elif ! bash -n "$f" 2>/dev/null; then
-      note FAIL "$s" "syntax invalid"
-    else
-      note PASS "$s" "executable + syntax valid"
-    fi
+    check_file "$f" "$s" exec
+    check_file "$f" "$s" syntax
   done
 
   echo ""
   echo "## Browser abstraction audit"
   for f in tests/browser/browser.js tests/browser/screenshot.js tests/browser/run.js tests/browser/validate.js; do
-    if [ ! -f "$ROOT_DIR/$f" ]; then
-      note FAIL "$f" "missing"
-    elif ! node --check "$ROOT_DIR/$f" 2>/dev/null; then
-      note FAIL "$f" "syntax invalid"
-    else
-      note PASS "$f" "syntax valid"
-    fi
+    check_file "$ROOT_DIR/$f" "$f" syntax
   done
 
   echo ""

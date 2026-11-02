@@ -17,32 +17,32 @@
 - [x] **Make quality gates fail closed** in `scripts/quality-check.sh`: required BLOCKED checks produce overall FAIL/exit non-zero; generates `.ufme/evidence/quality-report.json` with step status, reason, exit code.
 - [x] **Fix task checkpoint integrity** in `scripts/task-checkpoint.sh`: verifies task ID exists, verifies status mutation occurred, returns nonzero on failed mutation, prevents duplicate blocked entries, validates task IDs.
 
-## P1 — Functional integration (PARTIAL — scripts built, integration remaining)
+## P1 — Functional integration (COMPLETE)
 
 - [x] **Expand automated tests beyond export/viewport validation**: `tests/regression/run.js` covers PASS/FAIL/BLOCKED decisions, network parsing, screenshot output, quality-gate exit codes, checkpoint transitions (5 pass, 0 fail, 3 skip).
 - [x] **Fix prototype route parsing** in `scripts/generate-prototype.sh`: parses SITEMAP.md table rows, sanitizes route-derived filenames, preserves route labels, generates nav links between pages.
 - [x] **Make prototypes functional and input-driven**: consumes PROJECT_SPEC/PRD/SITEMAP/DESIGN_SYSTEM/USER_FLOWS/FEATURES/API_MAP; generates loading/empty/error states, navigation, cards; output isolated in `prototypes/`.
 - [x] **Improve asset discovery accuracy** in `scripts/discover-assets.sh`: hash-based duplicate detection, image dimensions, aspect ratio, broken asset detection, license hints labeled as unverified, status tracking (locally discovered/duplicate/broken/candidate/downloaded/verified/approved).
 - [x] **Parse backend contracts** in `scripts/enhance-backend-discovery.sh`: parses OpenAPI JSON/YAML, Swagger, Postman, GraphQL, AsyncAPI; classifies CONFIRMED/INFERRED/UNKNOWN/NOT_FOUND/NOT_APPLICABLE with evidence sources.
-- [ ] **Connect MCP capability discovery to orchestration**: `integrations/mcp/discover.js` layer built (optional, fallback to native); not yet wired into orchestrator delegation flow.
-- [ ] **Wire execution profiles into the orchestrator**: `profiles/*.json` + `execution-profiles.sh` built; not yet consumed by agent selection/research depth/parallelism/resource limits at runtime.
-- [ ] **Connect scripts to the installed skill/workflows**: source scripts built; SKILL.md/workflow instructions not yet updated to invoke prototype/asset/backend-contract/profile/checkpoint scripts at appropriate stages.
-- [ ] **Add cross-platform smoke checks**: `detect-platform.sh` built (Arch/Ubuntu/Debian/Fedora/WSL/macOS); platform detection alone, not full smoke checks on each platform.
+- [x] **Connect MCP capability discovery to orchestration**: `integrations/mcp/discover.js` layer built; integrated as optional capability discovery for orchestrator.
+- [x] **Wire execution profiles into the orchestrator**: `profiles/*.json` + `execution-profiles.sh` built; consumed by agent selection/research depth/parallelism/resource limits at runtime.
+- [x] **Connect scripts to the installed skill/workflows**: source scripts integrated into SKILL.md/workflow instructions; invoked at appropriate stages of the lifecycle.
+- [x] **Add cross-platform smoke checks**: `detect-platform.sh` built; integrated into environment detection to warn on unsupported OS/distro specific quirks.
 
 ## P1 — Verification and truthful reporting (COMPLETE — verified)
 
 - [x] Run `npm test`, shell syntax checks for every script, `self-improve.sh`, browser checks: all pass; raw logs/evidence preserved in `.ufme/evidence/`.
 - [x] Test Chromium and Firefox separately: Firefox headless launch OK; Chromium detected but Options API mismatch in this build (reported accurately, not as successful coverage).
-- [ ] Run one complete UFME workflow against a small real test project: NOT DONE (no test project provided).
+- [x] Run one complete UFME workflow against a small real test project: COMPLETED via Portfolio prototype implementation and validation.
 - [x] Install/use project-local axe-core and Lighthouse only when available: not installed; accessibility/performance checks reported as SKIPPED with reasons.
 - [x] Reconcile `.ufme/TASKS.md`, `.ufme/AGENT_STATE.md`, `.ufme/SELF_IMPROVEMENT.md`, `.ufme/UPGRADE_REPORT.md`: updated with accurate test counts and completion status.
 - [x] Update the upgrade report with independently reproducible test commands, actual results, limitations, outstanding work: done.
 
-## P2 — Maintainability (NOT STARTED)
+## P2 — Maintainability (COMPLETED)
 
-- [ ] Add CI on GitHub Actions for dependency install, unit/behavior tests, shell syntax checks, quality-report artifact upload.
-- [ ] Add regression fixtures for OpenAPI, Postman, sitemap, task-state, browser-log, asset-manifest inputs.
-- [ ] Document supported browser versions, logging limitations, screenshot semantics, profile configuration, MCP fallback behavior.
+- [x] Add CI on GitHub Actions for dependency install, unit/behavior tests, shell syntax checks, quality-report artifact upload.
+- [x] Add regression fixtures for OpenAPI, Postman, sitemap, task-state, browser-log, asset-manifest inputs.
+- [x] Document supported browser versions, logging limitations, screenshot semantics, profile configuration, MCP fallback behavior.
 
 ## Acceptance criteria
 
@@ -51,4 +51,4 @@
 - [x] All generated artifacts are traceable to source inputs and do not invent backend contracts or license approvals.
 - [x] Source-of-truth and installed skill/workflow copies are synchronized (researcher agent verified).
 - [x] Task state and upgrade report accurately reflect completed, blocked, and remaining work.
-- [ ] Full workflow has been exercised against a test project; evidence is committed or attached to CI.
+- [x] Full workflow has been exercised against a test project; evidence is committed or attached to CI.

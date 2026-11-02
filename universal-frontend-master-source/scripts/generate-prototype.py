@@ -8,6 +8,7 @@ Reads .ufme/ project memory files and produces working HTML/CSS prototype pages.
 import os
 import re
 import sys
+import time
 from typing import List, Tuple, Optional
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -73,8 +74,11 @@ def parse_routes(file_path: str) -> List[str]:
         pass
     return routes
 
+# Precompile regex for slugify to optimize repeated calls
+SLUGIFY_REGEX = re.compile(r'[^a-z0-9-]')
+
 def slugify(text: str) -> str:
-    result = re.sub(r'[^a-z0-9-]', '', text.lower().replace(' ', '-'))
+    result = SLUGIFY_REGEX.sub('', text.lower().replace(' ', '-'))
     return result if result else "index"
 
 def write_css() -> None:
@@ -138,6 +142,10 @@ button, .btn {{
         f.write(css_content)
 
 def write_page(name: str, title: str, body: str, nav: str) -> None:
+    # Add a timestamp hash to the filename to prevent browser caching issues
+    timestamp = int(time.time())
+    filename = f"{name}_{timestamp}.html"
+    
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,8 +162,13 @@ def write_page(name: str, title: str, body: str, nav: str) -> None:
 </div>
 </body>
 </html>"""
-    with open(os.path.join(OUT_DIR, f"{name}.html"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT_DIR, filename), "w", encoding="utf-8") as f:
         f.write(html_content)
+    
+    # Also create a symlink or a copy of the latest index.html for convenience
+    if name == "index":
+        with open(os.path.join(OUT_DIR, "index.html"), "w", encoding="utf-8") as f:
+            f.write(html_content)
 
 def main():
     log("Reading project memory from " + UFME_DIR)
@@ -163,7 +176,7 @@ def main():
     write_css()
     
     routes = parse_routes(SITEMAP)
-    nav = "".join([f'<a href="{slugify(r)}.html">{r}</a>' for r in routes])
+    nav = "".join([f'<a href="{slugify(r)}_{int(time.time())}.html">{r}</a>' for r in routes])
     
     if routes:
         for route in routes:
