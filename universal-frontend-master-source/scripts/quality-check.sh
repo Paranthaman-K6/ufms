@@ -22,6 +22,7 @@ EVIDENCE_DIR="$UFME_DIR/evidence"
 QUALITY_REPORT="$EVIDENCE_DIR/quality-report.json"
 BROWSER_RESULTS="$EVIDENCE_DIR/browser-results.json"
 
+mkdir -p "$UFME_DIR"
 mkdir -p "$EVIDENCE_DIR"
 
 EXEC_ID="ufme-quality-$(date +%s)"

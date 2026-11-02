@@ -38,7 +38,6 @@ get_frontmatter_field() { # get_frontmatter_field <file> <field>
     started && $0 ~ field ":" { sub(/^[^:]+: */, ""); print; exit }
   ' "$1"
 }
-
 {
   echo "# UFME Self-Improvement Report"
   echo "Generated: $(date -Iseconds)"
@@ -98,16 +97,26 @@ get_frontmatter_field() { # get_frontmatter_field <file> <field>
 
   echo ""
   echo "## Script audit (executable + syntax-valid)"
-  for s in detect-stack backend-discovery check-native-browser browser-test screenshot quality-check self-improve research-libraries detect-platform discover-assets execution-profiles enhance-backend-discovery generate-prototype task-checkpoint; do
-    f="$SOURCE_DIR/scripts/$s.sh"
-    if [ ! -f "$f" ]; then
-      note FAIL "$s.sh" "missing"
-    elif [ ! -x "$f" ]; then
-      note FAIL "$s.sh" "not executable"
-    elif ! bash -n "$f" 2>/dev/null; then
-      note FAIL "$s.sh" "syntax invalid"
+  for s in detect-stack backend-discovery check-native-browser browser-test screenshot quality-check self-improve search-libraries.py detect-platform discover-assets execution-profiles enhance-backend-discovery generate-prototype.py task-checkpoint; do
+    if [[ "$s" == *.py ]]; then
+      f="$SOURCE_DIR/scripts/$s"
     else
-      note PASS "$s.sh" "executable + syntax valid"
+      f="$SOURCE_DIR/scripts/$s.sh"
+    fi
+    if [ ! -f "$f" ]; then
+      note FAIL "$s" "missing"
+    elif [ ! -x "$f" ]; then
+      note FAIL "$s" "not executable"
+    elif [[ "$f" == *.py ]]; then
+      if ! python3 -m py_compile "$f" 2>/dev/null; then
+        note FAIL "$s" "syntax invalid"
+      else
+        note PASS "$s" "executable + syntax valid"
+      fi
+    elif ! bash -n "$f" 2>/dev/null; then
+      note FAIL "$s" "syntax invalid"
+    else
+      note PASS "$s" "executable + syntax valid"
     fi
   done
 

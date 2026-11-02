@@ -122,8 +122,12 @@ the skill file.
 
 ## Library research
 
-The researcher agent discovers candidate frontend libraries from the web and records them in
-`.ufme/LIBRARY_REGISTRY.md` via `scripts/research-libraries.sh`. Approved free/open-source/commercially-usable assets are moved into `.ufme/DECISIONS.md` before installation (project-local npm only).
+The researcher agent discovers candidate frontend libraries using
+`scripts/search-libraries.py`. The tool searches the local `.ufme/LIBRARY_REGISTRY.md`
+first, then the npm registry, and displays results as a selectable table. Agents choose
+libraries with `--select <package-name>` and approve them for implementation with
+`--approve <package-name>`. Approved free/open-source/commercially-usable assets are
+recorded in `.ufme/DECISIONS.md` before installation (project-local npm only).
 
 ## Asset intelligence
 
@@ -172,12 +176,12 @@ mutation is confirmed by re-reading `.ufme/TASKS.md`. Duplicate task entries are
 | `scripts/screenshot.sh` | Captures full-page + section screenshots at all viewports, dark+light themes |
 | `scripts/quality-check.sh` | Type check, lint, formatting, unit tests, build, browser tests, a11y, perf, dep audit; writes quality-report.json |
 | `scripts/self-improve.sh` | Audits all skill source files; writes SELF_IMPROVEMENT.md |
-| `scripts/research-libraries.sh` | Fetches real npm metadata for candidate UI libraries |
+| `scripts/search-libraries.py` | Searches local registry + npm registry for candidate libraries; agents select/approve |
 | `scripts/detect-platform.sh` | Detects OS/distro and reports UFME compatibility |
 | `scripts/discover-assets.sh` | Discovers images/fonts/videos; duplicate detection; license hints; manifest |
 | `scripts/enhance-backend-discovery.sh` | Parses backend contracts; writes BACKEND_CONTRACTS.md |
 | `scripts/execution-profiles.sh` | Reads profile configs; validates and outputs profile settings |
-| `scripts/generate-prototype.sh` | Generates HTML/CSS prototypes from .ufme/ memory files |
+| `scripts/generate-prototype.py` | Generates HTML/CSS prototypes from .ufme/ memory files (integrated with approved libs) |
 | `scripts/task-checkpoint.sh` | Dependency-aware task state transitions in TASKS.md |
 
 ## Browser abstraction (tests/browser/)

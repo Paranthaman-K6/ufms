@@ -21,15 +21,68 @@ detect_browsers() {
   CHROMIUM_BIN=""
   CHROME_BIN=""
   FIREFOX_BIN=""
+  SELENIUM_WORKS_CHROMIUM=false
+  SELENIUM_WORKS_FIREFOX=false
 
   if command -v chromium >/dev/null 2>&1; then CHROMIUM_BIN="$(command -v chromium)"; fi
   if command -v google-chrome-stable >/dev/null 2>&1; then CHROME_BIN="$(command -v google-chrome-stable)"; fi
   if command -v google-chrome >/dev/null 2>&1; then CHROME_BIN="${CHROME_BIN:-$(command -v google-chrome)}"; fi
   if command -v firefox >/dev/null 2>&1; then FIREFOX_BIN="$(command -v firefox)"; fi
 
+  # Test Selenium with available browsers
+  if [ -n "$CHROMIUM_BIN" ] || [ -n "$CHROME_BIN" ]; then
+    if timeout 10s python3 -c "
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+opts = Options()
+opts.add_argument('--headless')
+opts.add_argument('--no-sandbox')
+opts.add_argument('--disable-dev-shm-usage')
+try:
+    driver = webdriver.Chrome(options=opts)
+    driver.get('data:text/html,<html><body>Selenium test</body></html>')
+    title = driver.title
+    driver.quit()
+    exit(0)
+except Exception as e:
+    exit(1)
+    " 2>/dev/null; then
+      SELENIUM_WORKS_CHROMIUM=true
+    fi
+  fi
+
+  if [ -n "$FIREFOX_BIN" ]; then
+    if timeout 10s python3 -c "
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+opts = Options()
+opts.add_argument('--headless')
+try:
+    driver = webdriver.Firefox(options=opts)
+    driver.get('data:text/html,<html><body>Selenium test</body></html>')
+    title = driver.title
+    driver.quit()
+    exit(0)
+except Exception as e:
+    exit(1)
+    " 2>/dev/null; then
+      SELENIUM_WORKS_FIREFOX=true
+    fi
+  fi
+
   log "Chromium: ${CHROMIUM_BIN:-NOT FOUND}"
   log "Google Chrome: ${CHROME_BIN:-NOT FOUND}"
   log "Firefox: ${FIREFOX_BIN:-NOT FOUND}"
+  if [ "$SELENIUM_WORKS_CHROMIUM" = true ]; then
+    log "Selenium with Chromium: WORKING"
+  else
+    log "Selenium with Chromium: NOT TESTED/NOT WORKING"
+  fi
+  if [ "$SELENIUM_WORKS_FIREFOX" = true ]; then
+    log "Selenium with Firefox: WORKING"
+  else
+    log "Selenium with Firefox: NOT TESTED/NOT WORKING"
+  fi
 }
 
 detect_selenium() {

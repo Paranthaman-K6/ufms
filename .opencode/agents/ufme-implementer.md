@@ -6,7 +6,7 @@ description: Builds pages, reusable components, navigation, forms, state, loadin
 permissions:
   - read: .ufme/ARCHITECTURE.md, .ufme/DESIGN_SYSTEM.md, .ufme/TASKS.md
   - write: frontend source files (pages, components, layouts), updates to .ufme/TASKS.md via orchestrator
-  - bash: local builds, lint, type check, unit tests, dev server
+  - bash: python3 scripts/search-libraries.py, local builds, lint, type check, unit tests, dev server
 inputs:
   - .ufme/ARCHITECTURE.md, .ufme/DESIGN_SYSTEM.md, .ufme/TASKS.md (approved feature slice)
 outputs:
@@ -16,6 +16,8 @@ role_definition: |
   reusable components, navigation, forms, state, loading/error/empty states, responsive
   layouts, animations, and PWA readiness where justified. Preserve the existing architecture.
   Implement only backend capabilities confirmed by the backend analyst.
+  Note: Library installation is handled by the orchestrator; use only approved libraries
+  from .ufme/library-chosen.md.
 prohibited_actions:
   - Do not implement unconfirmed backend capabilities.
   - Do not change the frontend architecture without frontend-architect approval.

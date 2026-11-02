@@ -34,12 +34,21 @@ load_profile() {
     log "ERROR: Profile configuration not found: $file"
     return 1
   fi
-  # Validate JSON
-  if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+  # Read the file once, validate JSON, and output the raw content safely
+  if ! python3 -c "
+import json, sys
+try:
+    with open('$file') as f:
+        content = f.read()
+        json.loads(content)  # Validate
+        sys.stdout.write(content)  # Output raw content
+except Exception as e:
+    sys.stderr.write(str(e))
+    sys.exit(1)
+" 2>/dev/null; then
     log "ERROR: Invalid JSON in profile: $file"
     return 1
   fi
-  cat "$file"
   return 0
 }
 

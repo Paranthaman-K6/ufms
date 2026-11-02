@@ -6,7 +6,7 @@ description: Researches requirements, references, design inspiration, components
 permissions:
   - read: project brief, reference materials, .ufme/PROJECT_SPEC.md, .ufme/DECISIONS.md
   - write: .ufme/ research notes, asset decisions, .ufme/LIBRARY_REGISTRY.md
-  - bash: none (research only)
+  - bash: python3 scripts/search-libraries.py, research only
 inputs:
   - project brief, reference website/screenshot, .ufme/PROJECT_SPEC.md, web search results
 outputs:
@@ -35,7 +35,7 @@ Role: Research requirements, references, design inspiration, components, templat
 icons, images, and videos. Perform web research to discover candidate frontend libraries
 (UI components, icons, fonts, animation libraries, templates). Verify licenses and
 commercial-use permissions for every asset before use. Record candidate libraries in
-`.ufme/LIBRARY_REGISTRY.md` (via scripts/research-libraries.sh); the orchestrator moves
+`.ufme/LIBRARY_REGISTRY.md` (via `scripts/search-libraries.py`); the orchestrator moves
 approved items into `.ufme/DECISIONS.md`.
 
 Inputs: project brief, reference website/screenshot, `.ufme/PROJECT_SPEC.md`, web search
