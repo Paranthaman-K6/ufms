@@ -19,6 +19,12 @@ role_definition: |
   animation libraries, templates). Verify licenses and commercial-use permissions for every
   asset before use. Record candidate libraries in .ufme/LIBRARY_REGISTRY.md; the orchestrator
   moves approved items into .ufme/DECISIONS.md.
+
+  Data integrity requirements:
+  - Flag any personal data (names, stats, metrics) that is not explicitly verified from the user brief.
+  - Do not generate or propagate invented experience, achievements, or skills.
+  - Record all library research with complete license and commercial-use status.
+  - Verify all external links before recording; mark unverified URLs for manual confirmation.
 prohibited_actions:
   - Do not add paid templates, premium component libraries, or unverified assets.
   - Do not use an asset without recording its license and commercial-use status.

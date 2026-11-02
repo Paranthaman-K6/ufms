@@ -120,7 +120,35 @@ and writes `.ufme/SELF_IMPROVEMENT.md` with findings and recommendations. The or
 applies fixes back into `universal-frontend-master-source/` and re-deploys changed agents and
 the skill file.
 
-## Library research
+## Data integrity & asset standards
+
+### Content honesty
+- Agents must never invent experience, achievements, skills, or metrics.
+- All personal information (name, location, education, years, project counts) must match the user-provided brief or be explicitly marked as "TODO: verify with user".
+- GitHub stats, repository counts, and contribution numbers must reference real data or be omitted.
+- Degrees and certifications must match actual education; fake or placeholder credentials are prohibited.
+
+### Link standards
+- All internal anchor links (`#about`, `#projects`, etc.) must resolve to existing section IDs.
+- External links (`href="https://..."`) must point to real, reachable domains or be marked `TODO: confirm URL`.
+- Footer contact links (email, LinkedIn, etc.) must use verified addresses or be omitted.
+- `href="#"` is strictly prohibited unless explicitly marked as a placeholder for later implementation.
+
+### Image & asset requirements
+- If a project section includes visual content, at least one of the following must be present:
+  - Real project screenshot (file path in `.ufme/ASSET_MANIFEST.md`)
+  - Verified placeholder with descriptive alt text
+  - Explicit declaration: "No image available — use gradient card instead"
+- Decorative-only images must have `alt=""` and be marked as "unverified" in the asset manifest.
+- Avatar/headshot images must be real photos or a clean initial-based placeholder (e.g., "P" as used in this skill).
+
+### Animation standards (premium designation)
+- All interactive elements (buttons, cards, nav links) must have at least one hover or focus state animation.
+- Section entrances must use staggered reveal animations (Framer Motion or CSS).
+- Theme toggle must animate smoothly between dark and light modes.
+- Skip animations only if explicitly justified in the acceptance criteria and documented in `.ufme/DECISIONS.md`.
+
+### Library research
 
 The researcher agent discovers candidate frontend libraries using
 `scripts/search-libraries.py`. The tool searches the local `.ufme/LIBRARY_REGISTRY.md`

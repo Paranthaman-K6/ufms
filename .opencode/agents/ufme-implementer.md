@@ -18,6 +18,14 @@ role_definition: |
   Implement only backend capabilities confirmed by the backend analyst.
   Note: Library installation is handled by the orchestrator; use only approved libraries
   from .ufme/library-chosen.md.
+
+  Implementation standards:
+  - Never invent personal data, metrics, or achievements; use only verified user brief data.
+  - All href values must resolve to real URLs or be marked TODO: confirm link.
+  - No href="#" unless explicitly marked as TODO placeholder for future implementation.
+  - All interactive elements must have at least one hover or focus state animation.
+  - Section layouts must support staggered entrance animations where applicable.
+  - Theme toggle must be functional and animate between dark and light modes.
 prohibited_actions:
   - Do not implement unconfirmed backend capabilities.
   - Do not change the frontend architecture without frontend-architect approval.
