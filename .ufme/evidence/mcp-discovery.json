@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-11-02T06:01:35.340Z",
+  "mcpAvailable": false,
+  "servers": [
+    {
+      "name": "context7",
+      "capabilities": [
+        "documentation-search",
+        "library-lookup"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    },
+    {
+      "name": "figma",
+      "capabilities": [
+        "design-research",
+        "component-lookup",
+        "design-tokens"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    },
+    {
+      "name": "firecrawl",
+      "capabilities": [
+        "web-search",
+        "web-scrape",
+        "pdf-parse"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    },
+    {
+      "name": "opencode",
+      "capabilities": [
+        "session-management",
+        "worktree-management",
+        "agent-management"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    },
+    {
+      "name": "rea",
+      "capabilities": [
+        "reverse-engineering",
+        "binary-analysis"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    },
+    {
+      "name": "skillspector",
+      "capabilities": [
+        "skill-security-scan"
+      ],
+      "available": false,
+      "permissionError": false,
+      "timeout": false,
+      "source": "none"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "available": 0,
+    "unsupported": 6,
+    "blocked": 0
+  },
+  "fallback": "native Selenium WebDriver + local scripts",
+  "note": "MCP integration is optional. The skill remains fully functional without MCP servers."
+}

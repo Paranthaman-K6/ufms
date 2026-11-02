@@ -1,0 +1,20 @@
+{
+  "name": "advanced",
+  "description": "Full agent set for complex frontend projects with full audits.",
+  "maxAgents": 7,
+  "researchDepth": "deep",
+  "allowedParallelism": true,
+  "verificationDepth": "thorough",
+  "resourceBudget": "high",
+  "browserTestingLevel": "comprehensive",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

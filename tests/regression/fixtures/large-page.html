@@ -1,0 +1,16 @@
+// tests/regression/fixtures/large-page.html
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Large Page</title></head>
+<body>
+<h1>Large Page for Full-Page Capture</h1>
+<script>
+// Generate enough content to make the page scroll beyond one viewport
+for (let i = 0; i < 100; i++) {
+  const section = document.createElement('section');
+  section.innerHTML = '<h2>Section ' + i + '</h2><p>This is content for section ' + i + ' used to test full-page screenshot capture of long pages.</p>';
+  document.body.appendChild(section);
+}
+</script>
+</body>
+</html>

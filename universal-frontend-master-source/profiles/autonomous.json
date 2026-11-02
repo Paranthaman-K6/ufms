@@ -1,0 +1,20 @@
+{
+  "name": "autonomous",
+  "description": "All 12 agents with exhaustive verification for fully autonomous operation.",
+  "maxAgents": 12,
+  "researchDepth": "deep",
+  "allowedParallelism": true,
+  "verificationDepth": "exhaustive",
+  "resourceBudget": "maximum",
+  "browserTestingLevel": "comprehensive",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

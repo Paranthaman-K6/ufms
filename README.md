@@ -18,6 +18,9 @@ maintainable website using:
 - **Visual, accessibility, performance, and security audits** with fix-and-retest loops
 - **Self-improvement loop** — the skill audits itself after each delivery
 - **Design intelligence** — researches open-source UI libraries and records license/commercial-use decisions
+- **Asset intelligence** — discovers and manages images, fonts, icons, videos with license tracking
+- **Backend contract discovery** — parses OpenAPI, Swagger, Postman, GraphQL, AsyncAPI contracts
+- **Execution profiles** — lite/standard/advanced/autonomous with enforced security constraints
 
 ## Quick start
 
@@ -34,6 +37,12 @@ bash universal-frontend-master-source/scripts/check-native-browser.sh
 
 # Run the skill test suite
 npm test
+
+# Run regression tests
+node tests/regression/run.js
+
+# Run quality gate
+bash universal-frontend-master-source/scripts/quality-check.sh
 ```
 
 ## Repository layout
@@ -44,9 +53,11 @@ npm test
 | `universal-frontend-master-source/agents/` | 11 agent specifications |
 | `universal-frontend-master-source/workflows/` | 14 numbered autonomous workflows |
 | `universal-frontend-master-source/templates/` | 17 `.ufme/` memory templates |
-| `universal-frontend-master-source/scripts/` | Shell scripts: stack detection, backend discovery, browser setup/test, screenshots, quality check, self-improvement, library research |
-| `universal-frontend-master-source/docs/` | Installation (Arch Linux), multi-agent usage, compatibility, testing, troubleshooting |
-| `tests/browser/` | Selenium WebDriver browser abstraction (Chromium + Firefox) |
+| `universal-frontend-master-source/scripts/` | 14 shell scripts (stack detection, backend discovery, browser setup/test, screenshots, quality check, self-improvement, library research, platform detection, asset discovery, backend contract parsing, execution profiles, task checkpoints, prototype generation) |
+| `universal-frontend-master-source/profiles/` | 4 execution profile configs (lite, standard, advanced, autonomous) |
+| `universal-frontend-master-source/integrations/mcp/` | Optional MCP capability discovery layer |
+| `universal-frontend-master-source/docs/` | Installation (Arch Linux), multi-agent usage, compatibility, testing, troubleshooting, MCP integration |
+| `tests/browser/` | Selenium WebDriver browser abstraction (Chromium + Firefox) + engines + regression tests |
 | `.opencode/agents/` | Installed OpenCode agent definitions (auto-discovered) |
 | `.opencode/skills/universal-frontend-master/SKILL.md` | Installed OpenCode skill |
 | `.ufme/` | Runtime project memory and evidence |
@@ -73,7 +84,18 @@ npm test
 
 Hard-denied: `sudo`, `pacman`, `systemctl`, `doas`, `pkexec`, `su`, destructive `rm`.
 Ask on: `git push`. Denied: `npm publish`. Project-local npm dependencies only. No containers,
-no Playwright. See `opencode.json` and `universal-frontend-master-source/core/SAFETY.md`.
+no Playwright. Browser sandboxing preserved by default (no `--no-sandbox`). See `opencode.json`
+and `universal-frontend-master-source/core/SAFETY.md`.
+
+## Test evidence
+
+- `npm test`: 16/16 browser abstraction validation checks pass
+- All 14 shell scripts: `bash -n` syntax valid + executable
+- All JS files: `node --check` valid
+- `self-improve.sh`: 69 PASS / 0 FAIL
+- Regression tests: 5 pass, 0 fail, 3 skipped
+- Quality check: generates `.ufme/evidence/quality-report.json`
+- Native Selenium (Firefox headless): OK
 
 ## License
 

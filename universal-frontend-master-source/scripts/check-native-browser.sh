@@ -55,7 +55,8 @@ const {Builder, Browser} = require('selenium-webdriver');
   if (process.argv[2] === 'firefox') {
     opts = new (require('selenium-webdriver/firefox').Options)().setBinary(process.env.FIREFOX_BIN || '/usr/bin/firefox').addArguments('-headless');
   } else {
-    opts = new (require('selenium-webdriver/chrome').Options)().setBinary(process.env.CHROMIUM_BIN || '/usr/bin/chromium').addArguments('--headless=new', '--no-sandbox', '--disable-dev-shm-usage');
+    // Preserve Chromium sandboxing by default; --no-sandbox omitted for security.
+    opts = new (require('selenium-webdriver/chrome').Options)().setBinary(process.env.CHROMIUM_BIN || '/usr/bin/chromium').addArguments('--headless=new', '--disable-dev-shm-usage');
   }
   const driver = await new Builder().forBrowser(process.argv[2]).setChromeOptions(opts).setFirefoxOptions(opts).build();
   try {

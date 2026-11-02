@@ -1,0 +1,13 @@
+// tests/regression/fixtures/http-500.html
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Server Error</title></head>
+<body>
+<h1>500 Server Error</h1>
+<p>This simulates a page with a server error resource.</p>
+<script>
+// Simulate a failed fetch to a 500 endpoint
+fetch('/api/nonexistent-500').catch(() => console.error('Fetch failed'));
+</script>
+</body>
+</html>

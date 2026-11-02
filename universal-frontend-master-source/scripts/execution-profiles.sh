@@ -1,72 +1,49 @@
 #!/usr/bin/env bash
 # execution-profiles.sh
 # Priority 9 — Execution Profiles: lite / standard / advanced / autonomous.
-# Prints the active profile configuration (agent count, research depth,
-# parallel execution, verification depth, resource budgets).
-# Profiles never bypass security or mandatory acceptance criteria.
+# Reads configuration from universal-frontend-master-source/profiles/<name>.json
+# and outputs the profile configuration. Profiles are consumed by the orchestrator
+# to control agent count, research depth, parallel execution, verification depth,
+# and resource budgets. Security constraints are never bypassed.
 #
-# Usage: execution-profiles.sh [lite|standard|advanced|autonomous]
+# Usage: execution-profiles.sh [lite|standard|advanced|autonomous] [--json]
+# Exit codes: 0 = valid profile, non-zero = invalid profile or error.
+#
+# Safety: read-only; no system modification.
 set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROFILE="${1:-standard}"
+PROFILES_DIR="$ROOT_DIR/universal-frontend-master-source/profiles"
+
+PROFILE="${1:-}"
+OUTPUT_JSON="${2:-}"
 
 log() { echo "[execution-profiles] $*"; }
 
-profile_config() { # profile_config <name>
-  case "$1" in
-    lite)
-      cat <<'CFG'
-profile=lite
-agents=2  # orchestrator + one specialist
-research_depth=shallow
-parallel=false
-verification_depth=basic
-resource_budget=low
-self_improve=false
-CFG
-      ;;
-    standard)
-      cat <<'CFG'
-profile=standard
-agents=4  # orchestrator + designer + implementer + auditor
-research_depth=moderate
-parallel=true
-verification_depth=standard
-resource_budget=medium
-self_improve=true
-CFG
-      ;;
-    advanced)
-      cat <<'CFG'
-profile=advanced
-agents=7  # orchestrator + all designers/implementers + auditors
-research_depth=deep
-parallel=true
-verification_depth=thorough
-resource_budget=high
-self_improve=true
-CFG
-      ;;
-    autonomous)
-      cat <<'CFG'
-profile=autonomous
-agents=12  # all agents
-research_depth=deep
-parallel=true
-verification_depth=exhaustive
-resource_budget=maximum
-self_improve=true
-CFG
-      ;;
-    *)
-      echo "Unknown profile: $1" >&2
-      echo "Usage: $0 [lite|standard|advanced|autonomous]" >&2
-      return 2
-      ;;
+validate_profile_name() {
+  local name="$1"
+  case "$name" in
+    lite|standard|advanced|autonomous) return 0 ;;
+    *) return 1 ;;
   esac
 }
 
-security_constraints() {
+load_profile() {
+  local name="$1"
+  local file="$PROFILES_DIR/$name.json"
+  if [ ! -f "$file" ]; then
+    log "ERROR: Profile configuration not found: $file"
+    return 1
+  fi
+  # Validate JSON
+  if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
+    log "ERROR: Invalid JSON in profile: $file"
+    return 1
+  fi
+  cat "$file"
+  return 0
+}
+
+print_security_constraints() {
   cat <<'CFG'
 # Security constraints (never bypassed by any profile)
 no_sudo=true
@@ -80,13 +57,54 @@ CFG
 }
 
 main() {
-  log "Profile: $PROFILE"
-  echo ""
-  profile_config "$PROFILE" || exit $?
-  echo ""
-  security_constraints
-  echo ""
-  log "Profile '$PROFILE' loaded. Security constraints always enforced."
+  if [ -z "$PROFILE" ]; then
+    log "ERROR: No profile specified."
+    echo "Usage: $0 [lite|standard|advanced|autonomous] [--json]"
+    exit 1
+  fi
+
+  if ! validate_profile_name "$PROFILE"; then
+    log "ERROR: Invalid profile: $PROFILE"
+    echo "Valid profiles: lite, standard, advanced, autonomous"
+    exit 1
+  fi
+
+  local profile_json
+  if ! profile_json="$(load_profile "$PROFILE")"; then
+    exit 1
+  fi
+
+  if [ "$OUTPUT_JSON" = "--json" ]; then
+    echo "$profile_json"
+    echo ""
+    print_security_constraints
+  else
+    # Human-readable output
+    local name research_depth parallel verification budget browser self_improve max_agents
+    name=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])" 2>/dev/null)
+    max_agents=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['maxAgents'])" 2>/dev/null)
+    research_depth=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['researchDepth'])" 2>/dev/null)
+    parallel=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['allowedParallelism'])" 2>/dev/null)
+    verification=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['verificationDepth'])" 2>/dev/null)
+    budget=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['resourceBudget'])" 2>/dev/null)
+    browser=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['browserTestingLevel'])" 2>/dev/null)
+    self_improve=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['selfImprovement'])" 2>/dev/null)
+
+    echo "Profile: $name"
+    echo "  Max agents: $max_agents"
+    echo "  Research depth: $research_depth"
+    echo "  Allowed parallelism: $parallel"
+    echo "  Verification depth: $verification"
+    echo "  Resource budget: $budget"
+    echo "  Browser testing level: $browser"
+    echo "  Self-improvement: $self_improve"
+    echo ""
+    print_security_constraints
+    echo ""
+    log "Profile '$PROFILE' loaded. Security constraints always enforced."
+  fi
+
+  exit 0
 }
 
 main "$@"

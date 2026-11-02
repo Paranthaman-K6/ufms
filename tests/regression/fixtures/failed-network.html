@@ -1,0 +1,13 @@
+// tests/regression/fixtures/failed-network.html
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Failed Network</title></head>
+<body>
+<h1>Failed Network Request</h1>
+<p>This page attempts to connect to an invalid host.</p>
+<script>
+// Attempt to connect to a non-routable address to trigger a network failure
+fetch('http://10.255.255.1:1/').catch(() => console.error('Network request failed'));
+</script>
+</body>
+</html>

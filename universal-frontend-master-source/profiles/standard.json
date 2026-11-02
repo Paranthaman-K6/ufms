@@ -1,0 +1,20 @@
+{
+  "name": "standard",
+  "description": "Balanced agent set for typical frontend projects.",
+  "maxAgents": 4,
+  "researchDepth": "moderate",
+  "allowedParallelism": true,
+  "verificationDepth": "standard",
+  "resourceBudget": "medium",
+  "browserTestingLevel": "standard",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}
