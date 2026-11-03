@@ -223,6 +223,7 @@ npm test
 | `quality-check.py` | Python | Type check, lint, tests, build, browser, dependency audit |
 | `self-improve.py` | Python | Audit skill docs, agents, scripts, install; write JSON evidence |
 | `build-agents.py` | Python | Generate agent definition files from source specs |
+| `seed-project-memory.py` | Python | Seed missing `.ufme/` project files from templates without overwriting existing data |
 | `install.sh` | Bash | User-scope install (all projects), cross-project data in `~/.config/ufme/` |
 
 Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Selenium is the only runtime dependency.
