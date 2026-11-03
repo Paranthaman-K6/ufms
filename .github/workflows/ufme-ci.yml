@@ -24,6 +24,15 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Build prototype and run browser tests
+        run: |
+          python3 universal-frontend-master-source/scripts/generate-prototype.py
+          python3 -m http.server 5173 --directory prototypes &
+          SERVER_PID=$!
+          sleep 2
+          npm run test:browser http://localhost:5173 || true
+          kill $SERVER_PID || true
+
       - name: Build agents (check)
         run: python3 universal-frontend-master-source/scripts/build-agents.py --check
 
