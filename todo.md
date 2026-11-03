@@ -17,7 +17,7 @@ Status convention: `[ ]` TODO, `[~]` IN_PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
   - Acceptance Criteria: Script syntax check passes, global registry shared correctly.
 
 ## P1 — Agent Autonomy & Token Efficiency
-- [~] **P1.1** Refine agent system prompts to maximize autonomy and remove redundant instructions. *(Assigned: Orchestrator & Universal Frontend Master)*
+- [x] **P1.1** Refine agent system prompts to maximize autonomy and remove redundant instructions. *(Assigned: Orchestrator & Universal Frontend Master)*
   - Dependencies: P0.1
   - Expected Outcome: Leaner, sharper agent markdown prompts in `universal-frontend-master-source/agents/`.
   - Acceptance Criteria: `build-agents.py --check` succeeds; prompts under 3,500 chars.
@@ -35,7 +35,7 @@ Status convention: `[ ]` TODO, `[~]` IN_PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
   - Dependencies: P0.1
   - Expected Outcome: BM25/TF-IDF design matching provides curated design system tokens.
   - Acceptance Criteria: `design-search.py` returns relevant style/palette matches.
-- [ ] **P2.2** Improve prototype generation (`generate-prototype.py`) to produce robust static HTML/CSS scaffolds from project specs. *(Assigned: Designer & Builder)*
+- [x] **P2.2** Improve prototype generation (`generate-prototype.py`) to produce robust static HTML/CSS scaffolds from project specs. *(Assigned: Designer & Builder)*
   - Dependencies: P2.1
   - Expected Outcome: Instant visual prototypes generated before full implementation.
   - Acceptance Criteria: Prototype script runs cleanly and generates navigable index.
