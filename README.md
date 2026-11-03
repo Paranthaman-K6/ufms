@@ -1,6 +1,6 @@
 # Universal Frontend Master
 
-An OpenCode skill installed once per **user scope** so `@universal-frontend-master` and all 12 sub-agents are available in **every project** on the machine. Cross-project data lives in `~/.config/ufme/`; project-local artifacts live in `.ufme/`.
+An OpenCode skill installed once per **user scope** so `@universal-frontend-master` and the full 6-agent set are available in **every project** on the machine. Cross-project data lives in `~/.config/ufme/`; project-local artifacts live in `.ufme/`.
 
 Turns a brief, existing repo, API docs, screenshot, or reference site into a complete, responsive, accessible, tested frontend — and keeps auditing it until the evidence passes.
 
@@ -31,11 +31,11 @@ It never invents endpoints, never forces a framework change without justificatio
 
 ## What you get
 
-- **13 agents** — `universal-frontend-master` (primary entry point) + `ufme-orchestrator` (primary) + 11 specialist subagents, all invokable with `@agent-name`.
-- **4 execution profiles as sub-commands** — `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous`.
-- **14 workflows** — intake, research, backend intelligence, product intelligence, prototype, implementation, integration, browser execution, four audit passes, improvement, delivery.
+- **6 agents** — `universal-frontend-master` (primary entry point), `ufme-orchestrator` (primary orchestrator), and 4 specialist subagents, invokable with `@agent-name`.
+- **4 execution profiles as sub-commands** — `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous`, with a conditional agent chain (skip backend when no backend exists, skip designer for single-page edits).
 - **Persistent memory** — `.ufme/` artifacts per project; shared cross-project data in `~/.config/ufme/`.
 - **Native browser testing** — Selenium WebDriver for Chromium and Firefox, headless by default, screenshots at mobile/tablet/laptop/desktop.
+- **Evidence-driven auditors** — axe-core accessibility, Lighthouse performance, pixelmatch visual diffs, and an anti-generic design linter; findings come from script JSON, not eyeballing.
 - **Real quality gate** — type check, lint, format, tests, build, browser tests, dependency audit, written to `.ufme/evidence/quality-report.json`.
 - **Self-improvement** — the skill audits its own docs, agents, scripts, and install on demand.
 - **Library and asset intelligence** — npm research with license checks, plus a shared user-level registry; local asset inventory with duplicate/broken detection.
@@ -50,7 +50,7 @@ It never invents endpoints, never forces a framework change without justificatio
 |-------|-------|----------------|
 | Entry point | `universal-frontend-master` | User-facing primary agent; delegates to orchestrator |
 | Orchestration | `ufme-orchestrator` | Plans, delegates, resolves conflicts, enforces acceptance, owns memory |
-| Specialists | 11 subagents | Research, backend, product, design, architecture, build, integrate, audit |
+| Specialists | 4 subagents | Design, backend, build, audit |
 | Execution | `scripts/` + `tests/browser/` | Deterministic checks, browser automation, screenshots, quality reports |
 | Memory (project) | `.ufme/` | Durable per-project state |
 | Memory (cross-project) | `~/.config/ufme/` | Shared library registry and evidence across all projects |
@@ -60,19 +60,14 @@ It never invents endpoints, never forces a framework change without justificatio
 ```mermaid
 flowchart LR
     A[Brief · repo · API docs<br/>screenshot · reference site] --> B[Intake]
-    B --> C[Research]
-    C --> D[Backend intelligence]
-    D --> E[Product intelligence]
-    E --> F[Design system]
-    F --> G[Architecture]
-    G --> H[Prototype]
-    H --> I[Implementation]
-    I --> J[Integration]
-    J --> K[Browser execution]
-    K --> L{Visual · a11y<br/>perf · security}
-    L -- findings --> I
-    L -- pass --> M[Self-improvement]
-    M --> N[Delivery]
+    B --> C[Research + Product + Design<br/>@ufme-designer]
+    C --> D{Backend detected?}
+    D -- yes --> E[Backend contract<br/>@ufme-backend-analyst]
+    D -- no --> F
+    E --> F[Build + Integrate<br/>@ufme-builder]
+    F --> G[Audit loop<br/>@ufme-auditor]
+    G -- findings --> F
+    G -- pass --> H[Delivery]
 ```
 
 ## Agents
@@ -81,28 +76,32 @@ flowchart LR
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Entry point; delegates to orchestrator | `@universal-frontend-master` |
 | `ufme-orchestrator` | primary | Plan, delegation, task state, acceptance, conflict resolution | N/A (internal) |
-| `ufme-researcher` | subagent | Requirements, references, library registry, licenses | `@ufme-researcher` |
-| `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities, error handling | `@ufme-backend-analyst` |
-| `ufme-product-analyst` | subagent | PRD, sitemap, user flows, feature matrix | `@ufme-product-analyst` |
-| `ufme-designer` | subagent | Design system, wireframes, component specs | `@ufme-designer` |
-| `ufme-frontend-architect` | subagent | Folder structure, routing, state, data fetching, test strategy | `@ufme-frontend-architect` |
-| `ufme-implementer` | subagent | Pages, components, forms, layouts | `@ufme-implementer` |
-| `ufme-integrator` | subagent | Typed API client, auth flows, validation, errors | `@ufme-integrator` |
-| `ufme-visual-auditor` | subagent (mandatory) | Screenshot review, layout and polish findings | `@ufme-visual-auditor` |
-| `ufme-accessibility-auditor` | subagent | WCAG 2.1 AA checks | `@ufme-accessibility-auditor` |
-| `ufme-performance-auditor` | subagent | Core Web Vitals, bundle and asset cost | `@ufme-performance-auditor` |
-| `ufme-security-auditor` | subagent | XSS, CSRF, CORS, CSP, secrets, dependency audit | `@ufme-security-auditor` |
+| `ufme-designer` | subagent | Research, PRD, sitemap, design system, critique | `@ufme-designer` |
+| `ufme-backend-analyst` | subagent | API map, auth map, capabilities, error handling | `@ufme-backend-analyst` |
+| `ufme-builder` | subagent | Architecture, pages, components, API client, integration | `@ufme-builder` |
+| `ufme-auditor` | subagent | Visual, accessibility, performance, security audits from evidence JSON | `@ufme-auditor` |
 
 ## Execution profiles (sub-commands)
 
 Run any time in any project:
 
-- `/profile/lite` — minimal agents, shallow research, basic verification (max 2 agents)
-- `/profile/standard` — balanced for typical frontend projects (max 4 agents, default)
-- `/profile/advanced` — full agents for complex projects with full audits (max 7 agents)
-- `/profile/autonomous` — all 12 agents with exhaustive verification (max 12 agents)
+- `/profile/lite` — orchestrator + builder + script audits only (small edits, quick prototypes)
+- `/profile/standard` — balanced for typical frontend projects (default)
+- `/profile/advanced` — full agent set for complex projects with full audits
+- `/profile/autonomous` — unattended runs with exhaustive verification
 
 Configs live in `universal-frontend-master-source/profiles/`.
+
+## Steer commands
+
+Slash commands to nudge an active session at a specific pass:
+
+| Command | Effect |
+|---------|--------|
+| `/ufme/audit` | Full audit loop — `browser-test.sh`, `visual-diff.js`, `audit-a11y.js`, `audit-perf.sh`, `detect-slop.py`, `quality-check.py`; `@ufme-auditor` writes `.ufme/AUDIT_REPORT.md` |
+| `/ufme/polish` | Fix minor visual/design findings flagged by `detect-slop.py` and `audit-a11y.js` |
+| `/ufme/harden` | Security pass — `npm audit` plus a `@ufme-auditor` focused on XSS, CSRF, CSP, secrets, dependency issues |
+| `/ufme/critique` | Design critique — `@ufme-designer` reviews the UI against the anti-generic design rules |
 
 ## Quick start
 
@@ -112,6 +111,8 @@ Configs live in `universal-frontend-master-source/profiles/`.
 - Node.js 18+ and npm
 - Python 3.9+
 - Chromium and/or Firefox (Selenium Manager fetches matching drivers)
+
+Cross-platform by default (Linux, macOS, WSL). Arch Linux is a first-class, tested platform — not a requirement.
 
 ### Install once (user scope — all projects)
 
@@ -125,6 +126,8 @@ Install into a specific project directory:
 INSTALL_DIR=/path/to/project \
   curl -fsSL https://raw.githubusercontent.com/Paranthaman-K6/ufms/main/install.sh | bash
 ```
+
+Reproducible installs are supported: pin a tag with `UFME_TAG` and verify the downloaded tarball with `UFME_TARBALL_SHA256`.
 
 The installer:
 1. Installs agents, skill, commands, and `opencode.json` **globally** under `~/.config/opencode/` (user scope — available to every project).
@@ -159,16 +162,12 @@ npm test
 ## How a session runs
 
 1. **Intake** — classify project, detect stack, read environment and memory.
-2. **Research** — gather references, components, fonts, icons; verify licenses.
-3. **Backend intelligence** — parse contracts; only confirmed capabilities become clients.
-4. **Product** — PRD, sitemap, flows, feature matrix.
-5. **Design** — tokens, typography, spacing, component states.
-6. **Architecture** — preserve existing stack unless justified in `DECISIONS.md`.
-7. **Build and integrate** — implement, wire API, validate inputs, handle errors.
-8. **Browser execution** — real Chromium/Firefox at four viewports, console and network capture.
-9. **Audits** — visual, WCAG 2.1 AA, Core Web Vitals, security; fix and retest.
-10. **Self-improvement** — `scripts/self-improve.py` audits the skill itself.
-11. **Delivery** — quality report, documented limitations, clean handover.
+2. **Research + product + design** — references, PRD, sitemap, design system; verify licenses.
+3. **Backend contract** (conditional) — parse API docs; only confirmed capabilities become clients.
+4. **Build + integrate** — implement, wire API, validate inputs, handle errors.
+5. **Browser execution** — real Chromium/Firefox at four viewports, console and network capture.
+6. **Audit loop** — visual, accessibility (axe-core), performance (Lighthouse), security; fix and retest against evidence JSON.
+7. **Delivery** — quality report, documented limitations, clean handover.
 
 ## Repository layout
 
@@ -176,13 +175,14 @@ npm test
 .
 ├── .opencode/
 │   ├── agents/                     # Installed OpenCode agent definitions (project copy)
+│   ├── commands/ufme/              # Steer commands (project copy)
 │   └── skills/universal-frontend-master/SKILL.md
 ├── universal-frontend-master-source/
 │   ├── core/                       # MASTER_SKILL.md, architecture, orchestration, rules, safety
-│   ├── agents/                     # 13 agent specifications
-│   ├── workflows/                  # 14 numbered workflows
+│   ├── agents/                     # agent specifications
+│   ├── workflows/                  # numbered workflows
 │   ├── templates/                  # .ufme/ memory templates
-│   ├── scripts/                    # automation scripts (Bash + Python)
+│   ├── scripts/                    # automation scripts (Bash + Python + Node)
 │   ├── profiles/                   # 4 execution profiles (lite, standard, advanced, autonomous)
 │   ├── integrations/mcp/           # Optional MCP capability discovery
 │   ├── docs/                       # Installation, usage, testing, troubleshooting
@@ -201,7 +201,7 @@ npm test
 | Script | Language | Purpose |
 |--------|----------|---------|
 | `detect-stack.sh` | Bash | Detect framework, package manager, scripts, entry points |
-| `detect-platform.sh` | Bash | Detect Arch Linux and browser availability |
+| `detect-platform.sh` | Bash | Detect OS platform and browser availability |
 | `backend-discovery.sh` | Bash | Locate backend contracts and source hints |
 | `enhance-backend-discovery.py` | Python | Parse OpenAPI, Postman, GraphQL, AsyncAPI into contracts |
 | `search-libraries.py` | Python | Search user + project registry, then npm; select/approve |
@@ -211,12 +211,21 @@ npm test
 | `task-checkpoint.py` | Python | Dependency-aware `TASKS.md` state with atomic writes |
 | `check-native-browser.sh` | Bash | Verify Selenium WebDriver and browser launch |
 | `browser-test.sh` | Bash | Run browser tests and write `browser-results.json` |
-| `screenshot.sh` | Bash | Capture viewport screenshots for visual audit |
+| `screenshot.sh` | Bash | Capture browser screenshots (`--budget=viewport\|full`) |
+| `page-snapshot.js` | Node | Text-first page outline (structure, headings, landmarks) |
+| `visual-diff.js` | Node | Visual regression via pixelmatch; baseline vs compare |
+| `audit-a11y.js` | Node | axe-core accessibility audit → evidence JSON |
+| `audit-perf.sh` | Bash | Lighthouse performance audit → evidence JSON |
+| `detect-slop.py` | Python | Anti-generic design linter (templated look, uniform motion) |
+| `design-search.py` | Python | Search design reference CSVs (patterns, palettes, type) |
+| `api-query.py` | Python | Slice `BACKEND_CONTRACTS` by endpoint, field, or role |
+| `ctx-pack.py` | Python | Compose ≤1500-token per-agent briefs from project context |
 | `quality-check.py` | Python | Type check, lint, tests, build, browser, dependency audit |
 | `self-improve.py` | Python | Audit skill docs, agents, scripts, install; write JSON evidence |
+| `build-agents.py` | Python | Generate agent definition files from source specs |
 | `install.sh` | Bash | User-scope install (all projects), cross-project data in `~/.config/ufme/` |
 
-Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration. Selenium is the only runtime dependency.
+Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Selenium is the only runtime dependency.
 
 ## Testing and evidence
 
@@ -251,7 +260,7 @@ See `opencode.json` and `universal-frontend-master-source/core/SAFETY.md`.
 
 ## Documentation
 
-- [Installation on Arch Linux](universal-frontend-master-source/docs/installation-arch-linux.md)
+- [Installation (incl. Arch Linux notes)](universal-frontend-master-source/docs/installation-arch-linux.md)
 - [Multi-agent usage](universal-frontend-master-source/docs/multi-agent-usage.md)
 - [Testing](universal-frontend-master-source/docs/testing.md)
 - [Compatibility](universal-frontend-master-source/docs/compatibility.md)

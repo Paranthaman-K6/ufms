@@ -45,9 +45,9 @@ JSON
   fi
 fi
 
-# Step 3: run Selenium test suite via node abstraction
+# Step 3: run Selenium test suite via node abstraction (budgeted screenshots)
 log "Running Selenium browser tests against $URL..."
-node "$ROOT_DIR/tests/browser/run.js" "$URL" "$SCREENSHOT_DIR" "$RESULTS_FILE"
+node "$ROOT_DIR/universal-frontend-master-source/browser/run.js" "$URL" "$SCREENSHOT_DIR" "$RESULTS_FILE"
 RC=$?
 
 if [ $RC -eq 0 ]; then

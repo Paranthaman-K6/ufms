@@ -10,6 +10,8 @@
 # Optional:
 #   INSTALL_DIR=/path/to/project curl -fsSL ... | bash   # project-local seed dir
 #   UFME_USER_CONFIG=/custom/path                        # override cross-project data dir
+#   UFME_TAG=v1.2.0                                      # pin install to a release tag
+#   UFME_TARBALL_SHA256=<sha256>                         # verify tarball checksum, abort on mismatch
 #
 # Global install (user scope — available to all projects):
 #   ~/.config/opencode/agents/*.md              # agent definitions
@@ -21,17 +23,18 @@
 # Project-local install (target project only — never overwrites existing):
 #   .opencode/skills/universal-frontend-master/  # skill copy (project override)
 #   .opencode/agents/*.md                         # agent copy (project override)
-#   universal-frontend-master-source/             # source tree
+#   universal-frontend-master-source/             # source tree (includes browser runner)
 #   .ufme/                                        # per-project memory templates (seeded only)
 #   opencode.json                                 # permission policy (merged)
+#   package.json (dev dep)                        # selenium-webdriver, if npm + package.json exist
 set -euo pipefail
 
 REPO="Paranthaman-K6/ufms"
 BRANCH="main"
-TARBALL="https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
 TARGET="${INSTALL_DIR:-$PWD}"
 UFME_USER_CONFIG="${UFME_USER_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ufme}"
 OPENCODE_USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+NPM_HINT='npm i -D selenium-webdriver'
 
 log() { echo "[ufme-install] $*"; }
 
@@ -44,15 +47,42 @@ log "Global config dir: $OPENCODE_USER_CONFIG"
 log "Cross-project data dir: $UFME_USER_CONFIG"
 
 # ------------------------------------------------------------------
-# 1. Download repository source archive
+# 1. Download repository source archive (branch or pinned tag)
 # ------------------------------------------------------------------
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-log "Downloading $REPO ($BRANCH)..."
+if [ -n "${UFME_TAG:-}" ]; then
+  TARBALL="https://github.com/${REPO}/archive/refs/tags/${UFME_TAG}.tar.gz"
+  REF_LABEL="tag ${UFME_TAG}"
+else
+  TARBALL="https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
+  REF_LABEL="branch ${BRANCH}"
+fi
+
+log "Downloading $REPO ($REF_LABEL)..."
 curl -fsSL "$TARBALL" -o "$TMP/repo.tar.gz"
+
+# Optional checksum verification (UFME_TARBALL_SHA256) — abort on mismatch.
+if [ -n "${UFME_TARBALL_SHA256:-}" ]; then
+  EXPECTED="${UFME_TARBALL_SHA256//[[:space:]]/}"
+  EXPECTED="${EXPECTED,,}"
+  ACTUAL="$(sha256sum "$TMP/repo.tar.gz" | awk '{print $1}')"
+  if [ "$ACTUAL" != "$EXPECTED" ]; then
+    log "ERROR: tarball sha256 mismatch — aborting install."
+    log "  Expected: $EXPECTED"
+    log "  Actual:   $ACTUAL"
+    log "The downloaded archive may be truncated or tampered with. Nothing was installed."
+    exit 1
+  fi
+  log "Tarball sha256 verified: $ACTUAL"
+fi
+
 tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
-SRC="$TMP/ufms-${BRANCH}"
+# Top-level dir differs between branch archives (ufms-<branch>) and tag
+# archives (ufms-<tag>) — detect it instead of hardcoding.
+SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+[ -n "$SRC" ] || { log "ERROR: empty archive"; exit 1; }
 
 [ -d "$SRC/.opencode/skills/universal-frontend-master" ] || { log "ERROR: skill not found in archive"; exit 1; }
 
@@ -161,6 +191,15 @@ cp -R "$SRC/.opencode/skills/universal-frontend-master" "$TARGET/.opencode/skill
 cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
 cp -R "$SRC/universal-frontend-master-source" "$TARGET/"
 
+# Browser runner check — bundled browser automation lives in the source tree.
+if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
+  log "Browser runner installed: universal-frontend-master-source/browser/run.js"
+else
+  log "WARNING: universal-frontend-master-source/browser/run.js is missing."
+  log "  Browser-driven validation (Selenium) will be unavailable."
+  log "  Reinstall, or copy the browser/ directory from the repository manually."
+fi
+
 # Seed per-project memory from templates (never overwrite existing).
 for f in TASKS.md ENVIRONMENT.md SKILL_VALIDATION.md AGENT_STATE.md DECISIONS.md ARCHITECTURE.md DESIGN_SYSTEM.md API_MAP.md AUTHENTICATION_MAP.md BACKEND_CAPABILITIES.md ERROR_HANDLING.md VISUAL_AUDIT.md AUDIT_REPORT.md; do
   [ -f "$TARGET/.ufme/$f" ] && continue
@@ -178,7 +217,29 @@ if [ ! -f "$TARGET/opencode.json" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 5. Summary
+# 5. Project-local npm dependency (selenium-webdriver, best-effort)
+# ------------------------------------------------------------------
+if [ -f "$TARGET/package.json" ]; then
+  if command -v npm >/dev/null 2>&1; then
+    log "Installing project-local dev dependency: $NPM_HINT ..."
+    if (cd "$TARGET" && npm install -D selenium-webdriver --loglevel=error >"$TMP/npm.log" 2>&1); then
+      log "selenium-webdriver installed as a dev dependency."
+    else
+      log "WARNING: npm install failed. Install the browser dependency manually:"
+      log "  cd \"$TARGET\" && $NPM_HINT"
+      log "(npm output kept at $TMP — note it is removed when this installer exits; rerun to see the error.)"
+    fi
+  else
+    log "npm not found. Install the browser dependency manually:"
+    log "  cd \"$TARGET\" && $NPM_HINT"
+  fi
+else
+  log "No package.json in $TARGET. To enable browser validation, run in your project:"
+  log "  $NPM_HINT"
+fi
+
+# ------------------------------------------------------------------
+# 6. Summary
 # ------------------------------------------------------------------
 AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
 log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"

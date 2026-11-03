@@ -39,11 +39,31 @@ REPORT_MD = UFME / "SELF_IMPROVEMENT.md"
 REPORT_JSON = EVIDENCE / "self-improve-summary.json"
 
 AGENTS = [
-    "universal-frontend-master", "orchestrator", "researcher", "backend-analyst",
-    "product-analyst", "designer", "frontend-architect", "implementer",
-    "integrator", "visual-auditor", "accessibility-auditor",
-    "performance-auditor", "security-auditor",
+    "universal-frontend-master", "orchestrator", "designer", "builder",
+    "backend-analyst", "auditor",
 ]
+# Source agent name -> installed file name (without extension).
+INSTALLED_AGENT_NAMES = {
+    "orchestrator": "ufme-orchestrator",
+    "designer": "ufme-designer",
+    "builder": "ufme-builder",
+    "backend-analyst": "ufme-backend-analyst",
+    "auditor": "ufme-auditor",
+    "universal-frontend-master": "universal-frontend-master",
+}
+# Names merged into other agents; references to them stay valid and resolve
+# to the merged agent's source/installed files.
+MERGED_AGENT_ALIASES = {
+    "researcher": "designer",
+    "product-analyst": "designer",
+    "frontend-architect": "builder",
+    "implementer": "builder",
+    "integrator": "builder",
+    "visual-auditor": "auditor",
+    "accessibility-auditor": "auditor",
+    "performance-auditor": "auditor",
+    "security-auditor": "auditor",
+}
 CORE_DOCS = [
     "MASTER_SKILL.md", "MULTI_AGENT_ORCHESTRATION.md", "AGENT_RULES.md",
     "PROJECT_MEMORY.md", "QUALITY_STANDARDS.md", "SAFETY.md",
@@ -208,14 +228,9 @@ def main():
     source_agent_dir = SOURCE / "agents"
 
     def installed_agent_path(name):
-        """Resolve installed agent path: {name}.md first, then ufme-{name}.md."""
-        direct = installed_agent_dir / f"{name}.md"
-        if direct.exists():
-            return direct, name
-        prefixed = installed_agent_dir / f"ufme-{name}.md"
-        if prefixed.exists():
-            return prefixed, f"ufme-{name}"
-        return prefixed, f"ufme-{name}"
+        """Resolve installed agent path via the fixed name map."""
+        installed_name = INSTALLED_AGENT_NAMES.get(name, f"ufme-{name}")
+        return installed_agent_dir / f"{installed_name}.md", installed_name
 
     for name in AGENTS:
         source_path = source_agent_dir / f"{name}.md"
@@ -333,13 +348,16 @@ def main():
         if key in seen_delegations:
             continue
         seen_delegations.add(key)
-        agent_file = source_agent_dir / f"{agent_name}.md"
-        installed_file, _ = installed_agent_path(agent_name)
-        if not agent_file.exists() and not installed_file.exists():
+        # Merged names resolve to the agent that absorbed their role.
+        resolved_name = MERGED_AGENT_ALIASES.get(agent_name, agent_name)
+        agent_file = source_agent_dir / f"{resolved_name}.md"
+        source_alias_file = source_agent_dir / f"{agent_name}.md"
+        installed_file, label = installed_agent_path(resolved_name)
+        if not agent_file.exists() and not source_alias_file.exists() and not installed_file.exists():
             note("FAIL", "phantom agent", f"{doc}: @{agent_name} has no agent file",
                  f"remove @{agent_name} reference or create {agent_file}")
         else:
-            note("PASS", "phantom agent", f"{doc}: @ufme-{agent_name} resolves")
+            note("PASS", "phantom agent", f"{doc}: @ufme-{agent_name} resolves ({label})")
 
     # ------------------------------------------------------------------
     heading("Prohibited-content sweep (no hardcoded models or local paths)")

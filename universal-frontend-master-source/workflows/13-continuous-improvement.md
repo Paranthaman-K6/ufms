@@ -8,7 +8,7 @@ limitations are documented.
 1. Aggregate findings from VISUAL_AUDIT.md, accessibility, performance, security audits into
    `.ufme/AUDIT_REPORT.md`.
 2. Prioritize critical and major findings.
-3. Return fixes to implementer/integrator via orchestrator; retest after each fix.
+3. Return fixes to builder (implementation and integration) via orchestrator; retest after each fix.
 4. Record conflict resolutions and dependency decisions in `.ufme/DECISIONS.md`.
 5. Update `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md`.
 6. **Self-improvement**: run `scripts/self-improve.py` to audit the skill itself

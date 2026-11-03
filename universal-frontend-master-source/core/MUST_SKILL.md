@@ -17,7 +17,7 @@ metadata:
 
 ## Primary entry point agent: `@universal-frontend-master`
 
-Invoke this agent directly with `@universal-frontend-master` to start a frontend engineering session. It is the only user-facing primary agent; it delegates orchestration to `ufme-orchestrator`, which coordinates 11 specialist subagents.
+Invoke this agent directly with `@universal-frontend-master` to start a frontend engineering session. It is the only user-facing primary agent; it delegates orchestration to `ufme-orchestrator`, which coordinates 4 specialist subagents.
 
 ## Proper workflow (multi-agent pipeline)
 
@@ -33,7 +33,7 @@ Follow this workflow in order. Do not skip stages.
 
 ### Phase 2 — Research
 
-Delegate to `@ufme-researcher`:
+Delegate to `@ufme-designer` (research slice):
 - Gather references, components, fonts, icons, images, videos.
 - Verify licenses and commercial-use permissions.
 - Record candidate libraries in `.ufme/LIBRARY_REGISTRY.md`.
@@ -48,7 +48,7 @@ Delegate to `@ufme-backend-analyst`:
 
 ### Phase 4 — Product intelligence
 
-Delegate to `@ufme-product-analyst`:
+Delegate to `@ufme-designer` (product slice):
 - Create `.ufme/PRD.md`, `.ufme/SITEMAP.md`, `.ufme/USER_FLOWS.md`, `.ufme/FEATURES.md`.
 - Map confirmed backend capabilities to frontend features; document gaps.
 
@@ -60,7 +60,7 @@ Delegate to `@ufme-designer`:
 
 ### Phase 6 — Architecture
 
-Delegate to `@ufme-frontend-architect`:
+Delegate to `@ufme-builder` (architecture slice):
 - Define folder structure, routing, state management, data-fetching patterns, component boundaries, error boundaries, testing strategy.
 - Preserve existing architecture unless justified.
 
@@ -70,14 +70,14 @@ Run `scripts/generate-prototype.py` to build a static prototype from project art
 
 ### Phase 8 — Implementation
 
-Delegate to `@ufme-implementer`:
+Delegate to `@ufme-builder` (implementation slice):
 - Build pages, reusable components, navigation, forms, state, loading/error/empty states, responsive layouts, animations, PWA readiness where justified.
 - Implement only backend capabilities confirmed by the backend analyst.
 - Library installation is handled by the orchestrator via `scripts/search-libraries.py`.
 
 ### Phase 9 — Integration
 
-Delegate to `@ufme-integrator`:
+Delegate to `@ufme-builder` (integration slice):
 - Implement typed API clients, authentication flows, authorization-aware UI, validation, error handling, retries, network failure states.
 - Only use endpoints confirmed by the backend analyst.
 
@@ -94,10 +94,10 @@ Run all four audits, fix critical/major findings, retest until pass or BLOCKED:
 
 | Audit | Agent | Target |
 |-------|-------|--------|
-| Visual | `@ufme-visual-auditor` | Selenium screenshots, alignment, spacing, typography, contrast, overflow |
-| Accessibility | `@ufme-accessibility-auditor` | WCAG 2.1 AA, semantic HTML, landmarks, headings, keyboard |
-| Performance | `@ufme-performance-auditor` | Core Web Vitals, bundle size, Lighthouse |
-| Security | `@ufme-security-auditor` | XSS, CSRF, CORS, CSP, cookies, token storage, exposed secrets, dep audit |
+| Visual | `@ufme-auditor` | Selenium screenshots, alignment, spacing, typography, contrast, overflow |
+| Accessibility | `@ufme-auditor` | WCAG 2.1 AA, semantic HTML, landmarks, headings, keyboard |
+| Performance | `@ufme-auditor` | Core Web Vitals, bundle size, Lighthouse |
+| Security | `@ufme-auditor` | XSS, CSRF, CORS, CSP, cookies, token storage, exposed secrets, dep audit |
 
 ### Phase 12 — Self-improvement
 
@@ -119,7 +119,7 @@ Run any time to switch profile:
 - `/profile/lite` — minimal agents, shallow research, basic verification (max 2 agents)
 - `/profile/standard` — balanced for typical frontend projects (max 4 agents, default)
 - `/profile/advanced` — full agents for complex projects with full audits (max 7 agents)
-- `/profile/autonomous` — all 12 agents with exhaustive verification (max 12 agents)
+- `/profile/autonomous` — all specialist agents with exhaustive verification (max 12 agents)
 
 Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
 
@@ -129,17 +129,10 @@ Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advan
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Primary entry point; delegates to orchestrator | `@universal-frontend-master` |
 | `ufme-orchestrator` | primary | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
-| `ufme-researcher` | subagent | Research, library registry, licenses | `@ufme-researcher` |
 | `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities | `@ufme-backend-analyst` |
-| `ufme-product-analyst` | subagent | PRD, sitemap, flows, features | `@ufme-product-analyst` |
-| `ufme-designer` | subagent | Design system, tokens, components | `@ufme-designer` |
-| `ufme-frontend-architect` | subagent | Architecture, routing, state, tests | `@ufme-frontend-architect` |
-| `ufme-implementer` | subagent | Pages, components, forms, layouts | `@ufme-implementer` |
-| `ufme-integrator` | subagent | Typed API client, auth, validation | `@ufme-integrator` |
-| `ufme-visual-auditor` | subagent (mandatory) | Screenshot review | `@ufme-visual-auditor` |
-| `ufme-accessibility-auditor` | subagent | WCAG 2.1 AA | `@ufme-accessibility-auditor` |
-| `ufme-performance-auditor` | subagent | Core Web Vitals, Lighthouse | `@ufme-performance-auditor` |
-| `ufme-security-auditor` | subagent | XSS, CSRF, CSP, secrets, deps | `@ufme-security-auditor` |
+| `ufme-designer` | subagent | Research, licenses, PRD/flows, design system | `@ufme-designer` |
+| `ufme-builder` | subagent | Architecture, pages, API client, integration | `@ufme-builder` |
+| `ufme-auditor` | subagent (mandatory) | Visual + a11y + perf + security audits | `@ufme-auditor` |
 
 ## Safety model
 

@@ -104,7 +104,8 @@ detect_selenium() {
     SELENIUM_AVAILABLE="yes"
     log "selenium-webdriver: installed project-local"
   else
-    log "selenium-webdriver: NOT installed (run: npm install -D selenium-webdriver)"
+    log "Missing dependency — run: npm i -D selenium-webdriver"
+    log "selenium-webdriver: NOT installed (project-local install required)"
   fi
 }
 
@@ -189,7 +190,8 @@ main() {
 
   if [ "$SELENIUM_AVAILABLE" != "yes" ]; then
     log "selenium-webdriver not installed; cannot run Selenium launch check."
-    prompt_user "selenium-webdriver npm package" "npm install -D selenium-webdriver"
+    echo "Missing dependency — run: npm i -D selenium-webdriver"
+    prompt_user "selenium-webdriver npm package" "npm i -D selenium-webdriver"
     mark_blocked
     exit 1
   fi
@@ -226,13 +228,20 @@ main() {
       echo "selenium-webdriver: $SELENIUM_AVAILABLE"
       echo "Selenium Manager: resolved by selenium-webdriver at runtime"
     } > "$BROWSER_ERROR"
-    # Identify likely missing browser/library
+    # Identify likely missing browser/library and print a clear,
+    # action-oriented hint (never sudo/pacman; user installs the browser).
     if [ -z "$CHROMIUM_BIN" ] && [ -z "$FIREFOX_BIN" ]; then
-      prompt_user "system browser (Chromium or Firefox)" "sudo pacman -S chromium firefox"
+      log "Missing dependency — no Chromium/Chrome and no Firefox browser found."
+      log "Install a browser package (e.g. chromium or firefox) with your system package manager, then retry."
+      prompt_user "system browser (Chromium or Firefox)" "install the chromium or firefox package via your system package manager"
     elif [ -n "$FIREFOX_BIN" ]; then
-      prompt_user "Firefox shared library or driver" "sudo pacman -S firefox"
+      log "Missing dependency — Firefox could not launch (shared library or driver)."
+      log "Reinstall/repair the firefox package via your system package manager, then retry."
+      prompt_user "Firefox shared library or driver" "reinstall the firefox package via your system package manager"
     else
-      prompt_user "Chromium shared library or driver" "sudo pacman -S chromium"
+      log "Missing dependency — Chromium could not launch (shared library or driver)."
+      log "Reinstall/repair the chromium package via your system package manager, then retry."
+      prompt_user "Chromium shared library or driver" "reinstall the chromium package via your system package manager"
     fi
     mark_blocked
     exit 1

@@ -1,172 +1,89 @@
 ---
 name: universal-frontend-master
-description: Build, extend, integrate, audit, and continuously improve complete responsive websites from a brief, repository, backend, API documentation, screenshot, or reference site. Arch Linux-aware multi-agent frontend engineering with native Selenium WebDriver browser testing, visual auditing, accessibility, performance, security, and production readiness.
+description: Multi-agent frontend engineering (multi-agent) for building and improving responsive frontend websites, with execution profiles (/profile/lite|standard|advanced|autonomous) and evidence-driven auditors (a11y, perf, visual, security).
 license: MIT
 compatibility: opencode
 metadata:
   category: frontend-engineering
-  platform: arch-linux
-  browser-engine: selenium-webdriver
   architecture: multi-agent
-  workflow: autonomous-website-development
-  version: "2.0"
   scope: user
 ---
 
-# universal-frontend-master — OpenCode Skill
+# universal-frontend-master
 
-## Primary entry point agent: `@universal-frontend-master`
+## Trigger
 
-Invoke this agent directly with `@universal-frontend-master` to start a frontend engineering session. It is the only user-facing primary agent; it delegates orchestration to `ufme-orchestrator`, which coordinates 11 specialist subagents.
+Use `@universal-frontend-master` when the task is building or improving a responsive website frontend — starting from a project brief, an existing repo, API documentation, a screenshot, or a reference site — or extending, redesigning, integrating, or quality-checking (visual, accessibility, performance, security) an existing frontend. It orchestrates a small multi-agent pipeline instead of a single one-shot pass.
 
-## Proper workflow (multi-agent pipeline)
+## Hard rules
 
-Follow this workflow in order. Do not skip stages.
+1. Never invent backend endpoints, fields, or roles. Implement only CONFIRMED capabilities from `.ufme/API_MAP.md`; anything else is INFERRED/NOT_FOUND and stays unimplemented.
+2. Preserve the existing stack. No framework, build tool, or architectural change without a justified `.ufme/DECISIONS.md` entry.
+3. Never run `sudo`, `pacman`, `systemctl`, `doas`, `pkexec`, or `su`; never install system packages; no Playwright, no containers; browser sandbox preserved (never `--no-sandbox`). Missing system dependency → record in `.ufme/ENVIRONMENT.md`, prompt the user, mark BLOCKED.
+4. Add assets or libraries only with the license verified for commercial use and recorded in `.ufme/LIBRARY_REGISTRY.md` → `.ufme/DECISIONS.md`.
+5. Evidence-first audits: read `.ufme/evidence` JSON (`a11y-results`, `perf-results`, `browser-results`, `visual-diff`) BEFORE screenshots; open screenshots only to investigate flagged sections.
 
-### Phase 1 — Intake (session start)
+## Agent router
 
-1. Read `.ufme/AGENT_STATE.md` and `.ufme/ENVIRONMENT.md`.
-2. Detect whether the project is new, frontend-only, backend-only, or full-stack.
-3. Detect the existing stack and preserve its architecture — do not force a framework change without technical justification recorded in `.ufme/DECISIONS.md`.
-4. Set execution profile: `/profile/lite`, `/profile/standard`, `/profile/advanced`, or `/profile/autonomous` (default: `standard`).
-5. Record the classification and stack in `.ufme/AGENT_STATE.md`.
+| Need | @agent |
+|------|--------|
+| Start session, plan, acceptance checks, memory | `@universal-frontend-master` (entry) → `@ufme-orchestrator` |
+| Research, product brief, design system, critique | `@ufme-designer` |
+| Backend contract discovery, API map, auth map | `@ufme-backend-analyst` |
+| Build, integrate, test the UI and API layer | `@ufme-builder` |
+| Audit loop — visual, a11y, perf, security from script JSON | `@ufme-auditor` |
 
-### Phase 2 — Research
+Invoke `@universal-frontend-master` to start; it coordinates the other agents.
 
-Delegate to `@ufme-researcher`:
-- Gather references, components, fonts, icons, images, videos.
-- Verify licenses and commercial-use permissions.
-- Record candidate libraries in `.ufme/LIBRARY_REGISTRY.md`.
-- Maintain the shared user-level catalog at `~/.config/ufme/LIBRARY_REGISTRY.md` (available to every project).
+## Scripts
 
-### Phase 3 — Backend intelligence (mandatory)
+Run scripts from `universal-frontend-master-source/scripts/`.
 
-Delegate to `@ufme-backend-analyst`:
-- Parse OpenAPI/Swagger (JSON/YAML), Postman, GraphQL, AsyncAPI, and source hints for WebSocket/SSE/auth.
-- Produce `.ufme/API_MAP.md`, `.ufme/BACKEND_CAPABILITIES.md`, `.ufme/AUTHENTICATION_MAP.md`, `.ufme/ERROR_HANDLING.md`.
-- Mark capabilities as CONFIRMED / INFERRED / NOT_FOUND.
+| Script | Purpose |
+|--------|---------|
+| `detect-stack.sh` | Detect existing framework, package manager, scripts, entry points |
+| `detect-platform.sh` | Detect OS platform and installed browser availability |
+| `backend-discovery.sh` | Locate backend contracts and source hints |
+| `enhance-backend-discovery.py` | Parse OpenAPI, Postman, GraphQL, AsyncAPI into contracts |
+| `search-libraries.py` | Search registry + npm for libraries with license checks |
+| `discover-assets.py` | Inventory images, fonts, icons, video; hashes and duplicates |
+| `generate-prototype.py` | Build a static prototype from project artifacts |
+| `task-checkpoint.py` | Dependency-aware `TASKS.md` state with atomic writes |
+| `browser-test.sh` | Real Selenium browser tests → `browser-results.json` |
+| `screenshot.sh` | Capture browser screenshots (`--budget=viewport\|full`) |
+| `page-snapshot.js` | Text-first page outline (structure, headings, landmarks) |
+| `visual-diff.js` | Visual regression via pixelmatch; baseline vs compare |
+| `audit-a11y.js` | axe-core accessibility audit → a11y results JSON |
+| `audit-perf.sh` | Lighthouse performance audit → perf results JSON |
+| `detect-slop.py` | Anti-generic design linter (templated look, uniform motion) |
+| `quality-check.py` | Type check, lint, tests, build, browser, dependency audit → `quality-report.json` |
+| `self-improve.py` | Audit skill source↔install sync; writes self-improve JSON |
+| `ctx-pack.py` | Compose ≤1500-token per-agent briefs from project context |
+| `api-query.py` | Slice `BACKEND_CONTRACTS` by endpoint, field, or role |
+| `design-search.py` | Search design reference CSVs (patterns, palettes, type) |
+| `execution-profiles.sh` | Read and apply execution profile settings |
 
-### Phase 4 — Product intelligence
+## Profiles
 
-Delegate to `@ufme-product-analyst`:
-- Create `.ufme/PRD.md`, `.ufme/SITEMAP.md`, `.ufme/USER_FLOWS.md`, `.ufme/FEATURES.md`.
-- Map confirmed backend capabilities to frontend features; document gaps.
+Run any time: `/profile/lite`, `/profile/standard` (default), `/profile/advanced`, `/profile/autonomous`. Conditional chain: skip `@ufme-backend-analyst` when no backend is detected; skip `@ufme-designer` for single-page or small edit tasks; `lite` = orchestrator + builder + script audits only.
 
-### Phase 5 — Design system
+## Anti-generic design
 
-Delegate to `@ufme-designer`:
-- Create `.ufme/DESIGN_SYSTEM.md` (tokens, typography, spacing, color, components).
-- Record any new asset (font, icon, image) in `.ufme/DECISIONS.md` before adding.
+Motion varies with the content hierarchy — no uniform per-section fade-up, no hover animation on every card.
+Avoid default-template identity: no purple→pink gradient by default, no Inter/Arial-only typography.
+Reference the actual brand assets recorded in `.ufme/DECISIONS.md`; propose and record new ones when absent.
 
-### Phase 6 — Architecture
+## Reference router
 
-Delegate to `@ufme-frontend-architect`:
-- Define folder structure, routing, state management, data-fetching patterns, component boundaries, error boundaries, testing strategy.
-- Preserve existing architecture unless justified.
+For details beyond this file, read `universal-frontend-master-source/<path>`:
 
-### Phase 7 — Prototype (optional)
-
-Run `scripts/generate-prototype.py` to build a static prototype from project artifacts.
-
-### Phase 8 — Implementation
-
-Delegate to `@ufme-implementer`:
-- Build pages, reusable components, navigation, forms, state, loading/error/empty states, responsive layouts, animations, PWA readiness where justified.
-- Implement only backend capabilities confirmed by the backend analyst.
-- Library installation is handled by the orchestrator via `scripts/search-libraries.py`.
-
-### Phase 9 — Integration
-
-Delegate to `@ufme-integrator`:
-- Implement typed API clients, authentication flows, authorization-aware UI, validation, error handling, retries, network failure states.
-- Only use endpoints confirmed by the backend analyst.
-
-### Phase 10 — Browser execution
-
-Run real Chromium/Firefox via Selenium WebDriver at four viewports (mobile, tablet, laptop, desktop), headless by default.
-- `scripts/browser-test.sh` — run browser tests, write `browser-results.json`.
-- `scripts/screenshot.sh` — capture viewport screenshots.
-- No Playwright. No containers. No `--no-sandbox`.
-
-### Phase 11 — Audits (fix and retest loop)
-
-Run all four audits, fix critical/major findings, retest until pass or BLOCKED:
-
-| Audit | Agent | Target |
-|-------|-------|--------|
-| Visual | `@ufme-visual-auditor` | Selenium screenshots, alignment, spacing, typography, contrast, overflow |
-| Accessibility | `@ufme-accessibility-auditor` | WCAG 2.1 AA, semantic HTML, landmarks, headings, keyboard |
-| Performance | `@ufme-performance-auditor` | Core Web Vitals, bundle size, Lighthouse |
-| Security | `@ufme-security-auditor` | XSS, CSRF, CORS, CSP, cookies, token storage, exposed secrets, dep audit |
-
-### Phase 12 — Self-improvement
-
-After each delivery run `scripts/self-improve.py` to audit:
-- Source ↔ installed sync (agents, skill, scripts, docs)
-- Script reference integrity (no stale `.sh` references)
-- Phantom agent detection (no `@` mentions without agent files)
-- Prohibited content sweep (hardcoded models, local paths, sudo/pacman/systemctl)
-- Writes machine-readable JSON to `.ufme/evidence/self-improve-summary.json`
-
-### Phase 13 — Delivery
-
-Write quality report to `.ufme/evidence/quality-report.json`. Document limitations in `.ufme/AUDIT_REPORT.md`. Handover clean.
-
-## Execution profiles (sub-commands)
-
-Run any time to switch profile:
-
-- `/profile/lite` — minimal agents, shallow research, basic verification (max 2 agents)
-- `/profile/standard` — balanced for typical frontend projects (max 4 agents, default)
-- `/profile/advanced` — full agents for complex projects with full audits (max 7 agents)
-- `/profile/autonomous` — all 12 agents with exhaustive verification (max 12 agents)
-
-Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
-
-## Installed agents
-
-| Agent | Mode | Role | Invoke with |
-|-------|------|------|-------------|
-| `universal-frontend-master` | primary | Primary entry point; delegates to orchestrator | `@universal-frontend-master` |
-| `ufme-orchestrator` | primary | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
-| `ufme-researcher` | subagent | Research, library registry, licenses | `@ufme-researcher` |
-| `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities | `@ufme-backend-analyst` |
-| `ufme-product-analyst` | subagent | PRD, sitemap, flows, features | `@ufme-product-analyst` |
-| `ufme-designer` | subagent | Design system, tokens, components | `@ufme-designer` |
-| `ufme-frontend-architect` | subagent | Architecture, routing, state, tests | `@ufme-frontend-architect` |
-| `ufme-implementer` | subagent | Pages, components, forms, layouts | `@ufme-implementer` |
-| `ufme-integrator` | subagent | Typed API client, auth, validation | `@ufme-integrator` |
-| `ufme-visual-auditor` | subagent (mandatory) | Screenshot review | `@ufme-visual-auditor` |
-| `ufme-accessibility-auditor` | subagent | WCAG 2.1 AA | `@ufme-accessibility-auditor` |
-| `ufme-performance-auditor` | subagent | Core Web Vitals, Lighthouse | `@ufme-performance-auditor` |
-| `ufme-security-auditor` | subagent | XSS, CSRF, CSP, secrets, deps | `@ufme-security-auditor` |
-
-## Safety model
-
-- Never run `sudo`, `pacman`, `systemctl`, `doas`, `pkexec`, or `su`.
-- Never install system packages or modify system files.
-- Project-local npm dependencies only.
-- No Playwright, no containers, no WebKit requirement.
-- Browser sandbox preserved (never `--no-sandbox`).
-- Missing system dependency → record in `.ufme/ENVIRONMENT.md`, prompt user, mark BLOCKED.
-
-## Cross-project data (user scope)
-
-Shared across every project on the machine (never overwritten by install):
-
-- `~/.config/ufme/LIBRARY_REGISTRY.md` — shared library catalog
-- `~/.config/ufme/evidence/` — shared evidence directory
-- `~/.config/opencode/agents/*.md` — agent definitions (global)
-- `~/.config/opencode/skills/universal-frontend-master/SKILL.md` — skill definition (global)
-- `~/.config/opencode/commands/` — slash commands (global)
-- `~/.config/opencode/opencode.json` — agent registry + default agent
-
-## Project-local artifacts
-
-Stored in `.ufme/` per project (seeded only on install, never overwritten):
-
-`AGENT_STATE.md`, `ENVIRONMENT.md`, `TASKS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `API_MAP.md`, `AUTHENTICATION_MAP.md`, `BACKEND_CAPABILITIES.md`, `ERROR_HANDLING.md`, `VISUAL_AUDIT.md`, `AUDIT_REPORT.md`, `LIBRARY_REGISTRY.md`, `evidence/`.
-
-## Source of truth
-
-`universal-frontend-master-source/` is the source of truth. Installed copies in `.opencode/` are deployed from source and kept in sync by `scripts/self-improve.py`.
+| Topic | Path |
+|-------|------|
+| Architecture | `core/SYSTEM_ARCHITECTURE.md` |
+| Orchestrator / agent pipeline | `core/MULTI_AGENT_ORCHESTRATION.md` |
+| Core agent rules | `core/AGENT_RULES.md` |
+| Safety rules | `core/SAFETY.md` |
+| Quality standards | `core/QUALITY_STANDARDS.md` |
+| Numbered workflows | `workflows/<NN>.md` |
+| Installation | `install.sh` + `docs/installation-arch-linux.md` |
+| Troubleshooting | `docs/troubleshooting.md` |

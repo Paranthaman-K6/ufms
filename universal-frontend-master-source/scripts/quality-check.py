@@ -18,6 +18,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -26,6 +28,14 @@ UFME = ROOT / ".ufme"
 EVIDENCE = UFME / "evidence"
 REPORT = EVIDENCE / "quality-report.json"
 BROWSER_RESULTS = EVIDENCE / "browser-results.json"
+SCRIPTS_DIR = ROOT / "universal-frontend-master-source" / "scripts"
+A11Y_SCRIPT = SCRIPTS_DIR / "audit-a11y.js"
+A11Y_RESULTS = EVIDENCE / "a11y-results.json"
+PERF_SCRIPT = SCRIPTS_DIR / "audit-perf.sh"
+PERF_RESULTS = EVIDENCE / "perf-results.json"
+
+# Target URL served by the app under test (browser-test.sh default).
+TARGET_URL = os.environ.get("UFME_AUDIT_URL") or "http://localhost:5173"
 
 CHECKS = []
 COUNTS = {"PASS": 0, "FAIL": 0, "SKIPPED": 0, "BLOCKED": 0}
@@ -140,12 +150,158 @@ def run_browser_tests():
             blocked = json.loads(BROWSER_RESULTS.read_text()).get("status") == "BLOCKED"
         except (OSError, ValueError):
             blocked = False
-    record(
+record(
         "BLOCKED" if blocked else "FAIL",
         "Browser tests",
         p.returncode,
         "browser setup blocked" if blocked else "browser tests failed",
     )
+
+
+def browser_binary_available():
+    for name in (
+        "chromium",
+        "chromium-browser",
+        "google-chrome-stable",
+        "google-chrome",
+        "chrome",
+        "firefox",
+        "firefox-developer-edition",
+    ):
+        if shutil.which(name):
+            return True
+    return False
+
+
+def url_responds(url):
+    """True when something answered over HTTP (any status counts)."""
+    req = urllib.request.Request(url, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.status is not None
+    except urllib.error.HTTPError:
+        return True
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def json_field(path, field):
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get(field)
+    except (OSError, ValueError):
+        return None
+
+
+def run_a11y_gate():
+    label = "Accessibility (axe-core)"
+    if not A11Y_SCRIPT.exists() or not (
+        ROOT / "node_modules" / "@axe-core" / "webdriverjs"
+    ).exists():
+        record(
+            "SKIPPED", label, 0,
+            "Missing dependency — run: npm i -D @axe-core/webdriverjs",
+        )
+        return
+    if not (ROOT / "node_modules" / "selenium-webdriver" / "index.js").exists():
+        record("SKIPPED", label, 0, "Missing dependency — run: npm i -D selenium-webdriver")
+        return
+    if not browser_binary_available():
+        record(
+            "BLOCKED", label, 0,
+            "no Chromium/Chrome or Firefox binary found — install a system browser (sudo required, user action)",
+        )
+        return
+    if not url_responds(TARGET_URL):
+        record(
+            "SKIPPED", label, 0,
+            f"target URL did not respond: {TARGET_URL} — start the dev server and re-run",
+        )
+        return
+    log(f"Running axe-core audit against {TARGET_URL}")
+    try:
+        p = subprocess.run(
+            ["node", str(A11Y_SCRIPT), TARGET_URL, "--timeout", "180000"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        record("FAIL", label, 124, "axe-core audit timed out after 300s")
+        return
+    except OSError as e:
+        record("FAIL", label, 1, str(e))
+        return
+    rc = p.returncode
+    if rc == 0:
+        record("PASS", label, 0, "no axe-core violations")
+    elif rc == 1:
+        total = json_field(A11Y_RESULTS, "totalViolations")
+        record(
+            "FAIL", label, rc,
+            f"{total if total is not None else 'violations'} axe violations found"
+            " (results: .ufme/evidence/a11y-results.json)",
+        )
+    elif rc == 3:
+        reason = json_field(A11Y_RESULTS, "reason") or p.stdout.strip() or ""
+        record("SKIPPED", label, rc, reason or "Missing dependency — run: npm i -D @axe-core/webdriverjs")
+    elif rc == 5:
+        brokered = json_field(A11Y_RESULTS, "reason") or "browser/runtime failure"
+        record("BLOCKED", label, rc, f"browser could not launch: {brokered}")
+    else:
+        record("FAIL", label, rc, (p.stderr or p.stdout or "").strip()[:200])
+
+
+def run_perf_gate():
+    label = "Performance (Lighthouse)"
+    if not PERF_SCRIPT.exists():
+        record("SKIPPED", label, 0, "audit-perf.sh missing")
+        return
+    if not (ROOT / "node_modules" / "lighthouse" / "package.json").exists():
+        record("SKIPPED", label, 0, "Missing dependency — run: npm i -D lighthouse")
+        return
+    if not browser_binary_available():
+        record(
+            "BLOCKED", label, 0,
+            "no Chromium/Chrome binary found — install a system browser (sudo required, user action)",
+        )
+        return
+    if not url_responds(TARGET_URL):
+        record(
+            "SKIPPED", label, 0,
+            f"target URL did not respond: {TARGET_URL} — start the dev server and re-run",
+        )
+        return
+    log(f"Running lighthouse audit against {TARGET_URL}")
+    try:
+        p = subprocess.run(
+            ["bash", str(PERF_SCRIPT), TARGET_URL],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        record("FAIL", label, 124, "lighthouse audit timed out after 600s")
+        return
+    except OSError as e:
+        record("FAIL", label, 1, str(e))
+        return
+    rc = p.returncode
+    if rc == 0:
+        scores = json_field(PERF_RESULTS, "scores") or {}
+        record(
+            "PASS", label, 0,
+            f"perf={scores.get('performance')} a11y={scores.get('accessibility')}"
+            f" best-practices={scores.get('bestPractices')}",
+        )
+    elif rc == 5:
+        reason = json_field(PERF_RESULTS, "reason") or "lighthouse unavailable or failed"
+        record("SKIPPED", label, rc, reason)
+    else:
+        record("FAIL", label, rc, (p.stderr or p.stdout or "").strip().splitlines()[0][:200])
 
 
 def main():
@@ -175,17 +331,8 @@ def main():
 
     run_browser_tests()
 
-    # No axe/lighthouse runner is bundled; never report PASS without executing.
-    if BROWSER_RESULTS.exists():
-        try:
-            browser_ok = json.loads(BROWSER_RESULTS.read_text()).get("status") == "PASS"
-        except (OSError, ValueError):
-            browser_ok = False
-    else:
-        browser_ok = False
-    reason = "no browser available" if not browser_ok else "no runner configured"
-    record("SKIPPED", "Accessibility (axe-core)", 0, reason)
-    record("SKIPPED", "Performance (Lighthouse)", 0, reason)
+    run_a11y_gate()
+    run_perf_gate()
 
     run("Dependency audit", ["npm", "audit", "--audit-level=moderate"]) if (ROOT / "package.json").exists() \
         else record("SKIPPED", "Dependency audit", 0, "no package.json")

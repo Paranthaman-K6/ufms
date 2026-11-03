@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # screenshot.sh
-# Capture Selenium screenshots: full-page + section-level at
-# mobile 390x844, tablet 768x1024, laptop 1280x800, desktop 1440x900,
-# dark and light themes where applicable.
+# Capture Selenium screenshots via the runtime abstraction in
+# universal-frontend-master-source/browser/. Default screenshot budget is
+# viewport-only at mobile 390x844 and desktop 1440x900 (JPEG q~70, width
+# capped at 1280px). Dark theme is captured only when the page defines
+# prefers-color-scheme rules or a theme toggle.
 #
 # Safety: project-local only.
 set -u
@@ -15,7 +17,7 @@ mkdir -p "$SCREENSHOT_DIR"
 log() { echo "[screenshot] $*"; }
 
 log "Capturing screenshots for $URL into $SCREENSHOT_DIR"
-node "$ROOT_DIR/tests/browser/run.js" "$URL" "$SCREENSHOT_DIR" "$ROOT_DIR/.ufme/evidence/browser-results.json" --screenshots-only
+node "$ROOT_DIR/universal-frontend-master-source/browser/run.js" "$URL" "$SCREENSHOT_DIR" "$ROOT_DIR/.ufme/evidence/browser-results.json" --screenshots-only
 RC=$?
 
 if [ $RC -eq 0 ]; then

@@ -10,7 +10,7 @@ network requests, and Lighthouse results.
 3. Measure bundle size, image optimization, caching, network requests.
 4. Run Lighthouse audit against the locally served production build when possible.
 5. Record lab metrics and recommendations.
-6. Return critical performance findings to implementer via orchestrator.
+6. Return critical performance findings to builder via orchestrator.
 7. Update `.ufme/TASKS.md` (T-15) and `.ufme/AGENT_STATE.md`.
 8. Delegate next: security audit.
 

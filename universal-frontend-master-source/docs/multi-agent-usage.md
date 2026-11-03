@@ -20,17 +20,11 @@
 
 ## Specialist agents
 
-- `ufme-researcher` — references, assets, license verification
-- `ufme-backend-analyst` — API/auth/capability/error maps (mandatory)
-- `ufme-product-analyst` — PRD, sitemap, user flows, features
-- `ufme-designer` — design system, wireframes, components
-- `ufme-frontend-architect` — architecture, routing, state, testing strategy
-- `ufme-implementer` — pages, components, forms, layouts
-- `ufme-integrator` — typed API client, auth, validation, error handling
-- `ufme-visual-auditor` — Selenium screenshot review (mandatory)
-- `ufme-accessibility-auditor` — WCAG 2.1 AA
-- `ufme-performance-auditor` — Core Web Vitals, Lighthouse
-- `ufme-security-auditor` — XSS, CSRF, CORS, CSP, secrets, deps
+- `ufme-orchestrator` — plans, delegates, acceptance checks, project memory (primary)
+- `ufme-designer` — research, PRD, sitemap, flows, design system, critique
+- `ufme-backend-analyst` — API/auth/capability/error maps (stdlib contracts; not mandatory when no backend is detected)
+- `ufme-builder` — architecture, pages, components, typed API client, integration
+- `ufme-auditor` — visual, accessibility, performance, security audits from evidence JSON
 
 ## Example delegation
 

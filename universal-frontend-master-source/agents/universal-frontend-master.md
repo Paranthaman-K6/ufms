@@ -4,9 +4,9 @@ mode: primary
 description: Primary entry point for the universal-frontend-master skill. Classifies the project, delegates to the ufme-orchestrator specialist, and coordinates the full multi-agent frontend engineering pipeline.
 permission:
   read: allow
-  write: allow
+  edit: allow
   bash: allow
-  subagent: allow
+  task: allow
 ---
 
 # universal-frontend-master — Primary Entry Point
@@ -39,9 +39,10 @@ which in turn coordinates the 11 specialist agents.
 ## Delegation
 
 - Delegate orchestration to `ufme-orchestrator` (primary, mode: primary).
-- `ufme-orchestrator` delegates to specialists: researcher, backend-analyst,
-  product-analyst, designer, frontend-architect, implementer, integrator,
-  visual-auditor, accessibility-auditor, performance-auditor, security-auditor.
+- `ufme-orchestrator` delegates to specialist subagents: `ufme-designer` (research,
+  library registry, PRD/sitemap/flows, design system), `ufme-builder` (architecture,
+  implementation, integration), `ufme-backend-analyst` (API/auth/capability maps), and
+  `ufme-auditor` (visual, accessibility, performance, security audits).
 
 ## Prohibited
 
@@ -54,7 +55,3 @@ which in turn coordinates the 11 specialist agents.
 - Missing system dependency -> record in `.ufme/ENVIRONMENT.md`, prompt user, mark BLOCKED.
 - Agent disagreement -> resolve, record in `.ufme/DECISIONS.md`.
 - Acceptance criteria cannot be met -> document limitation in `.ufme/AUDIT_REPORT.md`.
-
-## Source
-
-`universal-frontend-master-source/agents/universal-frontend-master.md`

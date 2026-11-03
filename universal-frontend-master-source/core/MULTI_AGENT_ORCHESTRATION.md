@@ -31,12 +31,12 @@ sitemap, user flows, responsive rules, and component architecture.
 ```
 
 ```
-@ufme-implementer Implement the next approved feature slice from `.ufme/TASKS.md`.
+@ufme-builder Implement the next approved feature slice from `.ufme/TASKS.md`.
 Preserve the existing architecture and update relevant `.ufme/` artifacts.
 ```
 
 ```
-@ufme-visual-auditor Review the latest Selenium screenshots in
+@ufme-auditor Review the latest Selenium screenshots in
 `.ufme/evidence/screenshots/` and create a severity-ranked visual audit.
 ```
 
@@ -45,17 +45,10 @@ Preserve the existing architecture and update relevant `.ufme/` artifacts.
 | Agent | Owns | Delegates from |
 |-------|------|----------------|
 | ufme-orchestrator (primary) | AGENT_STATE.md, TASKS.md, DECISIONS.md, plan | all |
-| ufme-researcher | research notes, asset decisions | orchestrator |
 | ufme-backend-analyst | API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md | orchestrator |
-| ufme-product-analyst | PRD.md, SITEMAP.md, USER_FLOWS.md, FEATURES.md | orchestrator |
-| ufme-designer | DESIGN_SYSTEM.md, wireframes, component architecture | product analyst |
-| ufme-frontend-architect | ARCHITECTURE.md, folder structure, routing, state, testing strategy | designer |
-| ufme-implementer | pages, components, navigation, forms, layouts | frontend architect |
-| ufme-integrator | typed API client, auth flows, validation, error handling | implementer |
-| ufme-visual-auditor | VISUAL_AUDIT.md, screenshot review | implementer/integrator |
-| ufme-accessibility-auditor | accessibility findings | visual auditor |
-| ufme-performance-auditor | performance findings | accessibility auditor |
-| ufme-security-auditor | security findings | performance auditor |
+| ufme-designer | LIBRARY_REGISTRY.md, PRD.md, SITEMAP.md, USER_FLOWS.md, FEATURES.md, DESIGN_SYSTEM.md, research notes, wireframes, component architecture | orchestrator |
+| ufme-builder | ARCHITECTURE.md, pages, components, navigation, forms, layouts, typed API client, auth flows, validation, error handling | designer/backend-analyst |
+| ufme-auditor | AUDIT_REPORT.md (visual, accessibility, performance, security findings) | builder |
 
 ## Execution profiles
 

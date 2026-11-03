@@ -16,9 +16,9 @@
 ## Specialist prohibitions
 
 - ufme-backend-analyst: do not generate API code; produce evidence-based maps only.
-- ufme-implementer: do not invent backend capabilities; implement only what is confirmed.
-- ufme-visual-auditor: review actual Selenium screenshots, not mockups.
-- ufme-security-auditor: do not store or log secrets; flag exposed secrets instead.
+- ufme-builder: do not invent backend capabilities; implement only what is confirmed.
+- ufme-auditor: review actual Selenium screenshots, not mockups; consume script JSON evidence before screenshots.
+- ufme-auditor: do not store or log secrets; flag exposed secrets instead.
 
 ## Escalation
 
