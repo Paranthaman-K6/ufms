@@ -150,7 +150,7 @@ def run_browser_tests():
             blocked = json.loads(BROWSER_RESULTS.read_text()).get("status") == "BLOCKED"
         except (OSError, ValueError):
             blocked = False
-record(
+    record(
         "BLOCKED" if blocked else "FAIL",
         "Browser tests",
         p.returncode,

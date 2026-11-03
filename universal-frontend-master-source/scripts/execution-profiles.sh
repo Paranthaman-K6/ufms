@@ -2,20 +2,20 @@
 # execution-profiles.sh
 # Priority 9 — Execution Profiles: lite / standard / advanced / autonomous.
 # Reads configuration from universal-frontend-master-source/profiles/<name>.json
-# and outputs the profile configuration. Profiles are consumed by the orchestrator
-# to control agent count, research depth, parallel execution, verification depth,
-# and resource budgets. Security constraints are never bypassed.
+# and outputs the profile configuration or enforces agent limits.
 #
-# Usage: execution-profiles.sh [lite|standard|advanced|autonomous] [--json]
-# Exit codes: 0 = valid profile, non-zero = invalid profile or error.
+# Usage:
+#   execution-profiles.sh [lite|standard|advanced|autonomous] [--json]
+#   execution-profiles.sh --enforce <profile> --agents <comma-separated-agents>
+#
+# Exit codes: 0 = valid / compliant, non-zero = invalid profile, enforcement violation, or error.
 #
 # Safety: read-only; no system modification.
 set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROFILES_DIR="$ROOT_DIR/universal-frontend-master-source/profiles"
 
-PROFILE="${1:-}"
-OUTPUT_JSON="${2:-}"
+ACTION="${1:-}"
 
 log() { echo "[execution-profiles] $*"; }
 
@@ -34,16 +34,14 @@ load_profile() {
     log "ERROR: Profile configuration not found: $file"
     return 1
   fi
-  # Read the file once, validate JSON, and output the raw content safely
   if ! python3 -c "
 import json, sys
 try:
-    # Use sys.argv[1] to avoid shell interpolation in the string
     file_path = sys.argv[1]
     with open(file_path, 'r') as f:
         content = f.read()
-        json.loads(content)  # Validate
-        sys.stdout.write(content)  # Output raw content
+        json.loads(content)
+        sys.stdout.write(content)
 except Exception as e:
     sys.stderr.write(str(e))
     sys.exit(1)
@@ -67,12 +65,75 @@ mandatory_acceptance_criteria=true
 CFG
 }
 
+enforce_profile() {
+  local profile="$1"
+  local agents_csv="$2"
+
+  if ! validate_profile_name "$profile"; then
+    log "ERROR: Invalid profile for enforcement: $profile"
+    return 1
+  fi
+
+  local profile_json
+  profile_json="$(load_profile "$profile")" || return 1
+
+  python3 - "$profile_json" "$agents_csv" <<'PYEOF'
+import json, sys
+
+profile = json.loads(sys.argv[1])
+agents_csv = sys.argv[2]
+max_agents = profile.get("maxAgents", 12)
+
+agents = [a.strip() for a in agents_csv.split(",") if a.strip()]
+count = len(agents)
+
+print(f"[execution-profiles] Enforcing profile '{profile['name']}': maxAgents={max_agents}, provided agents={count} ({', '.join(agents)})")
+
+if count > max_agents:
+    print(f"ERROR: Agent count ({count}) exceeds maximum allowed ({max_agents}) for profile '{profile['name']}'.", file=sys.stderr)
+    sys.exit(1)
+
+allowed_sets = {
+    "lite": {"universal-frontend-master", "ufme-orchestrator", "ufme-builder"},
+    "standard": {"universal-frontend-master", "ufme-orchestrator", "ufme-designer", "ufme-builder", "ufme-backend-analyst"},
+    "advanced": {"universal-frontend-master", "ufme-orchestrator", "ufme-designer", "ufme-builder", "ufme-backend-analyst", "ufme-auditor"},
+    "autonomous": {"universal-frontend-master", "ufme-orchestrator", "ufme-designer", "ufme-builder", "ufme-backend-analyst", "ufme-auditor"},
+}
+
+profile_name = profile["name"]
+allowed = allowed_sets.get(profile_name, set())
+if allowed:
+    unauthorized = [a for a in agents if a not in allowed and a != "universal-frontend-master" and a != "ufme-orchestrator"]
+    if unauthorized:
+        print(f"ERROR: Unauthorized agent(s) {unauthorized} not allowed in profile '{profile_name}'. Allowed: {sorted(allowed)}", file=sys.stderr)
+        sys.exit(1)
+
+print("[execution-profiles] Profile enforcement passed.")
+PYEOF
+}
+
 main() {
-  if [ -z "$PROFILE" ]; then
-    log "ERROR: No profile specified."
+  if [ -z "$ACTION" ]; then
+    log "ERROR: No action or profile specified."
     echo "Usage: $0 [lite|standard|advanced|autonomous] [--json]"
+    echo "       $0 --enforce <profile> --agents <agent1,agent2,...>"
     exit 1
   fi
+
+  if [ "$ACTION" = "--enforce" ]; then
+    local prof="${2:-}"
+    local flag="${3:-}"
+    local agents="${4:-}"
+    if [ "$flag" != "--agents" ] || [ -z "$prof" ] || [ -z "$agents" ]; then
+      log "ERROR: Usage: $0 --enforce <profile> --agents <agent1,agent2,...>"
+      exit 1
+    fi
+    enforce_profile "$prof" "$agents"
+    exit $?
+  fi
+
+  local PROFILE="$ACTION"
+  local OUTPUT_JSON="${2:-}"
 
   if ! validate_profile_name "$PROFILE"; then
     log "ERROR: Invalid profile: $PROFILE"
@@ -86,10 +147,8 @@ main() {
   fi
 
   if [ "$OUTPUT_JSON" = "--json" ]; then
-    # Output valid JSON only: profile JSON already includes securityConstraints.
     echo "$profile_json"
   else
-    # Human-readable output
     local name research_depth parallel verification budget browser self_improve max_agents
     name=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])" 2>/dev/null)
     max_agents=$(echo "$profile_json" | python3 -c "import json,sys; print(json.load(sys.stdin)['maxAgents'])" 2>/dev/null)
