@@ -39,9 +39,10 @@ REPORT_MD = UFME / "SELF_IMPROVEMENT.md"
 REPORT_JSON = EVIDENCE / "self-improve-summary.json"
 
 AGENTS = [
-    "orchestrator", "researcher", "backend-analyst", "product-analyst", "designer",
-    "frontend-architect", "implementer", "integrator", "visual-auditor",
-    "accessibility-auditor", "performance-auditor", "security-auditor",
+    "universal-frontend-master", "orchestrator", "researcher", "backend-analyst",
+    "product-analyst", "designer", "frontend-architect", "implementer",
+    "integrator", "visual-auditor", "accessibility-auditor",
+    "performance-auditor", "security-auditor",
 ]
 CORE_DOCS = [
     "MASTER_SKILL.md", "MULTI_AGENT_ORCHESTRATION.md", "AGENT_RULES.md",
@@ -205,10 +206,20 @@ def main():
     heading("Agent audit (frontmatter + mode + source/install sync)")
     installed_agent_dir = ROOT / ".opencode/agents"
     source_agent_dir = SOURCE / "agents"
+
+    def installed_agent_path(name):
+        """Resolve installed agent path: {name}.md first, then ufme-{name}.md."""
+        direct = installed_agent_dir / f"{name}.md"
+        if direct.exists():
+            return direct, name
+        prefixed = installed_agent_dir / f"ufme-{name}.md"
+        if prefixed.exists():
+            return prefixed, f"ufme-{name}"
+        return prefixed, f"ufme-{name}"
+
     for name in AGENTS:
         source_path = source_agent_dir / f"{name}.md"
-        installed_path = installed_agent_dir / f"ufme-{name}.md"
-        label = f"ufme-{name}"
+        installed_path, label = installed_agent_path(name)
 
         # Source agent must exist and be valid.
         if not check_file(source_path, f"{label} (source)"):
@@ -323,10 +334,10 @@ def main():
             continue
         seen_delegations.add(key)
         agent_file = source_agent_dir / f"{agent_name}.md"
-        installed_file = installed_agent_dir / f"ufme-{agent_name}.md"
+        installed_file, _ = installed_agent_path(agent_name)
         if not agent_file.exists() and not installed_file.exists():
-            note("FAIL", "phantom agent", f"{doc}: @ufme-{agent_name} has no agent file",
-                 f"remove @ufme-{agent_name} reference or create {agent_file}")
+            note("FAIL", "phantom agent", f"{doc}: @{agent_name} has no agent file",
+                 f"remove @{agent_name} reference or create {agent_file}")
         else:
             note("PASS", "phantom agent", f"{doc}: @ufme-{agent_name} resolves")
 
@@ -397,15 +408,15 @@ def main():
         note("FAIL", "opencode.json", "missing", "create opencode.json")
 
     for name in AGENTS:
-        path = installed_agent_dir / f"ufme-{name}.md"
+        path, label = installed_agent_path(name)
         if not path.exists():
-            note("FAIL", f"ufme-{name} (installed agent)", "missing",
+            note("FAIL", f"{label} (installed agent)", "missing",
                  f"copy {source_agent_dir / (name + '.md')} to {path}")
         elif not frontmatter(path)[0]:
-            note("FAIL", f"ufme-{name} (installed agent)", "no frontmatter",
+            note("FAIL", f"{label} (installed agent)", "no frontmatter",
                  f"add frontmatter to {path}")
         else:
-            note("PASS", f"ufme-{name} (installed agent)", "frontmatter present")
+            note("PASS", f"{label} (installed agent)", "frontmatter present")
 
     # ------------------------------------------------------------------
     heading("Execution profile audit")
