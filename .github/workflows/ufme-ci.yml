@@ -27,5 +27,32 @@ jobs:
       - name: Build agents (check)
         run: python3 universal-frontend-master-source/scripts/build-agents.py --check
 
+      - name: Test project-memory seeding
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          import tempfile
+          from pathlib import Path
+
+          script = Path("universal-frontend-master-source/scripts/seed-project-memory.py").resolve()
+          with tempfile.TemporaryDirectory(prefix="ufme-seed-test-") as temp:
+              target = Path(temp)
+              subprocess.run(["python3", str(script), str(target)], check=True)
+              memory = target / ".ufme"
+              required = ["TASKS.md", "ENVIRONMENT.md", "SKILL_VALIDATION.md"]
+              for name in required:
+                  path = memory / name
+                  assert path.is_file() and path.stat().st_size > 0, f"missing seed: {name}"
+
+              # Prove an existing user file is preserved by a second seed.
+              tasks = memory / "TASKS.md"
+              tasks.write_text("# user-owned task state\\n", encoding="utf-8")
+              subprocess.run(["python3", str(script), str(target)], check=True)
+              assert tasks.read_text(encoding="utf-8") == "# user-owned task state\\n"
+          PY
+
+      - name: Seed project runtime memory for self-audit
+        run: python3 universal-frontend-master-source/scripts/seed-project-memory.py "$GITHUB_WORKSPACE"
+
       - name: Self-improve
         run: python3 universal-frontend-master-source/scripts/self-improve.py

@@ -200,16 +200,8 @@ else
   log "  Reinstall, or copy the browser/ directory from the repository manually."
 fi
 
-# Seed per-project memory from templates (never overwrite existing).
-for f in TASKS.md ENVIRONMENT.md SKILL_VALIDATION.md AGENT_STATE.md DECISIONS.md ARCHITECTURE.md DESIGN_SYSTEM.md API_MAP.md AUTHENTICATION_MAP.md BACKEND_CAPABILITIES.md ERROR_HANDLING.md VISUAL_AUDIT.md AUDIT_REPORT.md; do
-  [ -f "$TARGET/.ufme/$f" ] && continue
-  tpl="$SRC/universal-frontend-master-source/templates/$f"
-  if [ -f "$tpl" ]; then
-    cp "$tpl" "$TARGET/.ufme/$f"
-  else
-    echo "# ${f%.md}" > "$TARGET/.ufme/$f"
-  fi
-done
+# Seed per-project memory from bundled templates (never overwrite existing).
+python3 "$SRC/universal-frontend-master-source/scripts/seed-project-memory.py" "$TARGET"
 
 # Point project opencode.json at global user config (project merges on top).
 if [ ! -f "$TARGET/opencode.json" ]; then

@@ -14,7 +14,7 @@ Performs deep architectural validation of the reusable UFME system:
   * Execution profiles are valid JSON with expected keys.
   * Browser abstraction files exist and pass syntax checks.
   * OpenCode install (opencode.json, SKILL.md) is valid.
-  * Scripts are executable and syntax-valid.
+  * Shell scripts are executable; Python/Node scripts are syntax-valid and invoked via their interpreters.
 
 Writes .ufme/SELF_IMPROVEMENT.md (human) and .ufme/evidence/self-improve-summary.json
 (machine-readable). Exits non-zero on any FAIL.
@@ -323,7 +323,13 @@ def main():
             continue
         if not path.is_file():
             continue
-        check_file(path, path.name, "exec")
+        # Shell scripts are invoked directly and must be executable. Python and
+        # JavaScript helpers are invoked through python3/node, so their executable
+        # bit is not required; their syntax is still validated below.
+        if path.suffix == ".sh":
+            check_file(path, path.name, "exec")
+        else:
+            note("PASS", path.name, "invoked through python3/node; executable bit not required")
         check_file(path, path.name, "syntax")
 
     # ------------------------------------------------------------------
