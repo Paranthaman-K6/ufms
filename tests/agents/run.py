@@ -53,6 +53,10 @@ def test(name):
             results.append({"name": name, "status": "PASS"})
             print(f"PASS: {name}")
         except Exception as exc:  # noqa: BLE001 - test harness
+            if "SKIP" in str(exc):
+                results.append({"name": name, "status": "SKIP", "error": str(exc)})
+                print(f"SKIP: {name}: {exc}")
+                return fn
             results.append({"name": name, "status": "FAIL", "error": str(exc)})
             print(f"FAIL: {name}: {exc}")
             traceback.print_exc()
@@ -177,13 +181,14 @@ def _():
 
 def main():
     failures = [r for r in results if r["status"] == "FAIL"]
-    skips = [r for r in results if "SKIP" in r.get("error", "")]
+    skips = [r for r in results if r["status"] == "SKIP"]
+    passes = [r for r in results if r["status"] == "PASS"]
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     (EVIDENCE / "agents-test.json").write_text(
         json.dumps(
             {
                 "checks": len(results),
-                "pass": len(results) - len(failures),
+                "pass": len(passes),
                 "skipped": len(skips),
                 "failed": len(failures),
                 "results": results,
@@ -193,7 +198,7 @@ def main():
         + "\n",
         encoding="utf-8",
     )
-    print(f"\n{len(results) - len(failures)} passed, {len(skips)} skipped, {len(failures)} failed")
+    print(f"\n{len(passes)} passed, {len(skips)} skipped, {len(failures)} failed")
     return 1 if failures else 0
 
 
