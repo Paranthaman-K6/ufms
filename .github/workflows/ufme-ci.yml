@@ -40,7 +40,9 @@ jobs:
           node universal-frontend-master-source/scripts/visual-diff.js \
             --baseline .ufme/evidence/baseline \
             --current .ufme/evidence/screenshots --update-baseline
-          UFME_SLOP_PATH=prototypes python3 universal-frontend-master-source/scripts/quality-check.py \
+          UFME_SLOP_PATH=prototypes \
+          UFME_CHROME_FLAGS="--headless=new --no-sandbox --disable-dev-shm-usage" \
+          python3 universal-frontend-master-source/scripts/quality-check.py \
             --only audit --require audit --target http://localhost:5173 \
             --report .ufme/evidence/quality-report.json
 

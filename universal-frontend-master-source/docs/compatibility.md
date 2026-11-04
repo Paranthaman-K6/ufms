@@ -23,6 +23,9 @@
 - Overall precedence: FAIL > BLOCKED > PASS.
 - Visual regression treats a missing current screenshot as a failure and reports
   first-run baseline creation as BLOCKED, not PASS.
+- `UFME_CHROME_FLAGS` overrides Lighthouse's Chrome flags (default
+  `--headless=new`); container/CI runners usually need
+  `--headless=new --no-sandbox --disable-dev-shm-usage`.
 
 ## Browser engine
 - Selenium WebDriver only (Chromium + Firefox).

@@ -16,7 +16,8 @@
 #             5 = skipped (dependency or browser missing / lighthouse failed)
 #
 # Safety: project-local npm only; never sudo/pacman/systemctl; the Chromium
-# sandbox is preserved (no --no-sandbox in chrome-flags).
+# sandbox is preserved by default (no --no-sandbox in chrome-flags). Set
+# UFME_CHROME_FLAGS to add runner-specific flags (CI needs --no-sandbox).
 set -u
 
 log() { echo "[audit-perf] $*"; }
@@ -28,6 +29,7 @@ RESULTS_FILE="$EVIDENCE_DIR/perf-results.json"
 mkdir -p "$EVIDENCE_DIR"
 
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+CHROME_FLAGS="${UFME_CHROME_FLAGS:---headless=new}"
 
 if [ $# -lt 1 ] || [ -z "${1:-}" ]; then
   err "Usage: bash audit-perf.sh <url>"
@@ -72,10 +74,15 @@ trap 'rm -f "$LH_JSON"' EXIT
 
 if ! CHROME_PATH="$CHROME_BIN" npx --no-install lighthouse "$URL" \
     --output json --quiet \
-    --chrome-flags="--headless=new" \
+    --chrome-flags="$CHROME_FLAGS" \
     >"$LH_JSON" 2>"$ROOT_DIR/.ufme-lighthouse.log"; then
   reason="lighthouse run failed (see .ufme-lighthouse.log)"
-  [ -s "$ROOT_DIR/.ufme-lighthouse.log" ] || reason="lighthouse run failed with no output"
+  if [ -s "$ROOT_DIR/.ufme-lighthouse.log" ]; then
+    err "lighthouse output (last 20 lines):"
+    tail -20 "$ROOT_DIR/.ufme-lighthouse.log" >&2
+  else
+    reason="lighthouse run failed with no output"
+  fi
   skip "$reason"
 fi
 
