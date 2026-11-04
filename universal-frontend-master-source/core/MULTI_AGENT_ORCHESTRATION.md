@@ -44,7 +44,7 @@ Preserve the existing architecture and update relevant `.ufme/` artifacts.
 
 | Agent | Owns | Delegates from |
 |-------|------|----------------|
-| ufme-orchestrator (primary) | AGENT_STATE.md, TASKS.md, DECISIONS.md, plan | all |
+| ufme-orchestrator (subagent) | AGENT_STATE.md, TASKS.md, DECISIONS.md, plan | all |
 | ufme-backend-analyst | API_MAP.md, BACKEND_CAPABILITIES.md, AUTHENTICATION_MAP.md, ERROR_HANDLING.md | orchestrator |
 | ufme-designer | LIBRARY_REGISTRY.md, PRD.md, SITEMAP.md, USER_FLOWS.md, FEATURES.md, DESIGN_SYSTEM.md, research notes, wireframes, component architecture | orchestrator |
 | ufme-builder | ARCHITECTURE.md, pages, components, navigation, forms, layouts, typed API client, auth flows, validation, error handling | designer/backend-analyst |

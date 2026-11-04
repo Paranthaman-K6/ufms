@@ -1,6 +1,6 @@
 {
   "name": "autonomous",
-  "description": "All 12 agents with exhaustive verification for fully autonomous operation.",
+  "description": "Up to 12 concurrent agent slots with exhaustive verification for fully autonomous operation.",
   "maxAgents": 12,
   "researchDepth": "deep",
   "allowedParallelism": true,

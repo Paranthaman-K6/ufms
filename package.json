@@ -7,10 +7,17 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js",
+    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/install/run.sh",
     "test:validate": "node tests/browser/validate.js",
     "test:security": "node tests/browser/security.js",
     "test:regression": "node tests/regression/run.js",
+    "test:visual": "node tests/visual/run.js",
+    "test:agents": "python3 tests/agents/run.py",
+    "test:quality": "python3 tests/quality/run.py",
+    "test:profiles": "python3 tests/profiles/run.py",
+    "test:context": "python3 tests/context/run.py",
+    "test:auditor": "python3 tests/auditor/run.py",
+    "test:install": "bash tests/install/run.sh",
     "test:browser": "bash universal-frontend-master-source/scripts/browser-test.sh"
   },
   "keywords": [
@@ -30,6 +37,8 @@
   "devDependencies": {
     "selenium-webdriver": "^4.52.0",
     "@axe-core/webdriverjs": "^4.10.1",
-    "lighthouse": "^12.8.1"
+    "lighthouse": "^12.8.1",
+    "pngjs": "^7.0.0",
+    "pixelmatch": "^5.3.0"
   }
 }

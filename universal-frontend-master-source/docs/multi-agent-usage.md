@@ -8,7 +8,8 @@
 
 ## How agents collaborate
 
-1. The primary orchestrator (`ufme-orchestrator`) reads `.ufme/AGENT_STATE.md` and
+1. The primary entry agent (`universal-frontend-master`) delegates to the orchestrator
+   (`ufme-orchestrator`, `mode: subagent`), which reads `.ufme/AGENT_STATE.md` and
    `.ufme/ENVIRONMENT.md`.
 2. It creates/updates `.ufme/TASKS.md` and delegates one coherent task at a time.
 3. Each specialist subagent (`mode: subagent`) returns a structured result: status
@@ -20,7 +21,7 @@
 
 ## Specialist agents
 
-- `ufme-orchestrator` — plans, delegates, acceptance checks, project memory (primary)
+- `ufme-orchestrator` — plans, delegates, acceptance checks, project memory (subagent)
 - `ufme-designer` — research, PRD, sitemap, flows, design system, critique
 - `ufme-backend-analyst` — API/auth/capability/error maps (stdlib contracts; not mandatory when no backend is detected)
 - `ufme-builder` — architecture, pages, components, typed API client, integration

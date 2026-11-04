@@ -27,6 +27,7 @@ Pure python3; read-only outside `.opencode/agents/`; never sudo/pacman/systemctl
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -44,6 +45,16 @@ REQUIRED_FRONTMATTER_KEYS = ["name", "mode", "description"]
 ALLOWED_PERMISSION_KEYS = ["read", "edit", "bash", "task"]
 ALLOWED_PERMISSION_VALUES = ["allow", "deny", "ask"]
 VALID_MODES = {"primary", "subagent"}
+# Exactly one user-facing entry agent; every other agent is a delegated subagent.
+PRIMARY_AGENT = "universal-frontend-master"
+EXPECTED_MODES = {
+    "universal-frontend-master": "primary",
+    "ufme-orchestrator": "subagent",
+    "ufme-designer": "subagent",
+    "ufme-builder": "subagent",
+    "ufme-backend-analyst": "subagent",
+    "ufme-auditor": "subagent",
+}
 
 SOURCE_DIR = Path(__file__).resolve().parents[1] / "agents"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -121,11 +132,45 @@ def validate_agent(path, mapped_name, max_chars):
     return content
 
 
+def load_agents():
+    """Validate every source agent and return mapped_name -> (fields, content)."""
+    agents = {}
+    for source_name, installed_name in AGENT_NAME_MAP.items():
+        path = SOURCE_DIR / f"{source_name}.md"
+        content = validate_agent(path, installed_name, MAX_CHARS)
+        agents[installed_name] = (parse_frontmatter(path)[0], content)
+    return agents
+
+
+def validate_structure(agents):
+    """Enforce the six-agent contract: one primary, orchestrator subagent, refs resolve."""
+    primaries = sorted(n for n, (f, _) in agents.items() if f.get("mode") == "primary")
+    if primaries != [PRIMARY_AGENT]:
+        raise ValueError(
+            f"exactly one primary agent ({PRIMARY_AGENT}) is required; found {primaries}"
+        )
+    for name, expected in EXPECTED_MODES.items():
+        actual = agents.get(name, ({}, ""))[0].get("mode")
+        if actual != expected:
+            raise ValueError(f"{name} mode is '{actual}', expected '{expected}'")
+    ref = re.compile(r"@?(ufme-[a-z][a-z0-9-]*|universal-frontend-master)\b")
+    known = set(agents)
+    for name, (_, content) in agents.items():
+        for target in sorted(set(ref.findall(content))):
+            if target not in known:
+                raise ValueError(
+                    f"{name} references unknown agent '{target}' "
+                    f"(known: {sorted(known)})"
+                )
+
+
 def build():
+    agents = load_agents()
+    validate_structure(agents)
     generated = 0
     for source_name, installed_name in AGENT_NAME_MAP.items():
         source_path = SOURCE_DIR / f"{source_name}.md"
-        content = validate_agent(source_path, installed_name, MAX_CHARS)
+        content = agents[installed_name][1]
         target = INSTALL_DIR / f"{installed_name}.md"
         if target.is_file() and target.read_text(encoding="utf-8") == content:
             print(f"unchanged: {target}")
@@ -151,10 +196,16 @@ def sweep_obsolete():
 
 
 def check():
+    agents = load_agents()
+    try:
+        validate_structure(agents)
+    except ValueError as exc:
+        print(f"STRUCTURE: {exc}")
+        return 1
     drift = []
     for source_name, installed_name in AGENT_NAME_MAP.items():
         source_path = SOURCE_DIR / f"{source_name}.md"
-        content = validate_agent(source_path, installed_name, MAX_CHARS)
+        content = agents[installed_name][1]
         target = INSTALL_DIR / f"{installed_name}.md"
         if not target.is_file():
             drift.append(f"{target} missing")

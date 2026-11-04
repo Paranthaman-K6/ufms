@@ -18,10 +18,17 @@ matching browser drivers.
 1. Clone or copy this repository into your project.
 2. Install project-local dependencies:
    ```
-   npm install -D selenium-webdriver
+   npm install
    ```
+   This installs Selenium, axe-core, Lighthouse, `pngjs` and `pixelmatch` (visual diffs).
 3. The OpenCode skill and agents are installed under `.opencode/skills/universal-frontend-master/`
    and `.opencode/agents/`.
+
+For an offline or CI install from a checkout (no network):
+
+```
+UFME_SOURCE_DIR=/path/to/ufms UFME_SKIP_NPM=1 INSTALL_DIR=/path/to/project bash install.sh
+```
 
 ## Browser setup
 
