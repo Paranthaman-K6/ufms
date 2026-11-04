@@ -90,9 +90,10 @@ defects and extends coverage.
   - **Evidence**: `npm test` rc=0 (visual 10, agents 9, quality 18, profiles 16, context 12, auditor 9, install 34); `build-agents.py --check` "in sync"; `self-improve.py` 262 PASS / 0 FAIL; real Chromium browser run PASS; audit preset PASS (see P1.1).
   - **Progress**: COMPLETE.
 
-- [~] **P2.2 Commit, push, CI green, report** *(Owner: Universal Frontend Master)*
-  - **Acceptance**: commit pushed to `fix/autonomous-p0-p1-repair`; PR #3 updated; CI success; final report distinguishes PASS / FAIL / SKIPPED / BLOCKED.
-  - **Progress**: IN PROGRESS — awaiting CI on the pushed commit.
+- [x] **P2.2 Commit, push, CI green, report** *(Owner: Universal Frontend Master)*
+  - **Acceptance**: commit pushed to `fix/autonomous-p0-p1-repair`; PR updated; CI success; final report distinguishes PASS / FAIL / SKIPPED / BLOCKED.
+  - **Evidence**: commits `4f497827` and `fbbc1579` pushed; PR #4 opened (PR #3 was already merged); CI run `41803694415` green with the audit step reporting **PASS: 4, FAIL: 0, SKIPPED: 0, BLOCKED: 0 — Overall: PASS** (axe 0 violations, Lighthouse 100/100/96, slop 0, visual 0). The first run `41803217583` honestly reported **BLOCKED** on a skipped Lighthouse check; the fix added `UFME_CHROME_FLAGS` for runner Chromium instead of masking the skip.
+  - **Progress**: COMPLETE.
 
 ---
 
