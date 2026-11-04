@@ -13,10 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: npm ci
@@ -24,7 +24,7 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build prototype and run browser tests
+      - name: Browser and end-to-end quality audit
         run: |
           python3 universal-frontend-master-source/scripts/generate-prototype.py
           python3 -m http.server 5173 --directory prototypes &
@@ -35,6 +35,14 @@ jobs:
             sleep 1
           done
           npm run test:browser http://localhost:5173
+          # Seed the baseline from this build; CI compares the same build on the
+          # next run in a project that commits .ufme/evidence/baseline.
+          node universal-frontend-master-source/scripts/visual-diff.js \
+            --baseline .ufme/evidence/baseline \
+            --current .ufme/evidence/screenshots --update-baseline
+          UFME_SLOP_PATH=prototypes python3 universal-frontend-master-source/scripts/quality-check.py \
+            --only audit --require audit --target http://localhost:5173 \
+            --report .ufme/evidence/quality-report.json
 
       - name: Build agents (check)
         run: python3 universal-frontend-master-source/scripts/build-agents.py --check

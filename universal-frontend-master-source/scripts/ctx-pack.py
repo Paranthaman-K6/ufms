@@ -287,6 +287,7 @@ def build_brief(agent, ufme_dir, max_tokens, task=None):
     parts = []
     skipped = []
     truncated = []
+    raw_tokens = sum(estimate_tokens(raw) for _, _, raw in present)
     budget_left = max_tokens - estimate_tokens(header)
     for index, (artifact, path, raw) in enumerate(present):
         if budget_left <= 0:
@@ -315,9 +316,13 @@ def build_brief(agent, ufme_dir, max_tokens, task=None):
             else "_(no .ufme artifacts found for this agent)_\n"
         )
         total = estimate_tokens(header + body)
+        saved = max(0, raw_tokens - total)
+        saved_pct = round(saved * 100 / raw_tokens, 1) if raw_tokens else 0
         footer = (
             "---\n"
             f"- Tokenizer: {TOKENIZER}; estimated total: {total} tok (budget {max_tokens})\n"
+            f"- Raw artifacts: {raw_tokens} tok; packed: {total} tok; "
+            f"saved: {saved} tok ({saved_pct}%)\n"
             f"- Missing artifacts: {', '.join(missing) or 'none'}\n"
             f"- Truncated sections: {', '.join(truncated) or 'none'}\n"
             f"- Skipped for budget: {', '.join(skipped) or 'none'}\n"

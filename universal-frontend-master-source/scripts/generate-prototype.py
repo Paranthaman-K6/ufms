@@ -133,6 +133,10 @@ button, .btn {{
 .state-loading {{ padding: var(--spacing-lg); text-align: center; border-radius: var(--radius); margin: var(--spacing-md) 0; background: #e5edff; color: #1e3a8a; }}
 .state-empty {{ padding: var(--spacing-lg); text-align: center; border-radius: var(--radius); margin: var(--spacing-md) 0; background: #f3f4f6; color: #4b5563; }}
 .state-error {{ padding: var(--spacing-lg); text-align: center; border-radius: var(--radius); margin: var(--spacing-md) 0; background: #fee2e2; color: #991b1b; }}
+a:focus-visible, button:focus-visible, .btn:focus-visible {{ outline: 2px solid var(--color-primary); outline-offset: 2px; }}
+@media (prefers-reduced-motion: reduce) {{
+  * {{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }}
+}}
 @media (max-width: 640px) {{ body {{ padding: 0.5rem; }} .grid {{ grid-template-columns: 1fr; }} }}
 @media (prefers-color-scheme: dark) {{
   body {{ --color-bg: #111827; --color-text: #f3f4f6; }}
@@ -156,11 +160,11 @@ def write_page(name: str, title: str, body: str, nav: str, run_id: int) -> None:
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav class="nav">{nav}</nav>
-<div class="container">
+<nav class="nav" aria-label="Main">{nav}</nav>
+<main class="container">
 <h1>{safe_title}</h1>
 {body}
-</div>
+</main>
 </body>
 </html>"""
     with open(os.path.join(OUT_DIR, filename), "w", encoding="utf-8") as f:

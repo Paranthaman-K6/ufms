@@ -108,7 +108,7 @@ Slash commands to nudge an active session at a specific pass:
 ### Requirements
 
 - [OpenCode](https://opencode.ai)
-- Node.js 18+ and npm
+- Node.js `^22.23.4`, `^24.22.1`, or `>=26.12.1` (`.nvmrc` pins 24) and npm
 - Python 3.9+
 - Chromium and/or Firefox (Selenium Manager fetches matching drivers)
 
@@ -142,6 +142,7 @@ The installer:
 2. Stores cross-project shared data in `~/.config/ufme/` (library registry, evidence).
 3. Seeds project-local `.ufme/` memory templates into the target project (never overwrites existing).
 4. Copies `universal-frontend-master-source/` into the target project.
+5. Installs the project-local audit dependency set (`selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`, `pngjs`, `pixelmatch`) when the target has a `package.json`.
 
 ### Run the skill in any project
 
@@ -234,7 +235,7 @@ npm test
 | `seed-project-memory.py` | Python | Seed missing `.ufme/` project files from templates without overwriting existing data |
 | `install.sh` | Bash | User-scope install (all projects), cross-project data in `~/.config/ufme/` |
 
-Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Selenium is the only runtime dependency.
+Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Runtime dependencies are `selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`, `pngjs` and `pixelmatch` (project-local, installed by `install.sh`).
 
 ## Testing and evidence
 
@@ -250,8 +251,9 @@ python3 universal-frontend-master-source/scripts/quality-check.py --target http:
 - `test:*` — run one suite: `test:visual`, `test:agents`, `test:quality`, `test:profiles`, `test:context`, `test:auditor`, `test:install`.
 - `test:browser` — real browser launch, navigation, console/network capture, screenshots; BLOCKED (not silently skipped) when no browser is installed.
 - `self-improve.py` — checks every core doc, agent frontmatter, profile, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
-- `quality-check.py` — runs type/lint/test/build/browser/axe/Lighthouse/slop/visual/dependency checks and writes `.ufme/evidence/quality-report.json`; thresholds are flags or `UFME_*` env vars; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons.
-- `execution-profiles.sh --enforce` — validates the active agent set against a profile ceiling and records `.ufme/evidence/profile-enforcement.json`.
+- `quality-check.py` — runs type/lint/test/build/browser/axe/Lighthouse/slop/visual/dependency checks and writes `.ufme/evidence/quality-report.json`; thresholds are flags or `UFME_*` env vars; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons. `--only audit` treats a11y, perf, slop and visual as **required**: a skipped required check makes the gate BLOCKED, and a check that exits 0 without fresh, valid evidence is FAIL (never PASS). Use `--require <ids|preset>` to apply the same rule to other checks.
+- Visual regression: `visual-diff.js` detects changed, missing-baseline, missing-current and size-mismatched screenshots. The first run only creates a baseline and the quality gate reports BLOCKED; commit or inspect the baseline and rerun to get PASS.
+- `execution-profiles.sh --enforce` — validates the active agent set against `allowedAgents`/`maxAgents` in the profile JSON and records `.ufme/evidence/profile-enforcement.json`.
 - `ctx-pack.py --agent <role> --task "..."` — writes a task-aware, token-budgeted brief to `.ufme/evidence/ctx-<role>.md`.
 
 Evidence is written to `.ufme/evidence/` so a reviewer can inspect what actually ran.

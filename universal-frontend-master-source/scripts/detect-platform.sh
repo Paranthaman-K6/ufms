@@ -46,7 +46,7 @@ detect_selenium() {
 
 main() {
   echo "# UFME Platform Report"
-  echo "Generated: $(date -Iseconds)"
+  echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo ""
   echo "| Field | Value |"
   echo "|-------|-------|"

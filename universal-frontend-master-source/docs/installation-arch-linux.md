@@ -9,7 +9,7 @@ matching browser drivers.
 
 ## Prerequisites (Arch Linux)
 
-- Node.js and npm (system or nvm)
+- Node.js `^22.23.4`, `^24.22.1`, or `>=26.12.1` and npm (system or nvm; `.nvmrc` pins 24)
 - System Chromium: `sudo pacman -S chromium`
 - System Firefox: `sudo pacman -S firefox`
 

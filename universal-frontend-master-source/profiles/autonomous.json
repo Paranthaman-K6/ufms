@@ -2,6 +2,14 @@
   "name": "autonomous",
   "description": "Up to 12 concurrent agent slots with exhaustive verification for fully autonomous operation.",
   "maxAgents": 12,
+  "allowedAgents": [
+    "universal-frontend-master",
+    "ufme-orchestrator",
+    "ufme-designer",
+    "ufme-builder",
+    "ufme-backend-analyst",
+    "ufme-auditor"
+  ],
   "researchDepth": "deep",
   "allowedParallelism": true,
   "verificationDepth": "exhaustive",

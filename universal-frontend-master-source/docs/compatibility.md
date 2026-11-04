@@ -1,8 +1,28 @@
 # Compatibility
 
+## Runtime
+- Node.js `^22.23.4`, `^24.22.1`, or `>=26.12.1` (declared in `package.json` `engines`,
+  pinned by `.nvmrc` to 24). The range is the intersection required by
+  `selenium-webdriver@4.52`.
+- `.npmrc` enables `engine-strict`, so installs fail fast on an unsupported Node.
+- Direct dependencies: `selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`
+  (pinned `13.5.0`; `13.6.0` pulls a vulnerable `@sentry/node`/`glob` chain),
+  `pngjs`, `pixelmatch`.
+- Python 3.9+ for scripts; no third-party Python packages required.
+
 ## Platform
 - Arch Linux-first (native Chromium + Firefox, Wayland/X11/headless).
-- Portable to any Linux with Node.js, npm, a system browser, and `selenium-webdriver`.
+- Portable to any Linux or macOS with Node.js, npm, a system browser, and the
+  dependencies above. Shell helpers fall back between `sha256sum`, `shasum` and
+  `openssl`, and timestamps use POSIX `date -u`.
+
+## Quality gate semantics
+- Required checks (`--require`, or the `audit` preset) cannot PASS when SKIPPED.
+  A skipped required check makes the overall status BLOCKED.
+- A check that exits 0 without fresh, structurally valid evidence is FAIL.
+- Overall precedence: FAIL > BLOCKED > PASS.
+- Visual regression treats a missing current screenshot as a failure and reports
+  first-run baseline creation as BLOCKED, not PASS.
 
 ## Browser engine
 - Selenium WebDriver only (Chromium + Firefox).

@@ -23,11 +23,11 @@ log() { echo "[audit-perf] $*"; }
 err() { echo "[audit-perf] $*" >&2; }
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-EVIDENCE_DIR="$ROOT_DIR/.ufme/evidence"
+EVIDENCE_DIR="${UFME_EVIDENCE_DIR:-$ROOT_DIR/.ufme/evidence}"
 RESULTS_FILE="$EVIDENCE_DIR/perf-results.json"
 mkdir -p "$EVIDENCE_DIR"
 
-TIMESTAMP="$(date -Iseconds)"
+TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 if [ $# -lt 1 ] || [ -z "${1:-}" ]; then
   err "Usage: bash audit-perf.sh <url>"

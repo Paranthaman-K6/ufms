@@ -163,6 +163,24 @@ def _():
         assert truncated != "none" or skipped != "none", brief
 
 
+@test("packed size is measured against raw artifact tokens")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        ufme = make_ufme(Path(raw))
+        (ufme / "TASKS.md").write_text(
+            "# Tasks\n" + "\n".join(f"- [ ] task {i} " + "x" * 80 for i in range(200)),
+            encoding="utf-8",
+        )
+        p = pack(ufme, "builder", "--max-tokens", "400")
+        assert p.returncode == 0, p.stderr
+        brief = (ufme / "evidence" / "ctx-builder.md").read_text(encoding="utf-8")
+        line = next(l for l in brief.splitlines() if l.startswith("- Raw artifacts:"))
+        assert "saved:" in line and ")" in line, line
+        saved = int(line.split("saved: ", 1)[1].split(" tok", 1)[0])
+        assert saved > 0, line
+        assert ctx_pack.estimate_tokens(brief) <= 400
+
+
 @test("--archive rotates old DECISIONS entries")
 def _():
     with tempfile.TemporaryDirectory() as raw:

@@ -25,7 +25,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..', '..');
-const EVIDENCE_DIR = path.join(ROOT_DIR, '.ufme', 'evidence');
+const EVIDENCE_DIR = process.env.UFME_EVIDENCE_DIR
+  ? path.resolve(process.env.UFME_EVIDENCE_DIR)
+  : path.join(ROOT_DIR, '.ufme', 'evidence');
 const RESULTS_FILE = path.join(EVIDENCE_DIR, 'a11y-results.json');
 
 const EXIT_OK = 0;
