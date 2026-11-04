@@ -31,7 +31,7 @@ It never invents endpoints, never forces a framework change without justificatio
 
 ## What you get
 
-- **6 agents** — `universal-frontend-master` (primary entry point), `ufme-orchestrator` (primary orchestrator), and 4 specialist subagents, invokable with `@agent-name`.
+- **6 agents** — `universal-frontend-master` (the only primary entry point), `ufme-orchestrator` (delegated orchestration subagent), and 4 specialist subagents, invokable with `@agent-name`.
 - **4 execution profiles as sub-commands** — `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous`, with a conditional agent chain (skip backend when no backend exists, skip designer for single-page edits).
 - **Persistent memory** — `.ufme/` artifacts per project; shared cross-project data in `~/.config/ufme/`.
 - **Native browser testing** — Selenium WebDriver for Chromium and Firefox, headless by default, screenshots at mobile/tablet/laptop/desktop.
@@ -75,7 +75,7 @@ flowchart LR
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Entry point; delegates to orchestrator | `@universal-frontend-master` |
-| `ufme-orchestrator` | primary | Plan, delegation, task state, acceptance, conflict resolution | N/A (internal) |
+| `ufme-orchestrator` | subagent | Plan, profile enforcement, context packing, delegation, acceptance | N/A (internal) |
 | `ufme-designer` | subagent | Research, PRD, sitemap, design system, critique | `@ufme-designer` |
 | `ufme-backend-analyst` | subagent | API map, auth map, capabilities, error handling | `@ufme-backend-analyst` |
 | `ufme-builder` | subagent | Architecture, pages, components, API client, integration | `@ufme-builder` |
@@ -85,7 +85,7 @@ flowchart LR
 
 Run any time in any project:
 
-- `/profile/lite` — orchestrator + builder + script audits only (small edits, quick prototypes)
+- `/profile/lite` — entry + orchestrator only (≤2 active agents; small edits, quick prototypes)
 - `/profile/standard` — balanced for typical frontend projects (default)
 - `/profile/advanced` — full agent set for complex projects with full audits
 - `/profile/autonomous` — unattended runs with exhaustive verification
@@ -128,6 +128,14 @@ INSTALL_DIR=/path/to/project \
 ```
 
 Reproducible installs are supported: pin a tag with `UFME_TAG` and verify the downloaded tarball with `UFME_TARBALL_SHA256`.
+
+For offline, CI, or local testing, install from a checkout without network access:
+
+```bash
+UFME_SOURCE_DIR="$PWD" UFME_SKIP_NPM=1 bash install.sh
+```
+
+`UFME_SKIP_NPM=1` leaves the target `package.json` untouched (the tests use it). Repeat installs merge into existing directories instead of nesting them and never overwrite project memory.
 
 The installer:
 1. Installs agents, skill, commands, and `opencode.json` **globally** under `~/.config/opencode/` (user scope — available to every project).
@@ -231,16 +239,20 @@ Python handles parsing and JSON work without `jq` or extra packages; Bash stays 
 ## Testing and evidence
 
 ```bash
-npm test                    # browser validation + security + regression
-npm run test:browser        # real Selenium run (Chromium/Firefox)
+npm ci                      # pngjs + pixelmatch power visual diffs
+npm test                    # every unit/integration suite below
+npm run test:browser -- http://localhost:5173   # real Selenium run
 python3 universal-frontend-master-source/scripts/self-improve.py
-python3 universal-frontend-master-source/scripts/quality-check.py
+python3 universal-frontend-master-source/scripts/quality-check.py --target http://localhost:5173
 ```
 
-- `npm test` — browser abstraction validation, security flags, regression suite.
-- `test:browser` — real browser launch, navigation, console/network capture, screenshots; skipped cleanly when no browser is installed.
-- `self-improve.py` — checks every core doc, agent frontmatter, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
-- `quality-check.py` — runs real checks and writes `.ufme/evidence/quality-report.json`; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons.
+- `npm test` — browser abstraction, security flags, regression, visual diff, agent structure, quality gate, profiles, context packs, auditor contract, and clean install.
+- `test:*` — run one suite: `test:visual`, `test:agents`, `test:quality`, `test:profiles`, `test:context`, `test:auditor`, `test:install`.
+- `test:browser` — real browser launch, navigation, console/network capture, screenshots; BLOCKED (not silently skipped) when no browser is installed.
+- `self-improve.py` — checks every core doc, agent frontmatter, profile, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
+- `quality-check.py` — runs type/lint/test/build/browser/axe/Lighthouse/slop/visual/dependency checks and writes `.ufme/evidence/quality-report.json`; thresholds are flags or `UFME_*` env vars; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons.
+- `execution-profiles.sh --enforce` — validates the active agent set against a profile ceiling and records `.ufme/evidence/profile-enforcement.json`.
+- `ctx-pack.py --agent <role> --task "..."` — writes a task-aware, token-budgeted brief to `.ufme/evidence/ctx-<role>.md`.
 
 Evidence is written to `.ufme/evidence/` so a reviewer can inspect what actually ran.
 

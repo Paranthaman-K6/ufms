@@ -128,7 +128,7 @@ Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advan
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Primary entry point; delegates to orchestrator | `@universal-frontend-master` |
-| `ufme-orchestrator` | primary | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
+| `ufme-orchestrator` | subagent | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
 | `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities | `@ufme-backend-analyst` |
 | `ufme-designer` | subagent | Research, licenses, PRD/flows, design system | `@ufme-designer` |
 | `ufme-builder` | subagent | Architecture, pages, API client, integration | `@ufme-builder` |
@@ -152,7 +152,7 @@ Shared across every project on the machine (never overwritten by install):
 - `~/.config/opencode/agents/*.md` — agent definitions (global)
 - `~/.config/opencode/skills/universal-frontend-master/SKILL.md` — skill definition (global)
 - `~/.config/opencode/commands/` — slash commands (global)
-- `~/.config/opencode/opencode.json` — agent registry + default agent
+- `~/.config/opencode/opencode.json` — default agent + permission policy
 
 ## Project-local artifacts
 

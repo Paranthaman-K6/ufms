@@ -7,14 +7,18 @@ for one of the five merged agents, so agents read one brief instead of
 
 Usage:
   python3 ctx-pack.py --agent <orchestrator|designer|builder|backend-analyst|auditor> \
-      [--ufme-dir .ufme] [--max-tokens 1500] [--archive] [--out PATH]
+      [--ufme-dir .ufme] [--max-tokens 1500] [--task "text"] \
+      [--archive] [--out PATH]
 
 Output: .ufme/evidence/ctx-<agent>.md unless --out is given.
 With --archive: when DECISIONS.md exceeds its budget, the oldest entries not
 needed by the pack are rotated into .ufme/DECISIONS.archive.md (created if
 absent) before packing.
 
-Pure python3, no dependencies. Missing files are skipped gracefully.
+The brief always states its tokenizer, missing artifacts, truncated sections and
+final estimated size; the final size never exceeds --max-tokens.
+
+Pure python3; uses tiktoken cl100k_base when installed, chars/4 otherwise.
 """
 
 import argparse
@@ -23,6 +27,15 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:  # Optional: exact OpenAI-compatible token counts when installed.
+    import tiktoken
+
+    _ENCODER = tiktoken.get_encoding("cl100k_base")
+    TOKENIZER = "cl100k_base"
+except Exception:  # Deterministic fallback, reported in every brief.
+    _ENCODER = None
+    TOKENIZER = "chars/4"
 
 AGENT_LABELS = {
     "orchestrator": "ufme-orchestrator",
@@ -37,7 +50,8 @@ SORTED_AGENT_ALLOWED_SETS = {
     "designer": ["AGENT_STATE", "PROJECT_SPEC", "PRD", "DECISIONS"],
     "builder": ["AGENT_STATE", "TASKS", "ARCHITECTURE", "DESIGN_SYSTEM", "API_MAP"],
     "backend-analyst": ["BACKEND_CAPABILITIES", "API_MAP", "AUTHENTICATION_MAP", "ERROR_HANDLING"],
-    "auditor": ["AUDIT_REPORT", "VISUAL_AUDIT", "EVIDENCE_QUALITY_REPORT"],
+    "auditor": ["AUDIT_REPORT", "QUALITY_REPORT", "A11Y_RESULTS", "PERF_RESULTS",
+                "BROWSER_RESULTS", "VISUAL_DIFF", "SLOP_RESULTS"],
 }
 
 # Logical artifact -> candidate files (first existing wins, in order).
@@ -56,7 +70,13 @@ ARTIFACT_FILES = {
     "ERROR_HANDLING": ["ERROR_HANDLING.md"],
     "AUDIT_REPORT": ["AUDIT_REPORT.md"],
     "VISUAL_AUDIT": ["VISUAL_AUDIT.md"],
+    "QUALITY_REPORT": ["evidence/quality-report.json"],
     "EVIDENCE_QUALITY_REPORT": ["evidence/quality-report.json"],
+    "A11Y_RESULTS": ["evidence/a11y-results.json"],
+    "PERF_RESULTS": ["evidence/perf-results.json"],
+    "BROWSER_RESULTS": ["evidence/browser-results.json"],
+    "VISUAL_DIFF": ["evidence/visual-diff.json"],
+    "SLOP_RESULTS": ["evidence/slop-results.json"],
 }
 
 # Substrings identifying the design subset of DECISIONS.md (used for designer).
@@ -69,9 +89,11 @@ HEADER_SLUG = re.compile(r"^#\s+")
 
 
 def estimate_tokens(text):
-    """Token estimate = chars/4 (documented heuristic)."""
+    """Token count via cl100k_base when available, else the documented chars/4 fallback."""
     if not text:
         return 0
+    if _ENCODER is not None:
+        return len(_ENCODER.encode(text))
     return max(1, len(text) // 4)
 
 
@@ -83,43 +105,60 @@ def resolve_artifact(ufme_dir, name):
     return None
 
 
-def summarize_quality_report(data):
-    """Keep JSON summaries as counts, not full text."""
+def summarize_json(data):
+    """Reduce evidence JSON to compact, decision-relevant fields."""
+    if not isinstance(data, dict):
+        size = len(data) if isinstance(data, list) else 1
+        return f"top-level values: {size}"
     parts = []
-    if isinstance(data, dict):
-        counts = data.get("counts")
-        if isinstance(counts, dict):
-            c = ", ".join(f"{k}={v}" for k, v in sorted(counts.items()))
-            parts.append(f"counts: {c}")
-        else:
-            parts.append(f"top-level keys: {len(data)}")
-        overall = data.get("overall")
-        if overall:
-            parts.append(f"overall: {overall}")
-        checks = data.get("checks")
-        if isinstance(checks, list):
-            parts.append(f"checks recorded: {len(checks)}")
-        project = data.get("project")
-        if isinstance(project, dict):
-            parts.append(f"project: {project.get('name', '?')} ({project.get('root', '?')})")
-    else:
-        parts.append(f"top-level values: {len(data) if isinstance(data, list) else 1}")
+    if "status" in data:
+        parts.append(f"status={data['status']}")
+    if "overall" in data:
+        parts.append(f"overall={data['overall']}")
+    counts = data.get("counts")
+    if isinstance(counts, dict):
+        parts.append("counts: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+    checks = data.get("checks")
+    if isinstance(checks, list):
+        parts.append(f"checks={len(checks)}")
+    project = data.get("project")
+    if isinstance(project, dict):
+        parts.append(f"project={project.get('name', '?')}")
+    if "totalViolations" in data:
+        parts.append(f"axeViolations={data['totalViolations']}")
+        rules = data.get("violationsByRule")
+        if isinstance(rules, list):
+            ids = ",".join(str(r.get("id")) for r in rules[:8])
+            parts.append(f"rules={ids or 'none'}")
+    scores = data.get("scores")
+    if isinstance(scores, dict):
+        parts.append("scores: " + ", ".join(f"{k}={v}" for k, v in sorted(scores.items())))
+    if "maxDiffRatio" in data:
+        parts.append(
+            f"maxDiffRatio={data['maxDiffRatio']} threshold={data.get('threshold')}"
+        )
+    if "count" in data and "findings" in data:
+        parts.append(f"slopFindings={data['count']}")
+    if "errors" in data and isinstance(data["errors"], list):
+        parts.append(f"browserErrors={len(data['errors'])}")
+    if not parts:
+        parts.append(f"keys: {', '.join(sorted(data.keys())[:10])}")
     return "; ".join(parts)
 
 
 def render_section(name, path, raw):
-    """Markdown for one artifact. JSON sources are reduced to counts."""
-    if path.suffix == ".json" or name == "EVIDENCE_QUALITY_REPORT":
+    """Markdown for one artifact. JSON sources are reduced to task-relevant fields."""
+    if path.suffix == ".json":
         try:
             data = json.loads(raw)
         except (ValueError, TypeError):
             data = None
         if isinstance(data, (dict, list)):
-            body = summarize_quality_report(data)
-            label = "JSON summary (counts only)"
+            body = summarize_json(data)
+            label = "JSON summary"
         else:
             body = "[unreadable JSON]"
-            label = "JSON summary (counts only)"
+            label = "JSON summary"
         return f"## {name} ({label}, {estimate_tokens(body)} tok)\n{body}\n"
     body = raw
     title = "## " + name
@@ -134,11 +173,22 @@ def id_to_title(name):
 
 
 def truncate_to_budget(text, budget_tokens):
-    """Trim content so estimate_tokens(body) <= budget; prefer line boundaries."""
-    max_chars = budget_tokens * 4
-    if len(text) <= max_chars:
+    """Trim content so estimate_tokens(text) <= budget; prefer line boundaries."""
+    if budget_tokens <= 0:
+        return ""
+    if estimate_tokens(text) <= budget_tokens:
         return text
     marker = "\n…[truncated]"
+    if _ENCODER is not None:
+        lo, hi = 0, len(text)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if estimate_tokens(text[:mid] + marker) <= budget_tokens:
+                lo = mid
+            else:
+                hi = mid - 1
+        return text[:lo] + marker
+    max_chars = budget_tokens * 4
     cut = max(0, max_chars - len(marker))
     clamp = min(cut, len(text))
     # Prefer a clean line break near the budget edge (never before 80%).
@@ -211,45 +261,83 @@ def rotate_decisions(ufme_dir, budget_tokens):
     return (archive_path, len(archived))
 
 
-def build_brief(agent, ufme_dir, max_tokens):
-    """Assemble rendered sections in priority order until budget is used."""
-    header = (
-        f"# Ctx pack: {AGENT_LABELS[agent]}\n"
-        f"- Generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}\n"
-        f"- Source: {ufme_dir}\n"
-        f"- Budget: {max_tokens} tok (est. chars/4)\n"
-    )
-    budget_left = max_tokens - estimate_tokens(header)
-    parts = []
+def build_brief(agent, ufme_dir, max_tokens, task=None):
+    """Assemble sections in priority order within a hard token budget."""
+    header_lines = [
+        f"# Ctx pack: {AGENT_LABELS[agent]}",
+        f"- Generated: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
+        f"- Source: {ufme_dir}",
+        f"- Tokenizer: {TOKENIZER}",
+        f"- Budget: {max_tokens} tok",
+    ]
+    if task:
+        header_lines.append(f"- Task: {task.strip()}")
+    header = "\n".join(header_lines) + "\n"
+
+    present = []
+    missing = []
     for artifact in SORTED_AGENT_ALLOWED_SETS[agent]:
         path = resolve_artifact(ufme_dir, artifact)
-        if path is None:
-            continue
-        raw = path.read_text(encoding="utf-8", errors="replace").strip()
-        if not raw:
-            continue
+        raw = path.read_text(encoding="utf-8", errors="replace").strip() if path else ""
+        if raw:
+            present.append((artifact, path, raw))
+        else:
+            missing.append(artifact)
+
+    parts = []
+    skipped = []
+    truncated = []
+    budget_left = max_tokens - estimate_tokens(header)
+    for index, (artifact, path, raw) in enumerate(present):
+        if budget_left <= 0:
+            skipped.extend(name for name, _, _ in present[index:])
+            break
         if artifact == "DECISIONS" and agent == "designer":
             section_text = design_subset(raw)
         else:
             section_text = render_section(artifact, path, raw)
-        if estimate_tokens(section_text) > budget_left and parts:
-            parts.append(f"_(skipped {artifact}: budget exhausted)_")
-            break
-        if budget_left <= 0:
-            parts.append(f"_(skipped {artifact}: budget exhausted)_")
-            break
-        section_text = truncate_to_budget(section_text, budget_left)
-        section_text += "\n"
-        budget_left -= estimate_tokens(section_text)
-        parts.append(section_text)
-    if not parts:
-        parts.append("_(no .ufme artifacts found for this agent)_")
-    footer = (
-        f"---\n"
-        f"Estimated total: {max_tokens - budget_left} tok "
-        f"(budget {max_tokens}); missing files skipped silently.\n"
-    )
-    return header + "\n" + "\n".join(parts) + footer
+        # Fair share of the remaining budget across the remaining artifacts.
+        share = max(1, budget_left // (len(present) - index))
+        clipped = truncate_to_budget(section_text, share)
+        if clipped != section_text:
+            truncated.append(artifact)
+        cost = estimate_tokens(clipped) + 1
+        if cost > budget_left:
+            skipped.append(artifact)
+            continue
+        parts.append((artifact, clipped + "\n"))
+        budget_left -= cost
+
+    def render(sections):
+        body = (
+            "\n".join(text for _, text in sections)
+            if sections
+            else "_(no .ufme artifacts found for this agent)_\n"
+        )
+        total = estimate_tokens(header + body)
+        footer = (
+            "---\n"
+            f"- Tokenizer: {TOKENIZER}; estimated total: {total} tok (budget {max_tokens})\n"
+            f"- Missing artifacts: {', '.join(missing) or 'none'}\n"
+            f"- Truncated sections: {', '.join(truncated) or 'none'}\n"
+            f"- Skipped for budget: {', '.join(skipped) or 'none'}\n"
+        )
+        return header + "\n" + body + footer
+
+    brief = render(parts)
+    while parts and estimate_tokens(brief) > max_tokens:
+        dropped, _ = parts.pop()
+        if dropped not in skipped:
+            skipped.append(dropped)
+        brief = render(parts)
+    if estimate_tokens(brief) > max_tokens:
+        brief = truncate_to_budget(brief, max_tokens)
+    if estimate_tokens(brief) > max_tokens:
+        limit = len(brief)
+        while limit > 0 and estimate_tokens(brief[:limit]) > max_tokens:
+            limit -= 1
+        brief = brief[:limit]
+    return brief
 
 
 def parse_args():
@@ -259,6 +347,8 @@ def parse_args():
                    choices=sorted(AGENT_LABELS.keys()))
     p.add_argument("--ufme-dir", default=".ufme")
     p.add_argument("--max-tokens", type=int, default=1500)
+    p.add_argument("--task", default="",
+                   help="Task and acceptance criteria to record in the brief")
     p.add_argument("--archive", action="store_true")
     p.add_argument("--out", default=None, help="Write to this path instead of default")
     return p.parse_args()
@@ -279,7 +369,7 @@ def main():
             archive_path, count = result
             sys.stderr.write(
                 f"[ctx-pack] Archived {count} old DECISIONS entries to {archive_path}\n")
-    brief = build_brief(args.agent, ufme_dir, args.max_tokens)
+    brief = build_brief(args.agent, ufme_dir, args.max_tokens, args.task)
     est = estimate_tokens(brief)
     out_path = Path(args.out) if args.out else ufme_dir / "evidence" / f"ctx-{args.agent}.md"
     out_path.parent.mkdir(parents=True, exist_ok=True)

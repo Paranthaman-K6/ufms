@@ -8,14 +8,17 @@ delegation protocol. The system is Arch Linux-first but portable.
 
 ## Layers
 
-1. Orchestration layer — `ufme-orchestrator` (primary, mode: primary). Coordinates all work,
-   owns `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md`, resolves conflicts, enforces acceptance
-   criteria.
-2. Specialist layer — 11 subagents (mode: subagent). Each owns a domain and returns a
-   structured result (status, files, decisions, open questions, blocking deps, next agent).
-3. Execution layer — shell scripts in `universal-frontend-master-source/scripts/` and the
+1. Entry layer — `universal-frontend-master` (the only `mode: primary`). Classifies the
+   project, applies the execution profile, and delegates to the orchestrator.
+2. Orchestration layer — `ufme-orchestrator` (mode: subagent). Packs task context, enforces
+   profile limits, owns `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md`, resolves conflicts, and
+   enforces acceptance criteria.
+3. Specialist layer — `ufme-designer`, `ufme-builder`, `ufme-backend-analyst`, and
+   `ufme-auditor` (mode: subagent). Each owns a domain and returns a structured result
+   (status, files, decisions, open questions, blocking deps, next agent).
+4. Execution layer — shell scripts in `universal-frontend-master-source/scripts/` and the
    Selenium browser abstraction in `tests/browser/`.
-4. Memory layer — `.ufme/` templates and evidence. Every agent reads and updates the artifacts
+5. Memory layer — `.ufme/` templates and evidence. Every agent reads and updates the artifacts
    it owns.
 
 ## Data flow
