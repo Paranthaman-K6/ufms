@@ -7,7 +7,8 @@ accessibility, performance, design-slop and visual-diff checks, then a
 dependency audit. Records every check as PASS/FAIL/SKIPPED/BLOCKED with
 start time and duration, and writes .ufme/evidence/quality-report.json.
 
-Exits non-zero when any mandatory check FAILs or is BLOCKED.
+Exits non-zero when any mandatory check FAILs or is BLOCKED. Required checks
+(--require, or the audit preset) never PASS on SKIPPED or invalid evidence.
 
 Usage:
   python3 quality-check.py [--only browser,a11y] [--target URL] [--report PATH]
@@ -44,13 +45,13 @@ BROWSER_RESULTS = EVIDENCE / "browser-results.json"
 
 SCRIPTS_DIR = ROOT / "universal-frontend-master-source" / "scripts"
 A11Y_SCRIPT = Path(os.environ.get("UFME_A11Y_SCRIPT") or (SCRIPTS_DIR / "audit-a11y.js"))
-A11Y_RESULTS = EVIDENCE / "a11y-results.json"
+A11Y_RESULTS = Path(os.environ.get("UFME_A11Y_RESULTS") or (EVIDENCE / "a11y-results.json"))
 PERF_SCRIPT = Path(os.environ.get("UFME_PERF_SCRIPT") or (SCRIPTS_DIR / "audit-perf.sh"))
-PERF_RESULTS = EVIDENCE / "perf-results.json"
+PERF_RESULTS = Path(os.environ.get("UFME_PERF_RESULTS") or (EVIDENCE / "perf-results.json"))
 SLOP_SCRIPT = Path(os.environ.get("UFME_SLOP_SCRIPT") or (SCRIPTS_DIR / "detect-slop.py"))
-SLOP_RESULTS = EVIDENCE / "slop-results.json"
+SLOP_RESULTS = Path(os.environ.get("UFME_SLOP_RESULTS") or (EVIDENCE / "slop-results.json"))
 VISUAL_SCRIPT = Path(os.environ.get("UFME_VISUAL_SCRIPT") or (SCRIPTS_DIR / "visual-diff.js"))
-VISUAL_RESULTS = EVIDENCE / "visual-diff.json"
+VISUAL_RESULTS = Path(os.environ.get("UFME_VISUAL_RESULTS") or (EVIDENCE / "visual-diff.json"))
 BROWSER_CHECK_SCRIPT = Path(
     os.environ.get("UFME_BROWSER_CHECK_SCRIPT")
     or (SCRIPTS_DIR / "check-native-browser.sh")
@@ -64,6 +65,7 @@ TARGET_URL = os.environ.get("UFME_AUDIT_URL") or "http://localhost:5173"
 
 CHECKS = []
 COUNTS = {"PASS": 0, "FAIL": 0, "SKIPPED": 0, "BLOCKED": 0}
+REQUIRED = set()
 
 OPTIONS = {
     "target": TARGET_URL,
@@ -205,6 +207,7 @@ def run_browser_tests():
     if probe.returncode != 0:
         record("BLOCKED", label, 1, "Selenium WebDriver not available")
         return
+    started = time.time()
     try:
         p = subprocess.run(
             ["bash", str(BROWSER_TEST_SCRIPT)],
@@ -216,10 +219,14 @@ def run_browser_tests():
     except subprocess.TimeoutExpired:
         record("FAIL", label, 124, "browser tests timed out")
         return
+    data, problem = read_evidence(BROWSER_RESULTS, started)
     if p.returncode == 0:
+        if problem or data.get("status") != "PASS":
+            record("FAIL", label, 0, problem or f"exit 0 without PASS evidence (status={data.get('status')})")
+            return
         record("PASS", label, 0)
         return
-    blocked = json_field(BROWSER_RESULTS, "status") == "BLOCKED"
+    blocked = (data or {}).get("status") == "BLOCKED"
     record(
         "BLOCKED" if blocked else "FAIL",
         label,
@@ -264,6 +271,25 @@ def json_field(path, field):
         return None
 
 
+def read_evidence(path, started=None):
+    """Return (data, problem). Evidence must exist, parse, and be written by this run."""
+    if not path.exists():
+        return None, f"evidence missing: {path}"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None, f"evidence is not valid JSON: {path}"
+    if not isinstance(data, dict):
+        return None, f"evidence is not a JSON object: {path}"
+    if started is not None and path.stat().st_mtime < started - 2:
+        return data, f"evidence is stale (not written by this run): {path}"
+    return data, None
+
+
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def run_a11y_gate():
     label = "Accessibility (axe-core)"
     if not A11Y_SCRIPT.exists() or not (
@@ -290,6 +316,7 @@ def run_a11y_gate():
         )
         return
     log(f"Running axe-core audit against {OPTIONS['target']}")
+    started = time.time()
     try:
         p = subprocess.run(
             ["node", str(A11Y_SCRIPT), OPTIONS["target"], "--timeout", "180000"],
@@ -305,17 +332,25 @@ def run_a11y_gate():
         record("FAIL", label, 1, str(e))
         return
     rc = p.returncode
-    if rc == 0:
-        record("PASS", label, 0, "no axe-core violations")
-    elif rc == 1:
-        total = json_field(A11Y_RESULTS, "totalViolations") or 0
-        limit = OPTIONS["maxA11yViolations"]
-        status = "PASS" if total <= limit else "FAIL"
-        record(
-            status, label, rc,
-            f"{total} axe violations (allowed {limit})"
-            " — results: .ufme/evidence/a11y-results.json",
-        )
+    if rc in (0, 1):
+        data, problem = read_evidence(A11Y_RESULTS, started)
+        total = (data or {}).get("totalViolations")
+        if problem:
+            record("FAIL", label, rc, problem)
+        elif (data.get("status") != "RAN"
+              or not isinstance(total, int) or isinstance(total, bool)
+              or not isinstance(data.get("violationsByRule"), list)):
+            record("FAIL", label, rc, "invalid axe evidence: expected status=RAN, "
+                                      "integer totalViolations and violationsByRule[]")
+        elif rc == 0 and total != 0:
+            record("FAIL", label, rc, f"exit 0 but evidence reports {total} violations")
+        elif rc == 1 and total == 0:
+            record("FAIL", label, rc, "exit 1 but evidence reports 0 violations")
+        else:
+            limit = OPTIONS["maxA11yViolations"]
+            status = "PASS" if total <= limit else "FAIL"
+            record(status, label, rc,
+                   f"{total} axe violations (allowed {limit}) — results: {A11Y_RESULTS}")
     elif rc == 3:
         reason = json_field(A11Y_RESULTS, "reason") or p.stdout.strip() or ""
         record("SKIPPED", label, rc, reason or "Missing dependency — run: npm i -D @axe-core/webdriverjs")
@@ -347,6 +382,7 @@ def run_perf_gate():
         )
         return
     log(f"Running lighthouse audit against {OPTIONS['target']}")
+    started = time.time()
     try:
         p = subprocess.run(
             ["bash", str(PERF_SCRIPT), OPTIONS["target"]],
@@ -363,7 +399,20 @@ def run_perf_gate():
         return
     rc = p.returncode
     if rc == 0:
-        scores = json_field(PERF_RESULTS, "scores") or {}
+        data, problem = read_evidence(PERF_RESULTS, started)
+        scores = (data or {}).get("scores")
+        problem = problem or (
+            None if data.get("status") == "RAN"
+            and isinstance(scores, dict)
+            and is_number(scores.get("performance"))
+            and is_number(scores.get("accessibility"))
+            and 0 <= scores["performance"] <= 100
+            and 0 <= scores["accessibility"] <= 100
+            else "invalid lighthouse evidence: expected status=RAN and numeric scores"
+        )
+        if problem:
+            record("FAIL", label, rc, problem)
+            return
         detail = (
             f"perf={scores.get('performance')} a11y={scores.get('accessibility')}"
             f" best-practices={scores.get('bestPractices')}"
@@ -371,7 +420,7 @@ def run_perf_gate():
         minimum = OPTIONS["minPerfScore"]
         below = [
             f"{key}={value}" for key, value in scores.items()
-            if isinstance(value, (int, float)) and minimum and value < minimum
+            if is_number(value) and minimum and value < minimum
         ]
         if below:
             record("FAIL", label, 0, f"{detail}; below minimum {minimum}: {', '.join(below)}")
@@ -390,6 +439,7 @@ def run_slop_gate():
     if not SLOP_SCRIPT.exists():
         record("SKIPPED", label, 0, "detect-slop.py missing")
         return
+    started = time.time()
     try:
         p = subprocess.run(
             [sys.executable, str(SLOP_SCRIPT),
@@ -402,16 +452,23 @@ def run_slop_gate():
     except OSError as e:
         record("FAIL", label, 1, str(e))
         return
-    if p.returncode == 0:
-        record("PASS", label, 0, "no design-slop findings")
-        return
-    if p.returncode == 2:
-        count = json_field(SLOP_RESULTS, "count")
-        count = int(count) if isinstance(count, int) else 0
+    if p.returncode in (0, 2):
+        data, problem = read_evidence(SLOP_RESULTS, started)
+        count = (data or {}).get("count")
+        if problem:
+            record("FAIL", label, p.returncode, problem)
+            return
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            record("FAIL", label, p.returncode,
+                   "invalid slop evidence: expected an integer count")
+            return
+        if p.returncode == 0 and count != 0:
+            record("FAIL", label, 0, f"exit 0 but evidence reports {count} findings")
+            return
         limit = OPTIONS["maxSlopFindings"]
         record(
             "PASS" if count <= limit else "FAIL", label, p.returncode,
-            f"{count} findings (allowed {limit}) — see .ufme/evidence/slop-results.json",
+            f"{count} findings (allowed {limit}) — see {SLOP_RESULTS}",
         )
         return
     record("FAIL", label, p.returncode, (p.stderr or p.stdout or "").strip()[:200])
@@ -422,6 +479,7 @@ def run_visual_gate():
     if not VISUAL_SCRIPT.exists():
         record("SKIPPED", label, 0, "visual-diff.js missing")
         return
+    started = time.time()
     try:
         p = subprocess.run(
             ["node", str(VISUAL_SCRIPT),
@@ -437,12 +495,25 @@ def run_visual_gate():
     except OSError as e:
         record("FAIL", label, 1, str(e))
         return
-    if p.returncode == 0:
-        ratio = json_field(VISUAL_RESULTS, "maxDiffRatio")
-        record("PASS", label, 0, f"maxDiffRatio={ratio}")
-    elif p.returncode == 1:
-        ratio = json_field(VISUAL_RESULTS, "maxDiffRatio")
-        record("FAIL", label, 1, f"maxDiffRatio={ratio} exceeds {OPTIONS['maxVisualDiff']}")
+    if p.returncode in (0, 1):
+        data, problem = read_evidence(VISUAL_RESULTS, started)
+        ratio = (data or {}).get("maxDiffRatio")
+        if problem:
+            record("FAIL", label, p.returncode, problem)
+        elif data.get("status") == "BASELINE_CREATED":
+            record("BLOCKED", label, p.returncode,
+                   "baseline was auto-created; inspect it, commit it, then rerun")
+        elif p.returncode == 0 and data.get("status") != "PASS":
+            record("FAIL", label, 0, f"exit 0 with status={data.get('status')}")
+        elif not is_number(ratio):
+            record("FAIL", label, p.returncode, "invalid visual evidence: maxDiffRatio missing")
+        elif p.returncode == 0 and ratio > OPTIONS["maxVisualDiff"]:
+            record("FAIL", label, 0, f"maxDiffRatio={ratio} exceeds {OPTIONS['maxVisualDiff']}")
+        elif p.returncode == 1 and ratio <= OPTIONS["maxVisualDiff"]:
+            record("FAIL", label, 1, "exit 1 but maxDiffRatio is within threshold")
+        else:
+            record("PASS" if p.returncode == 0 else "FAIL", label, p.returncode,
+                   f"maxDiffRatio={ratio} (threshold {OPTIONS['maxVisualDiff']})")
     elif p.returncode == 3:
         reason = json_field(VISUAL_RESULTS, "reason") or "no screenshots"
         record("SKIPPED", label, 3, reason)
@@ -456,6 +527,9 @@ def parse_args():
     )
     parser.add_argument("--only", default="",
                         help=f"comma-separated check ids or preset ({', '.join(PRESETS)})")
+    parser.add_argument("--require", default="",
+                        help="comma-separated check ids or preset that must PASS; "
+                             "a skipped required check BLOCKS the gate")
     parser.add_argument("--target", default="", help="URL under test")
     parser.add_argument("--report", default="", help="report path")
     parser.add_argument("--max-a11y-violations", type=int)
@@ -507,8 +581,16 @@ def main():
     args = parse_args()
     try:
         selected = selected_ids(args.only)
+        require_value = args.require or os.environ.get("UFME_REQUIRE_CHECKS", "")
+        required = selected_ids(require_value) if require_value else set()
     except ValueError as exc:
         log(f"ERROR: {exc}")
+        return 2
+    if not required and selected == set(PRESETS["audit"]):
+        required = set(PRESETS["audit"])
+    REQUIRED.update(required)
+    if selected and not required <= selected:
+        log(f"ERROR: required checks not selected: {', '.join(sorted(required - selected))}")
         return 2
 
     if args.target:
@@ -540,7 +622,15 @@ def main():
         key.lower(): sum(1 for c in CHECKS if c["status"] == key)
         for key in ("PASS", "FAIL", "SKIPPED", "BLOCKED")
     }
-    overall = "FAIL" if counts["fail"] else "BLOCKED" if counts["blocked"] else "PASS"
+    required_not_passed = [
+        c["id"] for c in CHECKS if c["id"] in REQUIRED and c["status"] != "PASS"
+    ]
+    if counts["fail"]:
+        overall = "FAIL"
+    elif counts["blocked"] or required_not_passed:
+        overall = "BLOCKED"
+    else:
+        overall = "PASS"
     report = {
         "executionId": exec_id,
         "startTime": started,
@@ -558,6 +648,8 @@ def main():
             "minPerfScore": OPTIONS["minPerfScore"],
             "maxVisualDiff": OPTIONS["maxVisualDiff"],
         },
+        "required": sorted(REQUIRED),
+        "requiredNotPassed": sorted(set(required_not_passed)),
         "overall": overall,
         "counts": counts,
         "checks": CHECKS,

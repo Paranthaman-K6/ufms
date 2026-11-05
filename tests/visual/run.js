@@ -168,6 +168,21 @@ test('a current image with no baseline FAILs', () => {
   assert(data.images[0].status === 'missing-baseline', data.images[0].status);
 });
 
+test('a baseline image with no current capture FAILs', () => {
+  const tmp = tempDir();
+  const current = path.join(tmp, 'current');
+  const baseline = path.join(tmp, 'baseline');
+  const out = path.join(tmp, 'out.json');
+  makePng(path.join(current, 'home.png'), 8, 8, [10, 20, 30]);
+  makePng(path.join(baseline, 'home.png'), 8, 8, [10, 20, 30]);
+  makePng(path.join(baseline, 'removed.png'), 8, 8, [10, 20, 30]);
+  const result = run(['--baseline', baseline, '--current', current, '--out', out]);
+  assert(result.code === 1, `exit ${result.code}`);
+  const data = readJson(out);
+  const removed = data.images.find((image) => image.file === 'removed.png');
+  assert(removed && removed.status === 'missing-current', JSON.stringify(data.images));
+});
+
 test('size mismatch FAILs', () => {
   const tmp = tempDir();
   const current = path.join(tmp, 'current');

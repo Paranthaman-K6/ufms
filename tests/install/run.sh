@@ -22,6 +22,16 @@ PASS=0
 FAIL=0
 RESULTS=()
 
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    openssl dgst -sha256 "$1" | awk '{print $NF}'
+  fi
+}
+
 pass() { PASS=$((PASS + 1)); RESULTS+=("PASS: $1"); echo "PASS: $1"; }
 fail() { FAIL=$((FAIL + 1)); RESULTS+=("FAIL: $1 — $2"); echo "FAIL: $1: $2"; }
 check() { if eval "$2"; then pass "$1"; else fail "$1" "${3:-condition failed: $2}"; fi; }
@@ -75,7 +85,7 @@ printf '{"my_setting": {"keep": true}, "agent": {"legacy": {}}}\n' \
   > "$XDG_CONFIG_HOME/opencode/opencode.json"
 printf '# user tasks\n' > "$INSTALL_DIR/.ufme/TASKS.md"
 printf '{"name": "user-project", "scripts": {"test": "true"}}\n' > "$INSTALL_DIR/package.json"
-BEFORE_PACKAGE="$(sha256sum "$INSTALL_DIR/package.json" | awk '{print $1}')"
+BEFORE_PACKAGE="$(sha256_of "$INSTALL_DIR/package.json")"
 
 if run_install; then pass "repeat install exits 0"; else fail "repeat install exits 0" "see $TMP/install.log"; fi
 
@@ -85,13 +95,62 @@ check "legacy inline agent block removed" \
   "! python3 -c \"import json,sys; sys.exit(0 if 'agent' in json.load(open('$XDG_CONFIG_HOME/opencode/opencode.json')) else 1)\""
 check "existing project memory preserved" "[ \"\$(cat '$INSTALL_DIR/.ufme/TASKS.md')\" = '# user tasks' ]"
 check "UFME_SKIP_NPM leaves package.json untouched" \
-  "[ \"\$(sha256sum '$INSTALL_DIR/package.json' | awk '{print \$1}')\" = '$BEFORE_PACKAGE' ]"
+  "[ \"\$(sha256_of '$INSTALL_DIR/package.json')\" = '$BEFORE_PACKAGE' ]"
 check "repeat install does not nest the source tree" \
   "[ ! -d '$INSTALL_DIR/universal-frontend-master-source/universal-frontend-master-source' ]"
 check "repeat install does not nest the skill" \
   "[ ! -d '$INSTALL_DIR/.opencode/skills/universal-frontend-master/universal-frontend-master' ]"
 check "repeat install keeps one source tree" \
   "[ \$(find '$INSTALL_DIR' -maxdepth 2 -type d -name 'universal-frontend-master-source' | wc -l) -eq 1 ]"
+
+# ------------------------------------------------------------------
+# Full audit dependency set is installed with a real npm invocation
+# ------------------------------------------------------------------
+STUB_BIN="$TMP/bin"
+mkdir -p "$STUB_BIN"
+cat > "$STUB_BIN/npm" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${NPM_STUB_LOG:?}"
+exit 0
+SH
+chmod +x "$STUB_BIN/npm"
+NPM_LOG="$TMP/npm.args"
+if PATH="$STUB_BIN:$PATH" NPM_STUB_LOG="$NPM_LOG" UFME_SKIP_NPM= \
+   bash "$INSTALL" >"$TMP/npm-install.log" 2>&1; then
+  pass "dependency install run exits 0"
+else
+  fail "dependency install run exits 0" "see $TMP/npm-install.log"
+fi
+for dep in selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch; do
+  if grep -Fq -- "$dep" "$NPM_LOG" 2>/dev/null; then
+    pass "npm receives $dep"
+  else
+    fail "npm receives $dep" "not present in: $(cat "$NPM_LOG" 2>/dev/null)"
+  fi
+done
+
+# ------------------------------------------------------------------
+# sha256 fallback works without sha256sum/shasum (macOS/minimal Linux)
+# ------------------------------------------------------------------
+if command -v sha256sum >/dev/null 2>&1; then
+  PORTABLE_BIN="$TMP/portable-bin"
+  SHA_BIN="$(command -v sha256sum)"
+  BASH_BIN="$(command -v bash)"
+  mkdir -p "$PORTABLE_BIN"
+  ln -s "$(command -v awk)" "$PORTABLE_BIN/awk"
+  cat > "$PORTABLE_BIN/openssl" <<SH
+#!$BASH_BIN
+"$SHA_BIN" "\${@: -1}" | awk '{print "SHA2-256(" \$2 ")= " \$1}'
+SH
+  chmod +x "$PORTABLE_BIN/openssl"
+  HELPER="$(sed -n '/^sha256_of()/,/^}/p' "$INSTALL")"
+  ACTUAL="$(PATH="$PORTABLE_BIN" "$BASH_BIN" -c "$HELPER
+sha256_of '$INSTALL_DIR/package.json'")"
+  check "sha256 falls back to openssl without sha256sum/shasum" \
+    "[ '$ACTUAL' = '$BEFORE_PACKAGE' ]"
+else
+  printf 'SKIP: sha256 fallback test (sha256sum unavailable)\n'
+fi
 
 # ------------------------------------------------------------------
 # Failure path: local source without the skill

@@ -26,7 +26,7 @@
 # Safety: read-only; no system modification.
 set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROFILES_DIR="$ROOT_DIR/universal-frontend-master-source/profiles"
+PROFILES_DIR="${UFME_PROFILES_DIR:-$ROOT_DIR/universal-frontend-master-source/profiles}"
 EVIDENCE_DIR="${UFME_EVIDENCE_DIR:-$ROOT_DIR/.ufme/evidence}"
 
 log() { echo "[execution-profiles] $*"; }
@@ -83,8 +83,8 @@ show_profile() {
 import json, sys
 p = json.loads(sys.argv[1])
 print(f"Profile: {p['name']}")
-for key in ("maxAgents", "researchDepth", "allowedParallelism", "verificationDepth",
-            "resourceBudget", "browserTestingLevel", "selfImprovement"):
+for key in ("maxAgents", "allowedAgents", "researchDepth", "allowedParallelism",
+            "verificationDepth", "resourceBudget", "browserTestingLevel", "selfImprovement"):
     print(f"  {key}: {p.get(key)}")
 print("\n# Security constraints (never bypassed by any profile)")
 for key, value in (p.get("securityConstraints") or {}).items():
@@ -116,15 +116,7 @@ requested = {
 }
 as_json = os.environ["AS_JSON"] == "1"
 
-ALLOWED = {
-    "lite": {"universal-frontend-master", "ufme-orchestrator"},
-    "standard": {"universal-frontend-master", "ufme-orchestrator",
-                 "ufme-designer", "ufme-builder"},
-    "advanced": {"universal-frontend-master", "ufme-orchestrator",
-                 "ufme-designer", "ufme-builder", "ufme-backend-analyst", "ufme-auditor"},
-    "autonomous": {"universal-frontend-master", "ufme-orchestrator",
-                   "ufme-designer", "ufme-builder", "ufme-backend-analyst", "ufme-auditor"},
-}
+ALLOWED = set(p.get("allowedAgents") or [])
 RANKS = {
     "research": ["shallow", "moderate", "deep"],
     "verify": ["basic", "standard", "thorough", "exhaustive"],
@@ -139,16 +131,18 @@ violations = []
 
 if not agents:
     violations.append("no active agents provided")
+if not ALLOWED:
+    violations.append(f"profile '{name}' declares no allowedAgents")
 if len(agents) > max_agents:
     violations.append(
         f"agent count {len(agents)} exceeds maxAgents {max_agents} for profile '{name}'")
 if len(set(agents)) != len(agents):
     violations.append("duplicate agent names in --agents")
-unknown = sorted(set(agents) - ALLOWED.get(name, set()))
+unknown = sorted(set(agents) - ALLOWED)
 if unknown:
     violations.append(
         f"agents not allowed in profile '{name}': {unknown} "
-        f"(allowed: {sorted(ALLOWED.get(name, set()))})")
+        f"(allowed: {sorted(ALLOWED)})")
 if parallel and not p.get("allowedParallelism", False):
     violations.append(f"parallel execution is disabled for profile '{name}'")
 for key, value in requested.items():
@@ -165,6 +159,7 @@ for key, value in requested.items():
 effective = {
     "profile": name,
     "activeAgents": agents,
+    "allowedAgents": sorted(ALLOWED),
     "maxAgents": max_agents,
     "researchDepth": p.get(FIELDS["research"]),
     "allowedParallelism": bool(p.get("allowedParallelism", False)),

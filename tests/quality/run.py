@@ -16,7 +16,10 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import traceback
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,18 +50,94 @@ def script(path, body):
     return path
 
 
-def gate(tmp, only, env_extra=None, report_name="report.json"):
+def gate(tmp, only, env_extra=None, report_name="report.json", target=None):
     evidence = tmp / "evidence"
     env = os.environ.copy()
     env["UFME_EVIDENCE_DIR"] = str(evidence)
     env.update(env_extra or {})
     report = tmp / report_name
+    cmd = [sys.executable, str(QUALITY), "--only", only, "--report", str(report)]
+    if target:
+        cmd += ["--target", target]
     p = subprocess.run(
-        [sys.executable, str(QUALITY), "--only", only, "--report", str(report)],
-        cwd=ROOT, capture_output=True, text=True, timeout=120, env=env,
+        cmd, cwd=ROOT, capture_output=True, text=True, timeout=120, env=env,
     )
     data = json.loads(report.read_text(encoding="utf-8")) if report.exists() else None
     return p, data, report
+
+
+class _QuietHandler(SimpleHTTPRequestHandler):
+    def log_message(self, *args):  # noqa: D401 - silence test server
+        pass
+
+
+def serve(directory):
+    handler = partial(_QuietHandler, directory=str(directory))
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, f"http://127.0.0.1:{httpd.server_address[1]}/"
+
+
+def fake_browser(tmp):
+    bindir = tmp / "bin"
+    bindir.mkdir()
+    binary = bindir / "chromium"
+    binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    binary.chmod(0o755)
+    return f"{bindir}{os.pathsep}{os.environ['PATH']}"
+
+
+def fake_a11y(tmp):
+    path = tmp / "a11y.js"
+    path.write_text(
+        "const fs = require('fs');\n"
+        "const mode = process.env.FAKE_A11Y_MODE || 'valid';\n"
+        "if (mode !== 'missing') {\n"
+        "  const data = mode === 'invalid'\n"
+        "    ? { status: 'RAN' }\n"
+        "    : { status: 'RAN', totalViolations: Number(process.env.FAKE_TOTAL || 0),"
+        " violationsByRule: [] };\n"
+        "  fs.writeFileSync(process.env.UFME_A11Y_RESULTS, JSON.stringify(data));\n"
+        "}\n"
+        "process.exit(Number(process.env.FAKE_EXIT || 0));\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def fake_perf(tmp):
+    path = tmp / "perf.sh"
+    path.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf '%s' \"${FAKE_PERF_JSON}\" > \"$UFME_PERF_RESULTS\"\n"
+        "exit \"${FAKE_EXIT:-0}\"\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+    return path
+
+
+def fake_visual(tmp):
+    path = tmp / "visual.js"
+    path.write_text(
+        "const fs = require('fs');\n"
+        "fs.writeFileSync(process.env.UFME_VISUAL_RESULTS, process.env.FAKE_VISUAL_JSON);\n"
+        "process.exit(Number(process.env.FAKE_EXIT || 0));\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def fake_slop(tmp):
+    path = tmp / "slop.py"
+    path.write_text(
+        "import json, sys\n"
+        "out = sys.argv[sys.argv.index('--json') + 1]\n"
+        "open(out, 'w').write(json.dumps(json.loads(__import__('os').environ['FAKE_SLOP_JSON'])))\n"
+        "sys.exit(int(__import__('os').environ.get('FAKE_EXIT', '0')))\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def assert_report(data, status):
@@ -77,7 +156,11 @@ def _():
     with tempfile.TemporaryDirectory() as raw:
         tmp = Path(raw)
         check = script(tmp / "check.sh", "exit 0\n")
-        browser = script(tmp / "browser.sh", "exit 0\n")
+        browser = script(
+            tmp / "browser.sh",
+            'printf \'{"status":"PASS"}\\n\' > "$UFME_EVIDENCE_DIR/browser-results.json"\n'
+            "exit 0\n",
+        )
         p, data, report = gate(
             tmp, "browser",
             {"UFME_BROWSER_CHECK_SCRIPT": str(check), "UFME_BROWSER_TEST_SCRIPT": str(browser)},
@@ -220,6 +303,168 @@ def _():
         data = json.loads(report.read_text(encoding="utf-8"))
         assert p.returncode == 0, p.stdout + p.stderr
         assert data["checks"][0]["status"] == "PASS"
+
+
+@test("browser exit 0 without PASS evidence is FAIL")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        check = script(tmp / "check.sh", "exit 0\n")
+        browser = script(tmp / "browser.sh", "exit 0\n")
+        p, data, _ = gate(
+            tmp, "browser",
+            {"UFME_BROWSER_CHECK_SCRIPT": str(check), "UFME_BROWSER_TEST_SCRIPT": str(browser)},
+        )
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "evidence missing" in data["checks"][0]["detail"]
+
+
+@test("a required SKIPPED check BLOCKS the audit gate")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        missing = tmp / "absent"
+        clean_slop = fake_slop(tmp)
+        p, data, _ = gate(tmp, "audit", {
+            "UFME_A11Y_SCRIPT": str(missing),
+            "UFME_PERF_SCRIPT": str(missing),
+            "UFME_VISUAL_SCRIPT": str(missing),
+            "UFME_SLOP_SCRIPT": str(clean_slop),
+            "FAKE_SLOP_JSON": '{"count": 0}',
+        })
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert data["overall"] == "BLOCKED", data["overall"]
+        assert data["required"] == ["a11y", "perf", "slop", "visual"], data["required"]
+        assert sorted(data["requiredNotPassed"]) == ["a11y", "perf", "visual"], data["requiredNotPassed"]
+        statuses = {c["id"]: c["status"] for c in data["checks"]}
+        assert statuses["slop"] == "PASS", statuses
+        assert statuses["a11y"] == "SKIPPED", statuses
+
+
+@test("invalid axe evidence is FAIL even with exit 0")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        www = tmp / "www"
+        www.mkdir()
+        httpd, url = serve(www)
+        try:
+            a11y = fake_a11y(tmp)
+            p, data, _ = gate(tmp, "a11y", {
+                "PATH": fake_browser(tmp),
+                "UFME_A11Y_SCRIPT": str(a11y),
+                "UFME_A11Y_RESULTS": str(tmp / "a11y-results.json"),
+                "FAKE_A11Y_MODE": "invalid",
+            }, target=url)
+        finally:
+            httpd.shutdown()
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "invalid axe evidence" in data["checks"][0]["detail"]
+
+
+@test("valid axe evidence with zero violations PASSes")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        www = tmp / "www"
+        www.mkdir()
+        httpd, url = serve(www)
+        try:
+            a11y = fake_a11y(tmp)
+            p, data, _ = gate(tmp, "a11y", {
+                "PATH": fake_browser(tmp),
+                "UFME_A11Y_SCRIPT": str(a11y),
+                "UFME_A11Y_RESULTS": str(tmp / "a11y-results.json"),
+                "FAKE_A11Y_MODE": "valid",
+            }, target=url)
+        finally:
+            httpd.shutdown()
+        assert p.returncode == 0, p.stdout + p.stderr
+        assert_report(data, "PASS")
+
+
+@test("invalid lighthouse scores are FAIL even with exit 0")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        www = tmp / "www"
+        www.mkdir()
+        httpd, url = serve(www)
+        try:
+            perf = fake_perf(tmp)
+            p, data, _ = gate(tmp, "perf", {
+                "PATH": fake_browser(tmp),
+                "UFME_PERF_SCRIPT": str(perf),
+                "UFME_PERF_RESULTS": str(tmp / "perf-results.json"),
+                "FAKE_PERF_JSON": '{"status":"RAN","scores":{}}',
+            }, target=url)
+        finally:
+            httpd.shutdown()
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "invalid lighthouse evidence" in data["checks"][0]["detail"]
+
+
+@test("invalid slop evidence is FAIL even with exit 0")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        slop = fake_slop(tmp)
+        p, data, _ = gate(tmp, "slop", {
+            "UFME_SLOP_SCRIPT": str(slop),
+            "FAKE_SLOP_JSON": '{"findings": []}',
+        })
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "invalid slop evidence" in data["checks"][0]["detail"]
+
+
+@test("auto-created visual baseline BLOCKS, never PASSes")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        visual = fake_visual(tmp)
+        p, data, _ = gate(tmp, "visual", {
+            "UFME_VISUAL_SCRIPT": str(visual),
+            "UFME_VISUAL_RESULTS": str(tmp / "visual-diff.json"),
+            "FAKE_VISUAL_JSON": '{"status":"BASELINE_CREATED","maxDiffRatio":0}',
+        })
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "BLOCKED")
+        assert "auto-created" in data["checks"][0]["detail"]
+
+
+@test("visual PASS without a numeric ratio is FAIL")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        visual = fake_visual(tmp)
+        p, data, _ = gate(tmp, "visual", {
+            "UFME_VISUAL_SCRIPT": str(visual),
+            "UFME_VISUAL_RESULTS": str(tmp / "visual-diff.json"),
+            "FAKE_VISUAL_JSON": '{"status":"PASS"}',
+        })
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "maxDiffRatio missing" in data["checks"][0]["detail"]
+
+
+@test("--require outside --only is rejected")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        report = tmp / "report.json"
+        env = os.environ.copy()
+        env["UFME_EVIDENCE_DIR"] = str(tmp / "evidence")
+        p = subprocess.run(
+            [sys.executable, str(QUALITY), "--only", "slop",
+             "--require", "a11y", "--report", str(report)],
+            cwd=ROOT, capture_output=True, text=True, timeout=60, env=env,
+        )
+        assert p.returncode == 2, p.stdout + p.stderr
+        assert not report.exists(), "report written for an invalid invocation"
 
 
 @test("unknown --only id is rejected")

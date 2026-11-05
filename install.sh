@@ -28,7 +28,7 @@
 #   universal-frontend-master-source/             # source tree (includes browser runner)
 #   .ufme/                                        # per-project memory templates (seeded only)
 #   opencode.json                                 # permission policy (merged)
-#   package.json (dev dep)                        # selenium-webdriver, if npm + package.json exist
+#   package.json (dev dep)                        # full audit dependency set, if npm + package.json exist
 set -euo pipefail
 
 REPO="Paranthaman-K6/ufms"
@@ -36,9 +36,24 @@ BRANCH="main"
 TARGET="${INSTALL_DIR:-$PWD}"
 UFME_USER_CONFIG="${UFME_USER_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ufme}"
 OPENCODE_USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-NPM_HINT='npm i -D selenium-webdriver'
+NPM_DEPS=(selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch)
+NPM_HINT="npm i -D ${NPM_DEPS[*]}"
 
 log() { echo "[ufme-install] $*"; }
+
+# Cross-platform helpers: macOS ships shasum, minimal Linux images may only have openssl.
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" | awk '{print $NF}'
+  else
+    log "ERROR: no sha256 tool found (need sha256sum, shasum or openssl)"
+    return 1
+  fi
+}
 
 log "Installing Universal Frontend Master skill"
 log "Target project: $TARGET"
@@ -71,9 +86,8 @@ else
 
   # Optional checksum verification (UFME_TARBALL_SHA256) — abort on mismatch.
   if [ -n "${UFME_TARBALL_SHA256:-}" ]; then
-    EXPECTED="${UFME_TARBALL_SHA256//[[:space:]]/}"
-    EXPECTED="${EXPECTED,,}"
-    ACTUAL="$(sha256sum "$TMP/repo.tar.gz" | awk '{print $1}')"
+    EXPECTED="$(printf '%s' "$UFME_TARBALL_SHA256" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+    ACTUAL="$(sha256_of "$TMP/repo.tar.gz")"
     if [ "$ACTUAL" != "$EXPECTED" ]; then
       log "ERROR: tarball sha256 mismatch — aborting install."
       log "  Expected: $EXPECTED"
@@ -87,7 +101,7 @@ else
   tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
   # Top-level dir differs between branch archives (ufms-<branch>) and tag
   # archives (ufms-<tag>) — detect it instead of hardcoding.
-  SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -print | sed -n '1p')"
   [ -n "$SRC" ] || { log "ERROR: empty archive"; exit 1; }
 fi
 
@@ -200,24 +214,24 @@ if [ ! -f "$TARGET/opencode.json" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 5. Project-local npm dependency (selenium-webdriver, best-effort)
+# 5. Project-local npm dependencies (full audit set, best-effort)
 # ------------------------------------------------------------------
 if [ -f "$TARGET/package.json" ] && [ -z "${UFME_SKIP_NPM:-}" ]; then
   if command -v npm >/dev/null 2>&1; then
-    log "Installing project-local dev dependency: $NPM_HINT ..."
-    if (cd "$TARGET" && npm install -D selenium-webdriver --loglevel=error >"$TMP/npm.log" 2>&1); then
-      log "selenium-webdriver installed as a dev dependency."
+    log "Installing project-local dev dependencies: $NPM_HINT ..."
+    if (cd "$TARGET" && npm install -D "${NPM_DEPS[@]}" --loglevel=error >"$TMP/npm.log" 2>&1); then
+      log "Audit dependencies installed: ${NPM_DEPS[*]}"
     else
-      log "WARNING: npm install failed. Install the browser dependency manually:"
+      log "WARNING: npm install failed. Install the browser/audit dependencies manually:"
       log "  cd \"$TARGET\" && $NPM_HINT"
       log "(npm output kept at $TMP — note it is removed when this installer exits; rerun to see the error.)"
     fi
   else
-    log "npm not found. Install the browser dependency manually:"
+    log "npm not found. Install the browser/audit dependencies manually:"
     log "  cd \"$TARGET\" && $NPM_HINT"
   fi
 else
-  log "No package.json in $TARGET. To enable browser validation, run in your project:"
+  log "No package.json in $TARGET (or UFME_SKIP_NPM set). To enable browser and audit validation, run in your project:"
   log "  $NPM_HINT"
 fi
 

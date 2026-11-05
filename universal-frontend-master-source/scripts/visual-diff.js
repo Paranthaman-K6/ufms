@@ -13,6 +13,8 @@
  *   * Modified images: diffRatio = changed pixels / total pixels per image.
  *     Exit 1 when the largest ratio exceeds --max-diff-ratio.
  *   * A current image with no baseline is reported as missed-baseline and fails.
+ *   * A baseline image with no current capture is reported as missing-current
+ *     and fails (a deleted or renamed screenshot is a regression, not a pass).
  *   * No PNGs in current: status SKIPPED, exit 3.
  *
  * Writes .ufme/evidence/visual-diff.json by default.
@@ -186,6 +188,15 @@ function main() {
       totalPixels: total,
       diffRatio: Number(diffRatio.toFixed(6)),
     });
+  }
+
+  const currentSet = new Set(currentFiles);
+  for (const file of baselineFiles) {
+    if (!currentSet.has(file)) {
+      results.push({ file, status: 'missing-current', diffRatio: 1 });
+      maxRatio = 1;
+      failed = true;
+    }
   }
 
   const result = {

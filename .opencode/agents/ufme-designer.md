@@ -19,8 +19,9 @@ subagent.
   icons, images, and videos. Perform web research to discover candidate frontend libraries
   (UI components, icons, fonts, animation libraries, templates).
 - Verify licenses and commercial-use permissions for every asset before use.
-- Record candidate libraries in `.ufme/LIBRARY_REGISTRY.md` via `scripts/search-libraries.py`;
-  the orchestrator moves approved items into `.ufme/DECISIONS.md`. Maintain the shared
+- Record candidate libraries with `scripts/search-libraries.py`; your `bash` permission is
+  `deny`, so request that the orchestrator runs it and writes `.ufme/LIBRARY_REGISTRY.md`.
+  The orchestrator moves approved items into `.ufme/DECISIONS.md`. Maintain the shared
   user-level catalog at `~/.config/ufme/LIBRARY_REGISTRY.md` where configured.
 - Flag any personal data (names, stats, metrics) not explicitly verified from the user
   brief; never generate or propagate invented experience, achievements, or skills.

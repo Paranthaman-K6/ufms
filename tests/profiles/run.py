@@ -43,10 +43,11 @@ def test(name):
     return wrapper
 
 
-def enforce(tmp, *args):
+def enforce(tmp, *args, env_extra=None):
     env = os.environ.copy()
     evidence = tmp / "evidence"
     env["UFME_EVIDENCE_DIR"] = str(evidence)
+    env.update(env_extra or {})
     p = subprocess.run(
         ["bash", str(SCRIPT), "--enforce", *args, "--json"],
         cwd=ROOT, capture_output=True, text=True, timeout=60, env=env,
@@ -82,10 +83,12 @@ def _():
         data = json.loads(path.read_text(encoding="utf-8"))
         assert data["name"] == name
         for key in (
-            "maxAgents", "researchDepth", "allowedParallelism",
+            "maxAgents", "allowedAgents", "researchDepth", "allowedParallelism",
             "verificationDepth", "browserTestingLevel", "securityConstraints",
         ):
             assert key in data, f"{name}: missing {key}"
+        assert isinstance(data["allowedAgents"], list) and data["allowedAgents"], name
+        assert "universal-frontend-master" in data["allowedAgents"], name
         assert data["securityConstraints"]["noSudo"] is True
         assert data["mandatoryAcceptanceCriteria"] is True
 
@@ -150,6 +153,24 @@ def _():
             "--research", "deep",
         )
         assert_violation(p, data, "requested research 'deep' exceeds")
+
+
+@test("allowedAgents comes from profile JSON, not the script")
+def _():
+    import shutil
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        profiles = tmp / "profiles"
+        shutil.copytree(PROFILES, profiles)
+        lite = json.loads((profiles / "lite.json").read_text(encoding="utf-8"))
+        lite["allowedAgents"].append("ufme-auditor")
+        (profiles / "lite.json").write_text(json.dumps(lite), encoding="utf-8")
+        p, data = enforce(
+            tmp, "lite", "--agents", "universal-frontend-master,ufme-auditor",
+            env_extra={"UFME_PROFILES_DIR": str(profiles)},
+        )
+        assert_ok(p, data)
+        assert "ufme-auditor" in data["allowedAgents"], data["allowedAgents"]
 
 
 @test("duplicate agent names are rejected")

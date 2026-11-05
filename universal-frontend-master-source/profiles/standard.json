@@ -2,6 +2,12 @@
   "name": "standard",
   "description": "Balanced agent set for typical frontend projects.",
   "maxAgents": 4,
+  "allowedAgents": [
+    "universal-frontend-master",
+    "ufme-orchestrator",
+    "ufme-designer",
+    "ufme-builder"
+  ],
   "researchDepth": "moderate",
   "allowedParallelism": true,
   "verificationDepth": "standard",

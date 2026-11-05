@@ -1,121 +1,117 @@
-# Todo — UFMS Autonomous P0/P1 Repair & Optimization
+# Todo — UFMS Autonomous Production-Readiness Pass
 
-Central execution plan for UFMS autonomous agent optimization, reliability hardening, profile enforcement, and evidence-driven auditing.
+Execution plan for the second autonomous improvement pass on `fix/autonomous-p0-p1-repair`
+(PR #3). Status: `[ ]` TODO, `[~]` IN PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
 
-Status convention: `[ ]` TODO, `[~]` IN_PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
-
-**Audit note (2026-11-04):** the previous revision marked every item `[x]` without evidence. A direct inspection of `main` found real gaps (orchestrator mode, profile enforcement breadth, slop/visual/audit thresholds, context-pack integration, install tests). Statuses below reflect verified evidence only.
-
-**Verification note (2026-11-04):** all suites below were run on `fix/autonomous-p0-p1-repair` after the repairs. `npm test` exited 0; `self-improve.py` reported 262 PASS / 0 FAIL; a real Chromium Selenium run against the generated prototype returned PASS.
-
----
-
-## P0 — Critical Reliability
-
-- [x] **P0.1 Agent Orchestration** *(Assigned: Universal Frontend Master & Orchestrator)*
-  - **Dependencies**: None
-  - **Gap found**: `ufme-orchestrator` was `mode: primary` (two primary entry agents); docs still said "11 specialist agents"; no structural validation of agent references.
-  - **Repair**: `universal-frontend-master` is the only primary; `ufme-orchestrator` is `mode: subagent`; all six agents rebuilt from `universal-frontend-master-source/agents/`; `build-agents.py` validates exactly one primary, orchestrator mode, permission keys and every referenced script.
-  - **Acceptance Criteria**: `build-agents.py --check` passes; exactly one primary agent; orchestrator mode `subagent`; `opencode debug agents` lists all 6; delegation smoke test passes.
-  - **Evidence**: `python3 tests/agents/run.py` → 9 passed, 0 failed; `build-agents.py --check` → `check: in sync`; clean-config `opencode debug agents` resolves all six.
-  - **Tests**: `python3 tests/agents/run.py`.
-
-- [x] **P0.2 Quality-Check Runtime** *(Assigned: Builder)*
-  - **Dependencies**: P0.1
-  - **Gap found**: startup indentation defect was fixed, but there was no integration test for browser PASS/FAIL/BLOCKED/timeout, no per-check timing, incomplete report metadata, and BLOCKED was folded into FAIL.
-  - **Repair**: `quality-check.py` gained `--only`, `--target`, `--report`, flag/env thresholds, per-check `startedAt`/`durationMs`, atomic report writes, and status precedence `FAIL > BLOCKED > PASS`.
-  - **Acceptance Criteria**: Python compile passes; integration harness exercises browser PASS/FAIL/BLOCKED/timeout; report counts match checks; atomic write verified.
-  - **Evidence**: `python3 tests/quality/run.py` → 9 passed, 0 failed.
-  - **Tests**: `python3 tests/quality/run.py`.
-
-- [x] **P0.3 Regression Protection** *(Assigned: Auditor)*
-  - **Dependencies**: P0.1, P0.2
-  - **Repair**: new hermetic suites for agents, quality gate, profiles, context, visual diff, auditor contract and install; wired into `npm test` and CI; CI uses `npm ci`, waits for the prototype server, and no longer swallows browser failures with `|| true`.
-  - **Acceptance Criteria**: `npm test` includes the new suites; CI runs them from a clean install.
-  - **Evidence**: `npm test` → exit 0; suite totals: visual 9, agents 9, quality 9, profiles 15, context 11, auditor 9, install 27, all 0 failed.
-  - **Tests**: `npm test`; `.github/workflows/ufme-ci.yml`.
+Every item below was verified against the working tree before being scheduled. The
+previous pass's 262-check `self-improve.py` result and the green CI run `41778560645` are
+treated as already-verified and are not rebuilt. This pass only fixes newly verified
+defects and extends coverage.
 
 ---
 
-## P1 — Agent Autonomy and Optimization
+## P0 — Runtime, Security, Fail-Closed Gate
 
-- [x] **P1.1 Genuine Execution-Profile Enforcement** *(Assigned: Orchestrator)*
-  - **Dependencies**: P0.1
-  - **Gap found**: `execution-profiles.sh --enforce` only checked a worst-case count; research depth, parallelism, verification depth, browser level and self-improvement settings were printed but never applied or recorded.
-  - **Repair**: enforcement validates ceilings (Lite 2 / Standard 4 / Advanced 7 / Autonomous 12), allowed sets, duplicates, parallelism, research/verification/browser depth; records `.ufme/evidence/profile-enforcement.json`; `UFME_EVIDENCE_DIR` keeps tests hermetic.
-  - **Acceptance Criteria**: all four profiles pass within limits; exceeding any limit exits non-zero; Lite skips optional stages; Autonomous enables exhaustive verification.
-  - **Evidence**: `python3 tests/profiles/run.py` → 15 passed, 0 failed.
-  - **Tests**: `python3 tests/profiles/run.py`.
+- [x] **P0.1 Runtime and dependency compatibility** *(Owner: Builder)*
+  - **Verified defect**: `package.json` declared no `engines`, no `.nvmrc`; CI ran Node 20 while `selenium-webdriver@4.52.0` requires `^22.23.4 || ^24.22.1 || >=26.12.1`; README claimed Node 18+.
+  - **Expected result**: one declared runtime range matching every direct dependency; CI pins it; docs match.
+  - **Acceptance**: `.nvmrc` inside range; `npm ci --engine-strict` exits 0; CI uses the pinned major.
+  - **Evidence**: `engines` in `package.json`; `.nvmrc` = 24; `.npmrc` `engine-strict=true`; `npm ci` rc=0 and `npm ci --engine-strict` rc=0 (no `EBADENGINE`); CI `node-version: 24`; README/compatibility/ARCH_LINUX/installation docs updated.
+  - **Progress**: COMPLETE.
 
-- [x] **P1.2 Complete Automated Auditing** *(Assigned: Auditor)*
-  - **Dependencies**: P0.2
-  - **Gap found**: `quality-check.py` ran axe/Lighthouse but not `detect-slop.py`; no visual-diff implementation existed; Lighthouse scores were never thresholded; audit evidence was not fully recorded per check.
-  - **Repair**: added `visual-diff.js` (pngjs + pixelmatch, baseline creation, per-image ratio, size/unreadable handling, atomic JSON); the gate now runs slop + visual + a11y + perf + browser + deps with configurable thresholds and PASS/FAIL/SKIPPED/BLOCKED semantics.
-  - **Acceptance Criteria**: each enabled audit produces valid evidence; missing deps are SKIPPED; browser failures BLOCKED; real violations FAIL; visual baseline/identical/modified/threshold cases pass.
-  - **Evidence**: `node tests/visual/run.js` → 9 passed, 0 failed; `python3 tests/quality/run.py` → 9 passed; real `bash browser-test.sh http://localhost:5173` → `Selenium run: PASS (chromium)`.
-  - **Tests**: `python3 tests/quality/run.py`; `node tests/visual/run.js`.
+- [x] **P0.2 Dependency security** *(Owner: Auditor)*
+  - **Verified defect**: `npm audit` = 10 high / 20 moderate / 0 critical, rooted in `lighthouse@12.8.2`; the offered `lighthouse@13.6.0` still pulled 5 moderate advisories through `@sentry/node` → `glob`/`minimatch`.
+  - **Expected result**: zero known vulnerabilities, or each residual one justified in docs.
+  - **Acceptance**: `npm audit --audit-level=moderate` exits 0; lockfile consistent; clean `npm ci` exits 0.
+  - **Evidence**: pinned exact `lighthouse@13.5.0` → `npm audit` "found 0 vulnerabilities", rc=0; `npm ci` from the lock rc=0; rationale recorded in `compatibility.md`.
+  - **Progress**: COMPLETE.
 
-- [x] **P1.3 Task-Aware Token-Efficient Context** *(Assigned: Builder & Designer)*
-  - **Dependencies**: P0.1
-  - **Gap found**: `ctx-pack.py` existed but the orchestrator never called it; missing artifacts were skipped silently; the auditor did not receive compact a11y/perf/browser/visual evidence.
-  - **Repair**: the orchestrator runs `ctx-pack.py --task` before delegation; packs use tiktoken `cl100k_base` when available (chars/4 fallback), fair-share budgets, a hard final ceiling, explicit missing/truncated/skipped footer, summarized evidence JSON and `--archive` rotation.
-  - **Acceptance Criteria**: all five specialist roles pack correctly at 500 and 1,500 tokens; evidence summaries present; orchestrator prompt invokes `ctx-pack.py --task`.
-  - **Evidence**: `python3 tests/context/run.py` → 11 passed, 0 failed.
-  - **Tests**: `python3 tests/context/run.py`.
+- [x] **P0.3 Fail-closed quality gate** *(Owner: Builder + Auditor)*
+  - **Verified defect**: `quality-check.py` let a required audit check SKIP into overall PASS; a11y/perf/slop/visual PASS was recorded without validating that result JSON existed, was fresh and had the expected fields; visual baseline auto-creation was recorded as PASS.
+  - **Expected result**: missing/invalid/skipped evidence for a required check can never yield PASS.
+  - **Acceptance**: tests cover required-SKIPPED→BLOCKED, invalid a11y/perf/slop/visual evidence→FAIL, baseline-created→BLOCKED, valid evidence→PASS; existing tests still pass.
+  - **Evidence**: `python3 tests/quality/run.py` → 18 passed, 0 failed (9 pre-existing + 9 new). Gate now requires `--require`/`UFME_REQUIRE_CHECKS` ⊆ `--only`, auto-requires a11y/perf/slop/visual for the audit preset, reads per-check result paths from `UFME_*` envs, rejects stale evidence, and emits `required`/`requiredNotPassed` in the report.
+  - **Progress**: COMPLETE.
 
-- [x] **P1.4 Auditor Permissions and Reporting** *(Assigned: Auditor)*
-  - **Dependencies**: P1.2
-  - **Gap found**: auditor had `edit: deny` but its prompt said it writes `.ufme/AUDIT_REPORT.md`; referenced tool paths were not validated.
-  - **Repair**: auditor is `subagent` with `read/bash: allow`, `edit/task: deny`; it returns a severity-ranked report (source/severity/location/finding/recommendation/retest) for orchestrator synthesis; all six evidence files and every referenced script are validated.
-  - **Acceptance Criteria**: permissions valid; documented commands exist; report structure verified from fixture evidence.
-  - **Evidence**: `python3 tests/auditor/run.py` → 9 passed, 0 failed.
-  - **Tests**: `python3 tests/auditor/run.py`.
+- [x] **P0.4 Complete visual regression** *(Owner: Builder)*
+  - **Verified defect**: `visual-diff.js` detected a current image without a baseline but not a baseline image with no current capture.
+  - **Expected result**: changed, missing-baseline, missing-current and size-mismatch images are all detected; first-run baseline is not success.
+  - **Acceptance**: new visual test for baseline-only image; existing tests still pass.
+  - **Evidence**: `node tests/visual/run.js` → 10 passed, 0 failed, including "a baseline image with no current capture FAILs".
+  - **Progress**: COMPLETE.
 
-- [x] **P1.5 Installation and Documentation Integrity** *(Assigned: Orchestrator)*
-  - **Dependencies**: P0.1 through P1.4
-  - **Gap found**: no clean-install test; install wrote a stale inline "agent registry" and could not install from a local source for offline/CI testing; README/architecture still described a primary orchestrator.
-  - **Repair**: `install.sh` supports `UFME_SOURCE_DIR` and `UFME_SKIP_NPM`, merges the global config without an inline `agent` block, preserves user keys, and merges repeat installs instead of nesting; README, architecture, MUST_SKILL and installation docs now describe one primary and five subagents.
-  - **Acceptance Criteria**: clean install + repeat install pass; source/install sync clean; no broken script/agent references; shell syntax valid.
-  - **Evidence**: `bash tests/install/run.sh` → 27 passed, 0 failed; `self-improve.py` → 262 PASS / 0 FAIL; `build-agents.py --check` → in sync.
-  - **Tests**: `bash tests/install/run.sh`; `python3 universal-frontend-master-source/scripts/self-improve.py`.
+## P1 — Automation, Portability, Agent Consistency
+
+- [x] **P1.1 End-to-end CI quality validation** *(Owner: Auditor)*
+  - **Verified defect**: CI ran unit suites and a browser smoke test but never ran `quality-check.py` against the served prototype.
+  - **Expected result**: CI executes real audit checks on the generated prototype.
+  - **Acceptance**: workflow runs the audit preset with required checks against a live server; local reproduction documented; YAML valid.
+  - **Evidence**: `.github/workflows/ufme-ci.yml` merged browser + audit step (generate → serve → browser test → seed baseline → `--only audit --require audit`); YAML parses; the same command locally returned **Overall: PASS** on real Chromium 156 with 0 axe violations, Lighthouse 100/100/96, 0 slop findings and 0 visual diff.
+  - **Progress**: COMPLETE.
+
+- [x] **P1.2 Evidence directory and portable shell** *(Owner: Builder)*
+  - **Verified defect**: `audit-a11y.js`, `audit-perf.sh`, `browser-test.sh` hardcoded `.ufme/evidence`; `audit-perf.sh`, `browser-test.sh`, `detect-platform.sh` used GNU-only `date -Iseconds`; `install.sh` used `sha256sum` and bash-4 `${var,,}`; `find -print -quit` is not BSD-portable.
+  - **Expected result**: `UFME_EVIDENCE_DIR` honored everywhere; checksums and timestamps work on GNU and BSD/macOS; no bash-4-only syntax.
+  - **Acceptance**: scripts write under an overridden evidence dir; `bash -n` clean; install test exercises a `sha256` fallback with a `shasum`/`openssl`-only PATH.
+  - **Evidence**: real run wrote browser/a11y/perf/slop/visual evidence under `/tmp/opencode/e2e-*` with `UFME_EVIDENCE_DIR`; `bash -n` clean for all touched shell scripts; install test "sha256 falls back to openssl without sha256sum/shasum" PASS; timestamps use POSIX `date -u +...`.
+  - **Progress**: COMPLETE.
+
+- [x] **P1.3 Installer installs the full audit dependency set** *(Owner: Builder)*
+  - **Verified defect**: `install.sh` installed only `selenium-webdriver`, so axe/Lighthouse/pixelmatch audits SKIPPED after a fresh install.
+  - **Expected result**: a project with `package.json` receives all runtime audit dependencies.
+  - **Acceptance**: install test with a stub `npm` asserts every required package is passed to `npm install -D`.
+  - **Evidence**: `bash tests/install/run.sh` → 34 passed, 0 failed, including "npm receives selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch".
+  - **Progress**: COMPLETE.
+
+- [x] **P1.4 Profiles are data-driven and contradictions removed** *(Owner: Orchestrator + Designer)*
+  - **Verified defect**: `execution-profiles.sh` hardcoded allowed agent sets; `designer.md` set `bash: deny` while instructing the agent to run `scripts/search-libraries.py`.
+  - **Expected result**: each profile JSON owns its `allowedAgents`, enforcement reads it, and agent instructions match declared permissions.
+  - **Acceptance**: profile test proves a JSON-only change alters enforcement; `build-agents.py --check` passes; no agent instructs a denied tool.
+  - **Evidence**: `allowedAgents` added to all four profiles; enforcement reads it (with `UFME_PROFILES_DIR` override and a non-empty check); `python3 tests/profiles/run.py` → 16 passed, 0 failed including "allowedAgents comes from profile JSON"; designer now asks the orchestrator to run the script; `build-agents.py --check` → "in sync".
+  - **Progress**: COMPLETE.
+
+- [x] **P1.5 Context efficiency measurement** *(Owner: Orchestrator)*
+  - **Verified defect**: `ctx-pack.py` reported packed size but never quantified avoided raw context.
+  - **Expected result**: every brief states raw artifact tokens, packed tokens and saved percentage.
+  - **Acceptance**: new context test asserts the savings fields; budgets still hold.
+  - **Evidence**: `python3 tests/context/run.py` → 12 passed, 0 failed including "packed size is measured against raw artifact tokens"; footer carries `Raw artifacts / packed / saved %`.
+  - **Progress**: COMPLETE.
+
+- [x] **P1.6 Documentation synchronization** *(Owner: Universal Frontend Master)*
+  - **Verified defect**: README said Node 18+; docs lacked the supported range, fail-closed semantics, visual baseline policy, profile data source and install dependency set.
+  - **Acceptance**: docs match implemented behavior; no stale version or topology claims.
+  - **Evidence**: README, `compatibility.md`, `troubleshooting.md`, `installation-arch-linux.md`, `ARCH_LINUX.md` updated and reviewed against code.
+  - **Progress**: COMPLETE.
+
+## P2 — Final Validation and Delivery
+
+- [x] **P2.1 Full local validation** *(Owner: Auditor)*
+  - **Acceptance**: `npm test` exit 0; `build-agents.py --check` in sync; `self-improve.py` 0 FAIL; real browser + audit run produce evidence.
+  - **Evidence**: `npm test` rc=0 (visual 10, agents 9, quality 18, profiles 16, context 12, auditor 9, install 34); `build-agents.py --check` "in sync"; `self-improve.py` 262 PASS / 0 FAIL; real Chromium browser run PASS; audit preset PASS (see P1.1).
+  - **Progress**: COMPLETE.
+
+- [x] **P2.2 Commit, push, CI green, report** *(Owner: Universal Frontend Master)*
+  - **Acceptance**: commit pushed to `fix/autonomous-p0-p1-repair`; PR updated; CI success; final report distinguishes PASS / FAIL / SKIPPED / BLOCKED.
+  - **Evidence**: commits `4f497827` and `fbbc1579` pushed; PR #4 opened (PR #3 was already merged); CI run `41803694415` green with the audit step reporting **PASS: 4, FAIL: 0, SKIPPED: 0, BLOCKED: 0 — Overall: PASS** (axe 0 violations, Lighthouse 100/100/96, slop 0, visual 0). The first run `41803217583` honestly reported **BLOCKED** on a skipped Lighthouse check; the fix added `UFME_CHROME_FLAGS` for runner Chromium instead of masking the skip.
+  - **Progress**: COMPLETE.
 
 ---
 
-## Verification evidence (2026-11-04)
+## Verified and intentionally skipped (already working)
 
-| Command | Result | Evidence |
-|---------|--------|----------|
-| `build-agents.py --check` | PASS — in sync, one primary, orchestrator subagent | `.ufme/evidence/agents-test.json` |
-| `python3 tests/agents/run.py` | 9 passed, 0 failed | `.ufme/evidence/agents-test.json` |
-| `python3 tests/quality/run.py` | 9 passed, 0 failed | `.ufme/evidence/quality-test.json` |
-| `python3 tests/profiles/run.py` | 15 passed, 0 failed | `.ufme/evidence/profiles-test.json` |
-| `python3 tests/context/run.py` | 11 passed, 0 failed | `.ufme/evidence/context-test.json` |
-| `node tests/visual/run.js` | 9 passed, 0 failed | `.ufme/evidence/visual-test.json` |
-| `bash tests/install/run.sh` | 27 passed, 0 failed | `.ufme/evidence/install-test.json` |
-| `python3 tests/auditor/run.py` | 9 passed, 0 failed | `.ufme/evidence/auditor-test.json` |
-| `npm test` | exit 0 — all suites in one command | `/tmp/opencode/npm-test2.log` |
-| `self-improve.py` | 262 PASS, 0 FAIL | `.ufme/evidence/self-improve-summary.json` |
-| `npm run test:browser -- http://localhost:5173` | PASS (Chromium, real Selenium run) | `.ufme/evidence/browser-results.json` |
+- Six-agent topology (one primary + orchestrator subagent) — `tests/agents/run.py` (9 PASS).
+- Quality report atomic writes, timing, browser PASS/FAIL/BLOCKED/timeout — `tests/quality/run.py`.
+- Context budget enforcement and DECISIONS rotation — `tests/context/run.py`.
+- Seed-memory preservation, repeat-install merging, missing-source failure — `tests/install/run.sh`.
+- Browser abstraction and security flag checks — `tests/browser/*`.
+- Full 262-check `self-improve.py` sweep.
 
-## Remaining limitations
+## Honest limitations
 
-- Real browser audit checks require a locally installed Chromium/Firefox; without one they report `BLOCKED`, never a fake pass.
-- Lighthouse and axe thresholds default to permissive values (`minPerfScore=0`, `maxA11yViolations=0`) and are set per project via flags/`UFME_*` env vars.
-- The autonomous profile's 12-slot ceiling allows parallel subagents, but the current OpenCode setup runs one model session at a time; enforcement validates the declared set rather than spawning 12 live sessions.
-- Live model-to-model delegation is not exercised in CI; agent contracts are tested structurally and through the real deterministic scripts.
-
-## Verification commands
-
-```bash
-python3 universal-frontend-master-source/scripts/build-agents.py --check
-python3 universal-frontend-master-source/scripts/self-improve.py
-npm test
-python3 tests/quality/run.py
-python3 tests/profiles/run.py
-python3 tests/context/run.py
-python3 tests/agents/run.py
-python3 tests/auditor/run.py
-node tests/visual/run.js
-bash tests/install/run.sh
-npm run test:browser -- http://localhost:5173
-```
+- The CI visual baseline is seeded from the current build in the same run, so CI validates
+  the mechanics (baseline vs. current, pixelmatch, gate wiring), not cross-run pixel drift.
+  Cross-run regression needs a committed `.ufme/evidence/baseline` in the consuming project.
+- Lighthouse thresholds default to 0 (report scores, no hard minimum) unless
+  `UFME_PERF_MIN_SCORE` is set; the gate still fails on invalid evidence.
+- The untracked local fixture `prototypes/Portfolio Prototype/` has 2 slop findings; it is
+  gitignored and absent from CI checkouts, so it does not affect the gate.
