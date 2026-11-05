@@ -39,8 +39,7 @@ jobs:
           bash "$PROFILES" --enforce standard \
             --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor
           bash "$PROFILES" --enforce advanced \
-            --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor,ufme-orchestrator \
-            --parallel
+            --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor,ufme-orchestrator
           bash "$PROFILES" --enforce autonomous \
             --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor,ufme-orchestrator \
             --parallel
@@ -84,7 +83,7 @@ jobs:
           done
           npm run test:browser http://localhost:5173
           node universal-frontend-master-source/scripts/audit-a11y.js \
-            http://localhost:5173 "$UFME_EVIDENCE_DIR/a11y-results.json"
+            http://localhost:5173
 
       - name: Cross-commit visual regression (base vs HEAD)
         run: |
