@@ -68,10 +68,13 @@ const bin = process.env.BIN;
   if (engine === 'firefox') {
     const firefox = require('selenium-webdriver/firefox');
     options = new firefox.Options().addArguments('-headless');
+    const ffExtra = (process.env.UFME_FIREFOX_FLAGS || '').split(/\s+/).filter(Boolean);
+    if (ffExtra.length) options.addArguments(...ffExtra);
     if (bin) options.setBinary(bin);
   } else {
     const chrome = require('selenium-webdriver/chrome');
     options = new chrome.Options();
+    if (bin) process.env.CHROME_BIN = bin;
     const extra = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
     options.addArguments('--headless=new', '--disable-dev-shm-usage', '--disable-gpu', ...extra);
   }

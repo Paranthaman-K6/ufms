@@ -119,6 +119,62 @@ const POLICY = {
       addCheck('screenshot:all', 'FAIL', e.message);
     }
 
+    // 3b. Section screenshot capture (when --sections provided).
+    // Tests valid selectors, missing selectors, multiple sections, viewport
+    // sizes, image integrity. Section failures are recorded as FAIL entries
+    // rather than silently swallowed.
+    const sectionSelectors = screenshot.sectionSelectors();
+    if (sectionSelectors.length > 0) {
+      try {
+        const sectionResults = [];
+        const sectionViewports = ['mobile', 'desktop'];
+        for (const selector of sectionSelectors) {
+          for (const vp of sectionViewports) {
+            try {
+              const r = await screenshot.captureSection(
+                browser, screenshotDir, 'home-section', selector, vp, 'light'
+              );
+              sectionResults.push(r);
+              results.screenshots.push(r);
+              addCheck(`screenshot:section:${r.selector}@${r.viewport}`, 'PASS', `${r.size} bytes`);
+            } catch (e) {
+              sectionResults.push({ selector, viewport: vp, status: 'FAIL', error: e.message });
+              addCheck(`screenshot:section:${selector}@${vp}`, 'FAIL', e.message);
+            }
+          }
+        }
+        const sectionFails = sectionResults.filter((s) => s.status === 'FAIL');
+        if (sectionFails.length > 0) {
+          addCheck('screenshot:sections', 'FAIL',
+            `${sectionFails.length} section capture(s) failed: ` +
+            sectionFails.map((f) => `${f.selector}@${f.viewport}: ${f.error}`).join('; '));
+        } else {
+          addCheck('screenshot:sections', 'PASS',
+            `${sectionResults.length} section capture(s) across ` +
+            `${new Set(sectionResults.map((s) => s.selector)).size} selector(s), ` +
+            `${sectionViewports.length} viewport(s)`);
+        }
+        // Verify every section screenshot file is a non-empty PNG.
+        const fs = require('fs');
+        for (const s of sectionResults) {
+          if (s.status === 'FAIL') continue;
+          const buf = fs.readFileSync(s.file);
+          const isPng = buf.length >= 8 && buf.subarray(0, 8).equals(
+            Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+          if (!isPng || buf.length === 0) {
+            addCheck(`screenshot:integrity:${path.basename(s.file)}`, 'FAIL', 'not a valid PNG');
+          } else {
+            addCheck(`screenshot:integrity:${path.basename(s.file)}`, 'PASS', `${buf.length} bytes`);
+          }
+        }
+      } catch (e) {
+        results.errors.push(`section screenshot capture failed: ${e.message}`);
+        addCheck('screenshot:sections', 'FAIL', e.message);
+      }
+    } else {
+      addCheck('screenshot:sections', 'SKIPPED', 'no --sections selectors provided');
+    }
+
     // 4. Console errors (policy: warning)
     results.consoleErrors = await browser.collectConsoleErrors();
     if (results.consoleErrors.length > 0) {

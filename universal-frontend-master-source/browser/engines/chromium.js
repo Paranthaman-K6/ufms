@@ -132,9 +132,13 @@ async function collectEvents(driver) {
 
 async function launchChromiumWithNetwork(binary) {
   const o = new chrome.Options();
-  // setBinary() is not available on Chrome Options in selenium-webdriver v4.
-  // Chrome locates its binary automatically via the CHROME_BIN env var or
-  // system PATH. Do not call setBinary() to avoid incompatibility.
+  // selenium-webdriver v4 Chrome Options has no setBinary(); the binary is
+  // located via the CHROME_BIN environment variable or system PATH. When an
+  // explicit binary is supplied (e.g. from CHROMIUM_BIN or a --chrome-bin
+  // flag), pin it via CHROME_BIN so Selenium Manager uses that exact build.
+  if (binary) {
+    process.env.CHROME_BIN = binary;
+  }
   // UFME_CHROME_FLAGS lets a runner add flags the environment needs, e.g.
   // CI containers that require --no-sandbox. Sandboxing stays on by default.
   const extraFlags = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);

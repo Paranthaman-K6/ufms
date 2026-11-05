@@ -1,7 +1,7 @@
 {
   "name": "universal-frontend-master",
   "version": "1.0.0",
-  "description": "Build, extend, integrate, audit, and continuously improve complete responsive websites from a brief, repository, backend, API documentation, screenshot, or reference site. Cross-platform multi-agent frontend engineering with native Selenium WebDriver browser testing, visual auditing, accessibility, performance, security, and production readiness (Arch-aware, but runs anywhere npm does).",
+  "description": "Build, extend, integrate, audit, and continuously improve complete responsive websites from a brief, repository, backend, API documentation, screenshot, or reference site. Arch Linux-native multi-agent frontend engineering with native Selenium WebDriver browser testing, visual auditing, accessibility, performance, security, and production readiness.",
   "license": "MIT",
   "directories": {
     "test": "tests"

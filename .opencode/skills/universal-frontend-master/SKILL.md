@@ -27,13 +27,15 @@ Use `@universal-frontend-master` when the task is building or improving a respon
 
 | Need | @agent |
 |------|--------|
-| Start session, plan, acceptance checks, memory | `@universal-frontend-master` (entry) → `@ufme-orchestrator` |
+| Start session, plan, acceptance checks, memory | `@universal-frontend-master` (entry) |
+| Profile allows orchestrator (advanced/autonomous) → specialist coordination | `@ufme-orchestrator` |
+| Profile without orchestrator (lite/standard) → direct specialist delegation | `@ufme-designer`, `@ufme-builder`, `@ufme-backend-analyst`, `@ufme-auditor` |
 | Research, product brief, design system, critique | `@ufme-designer` |
 | Backend contract discovery, API map, auth map | `@ufme-backend-analyst` |
 | Build, integrate, test the UI and API layer | `@ufme-builder` |
 | Audit loop — visual, a11y, perf, security from script JSON | `@ufme-auditor` |
 
-Invoke `@universal-frontend-master` to start; it coordinates the other agents.
+Invoke `@universal-frontend-master` to start; it delegates according to the active profile.
 
 ## Scripts
 
@@ -65,7 +67,7 @@ Run scripts from `universal-frontend-master-source/scripts/`.
 
 ## Profiles
 
-Run any time: `/profile/lite`, `/profile/standard` (default), `/profile/advanced`, `/profile/autonomous`. Conditional chain: skip `@ufme-backend-analyst` when no backend is detected; skip `@ufme-designer` for single-page or small edit tasks; `lite` = orchestrator + builder + script audits only.
+Run any time: `/profile/lite`, `/profile/standard` (default), `/profile/advanced`, `/profile/autonomous`. Conditional chain: skip `@ufme-backend-analyst` when no backend is detected; skip `@ufme-designer` for single-page or small edit tasks; `lite` = primary + builder only (orchestrator is not available in lite).
 
 ## Anti-generic design
 
