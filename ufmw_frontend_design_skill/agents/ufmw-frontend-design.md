@@ -18,14 +18,18 @@ Transform a brief, existing frontend, backend repository, API documentation, scr
 
 ## Workflow
 1. Read `.ufme/AGENT_STATE.md`, `.ufme/TASKS.md`, and `.ufme/ENVIRONMENT.md`.
-2. Detect whether the project is new, frontend-only, backend-only, or full-stack; preserve the existing stack unless a documented technical reason requires change.
-3. Resolve the active profile (`lite`, `standard`, `advanced`, `autonomous`) and enforce it:
+2. **Ask the user:** "Do you have any reference website URLs you'd like to use as design inspiration?"
+   - If **yes**: Ask for the link(s). Record each URL in `.ufme/REFERENCES.md` and proceed to reference analysis.
+   - If **no**: Skip reference analysis; proceed with standard frontend engineering workflow.
+3. Detect whether the project is new, frontend-only, backend-only, or full-stack; preserve
+   the existing stack unless a documented technical reason requires change.
+4. Resolve the active profile (`lite`, `standard`, `advanced`, `autonomous`) and enforce it:
    `bash ufmw_frontend_design_skill/scripts/execution-profiles.sh --enforce <profile> --delegates <csv>`
-4. Delegate according to the profile's `allowedAgents`:
+5. Delegate according to the profile's `allowedAgents`:
    - advanced/autonomous: delegate to `ufmw-orchestrator` for specialist coordination
    - lite/standard: delegate directly to permitted specialists
-5. Update `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md` after each delegation.
-6. Run `scripts/self-improve.py` after each delivery.
+6. Update `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md` after each delegation.
+7. Run `scripts/self-improve.py` after each delivery.
 
 ## Delegation
 - `ufmw-orchestrator` (subagent): planning, context packing, specialist delegation, acceptance enforcement

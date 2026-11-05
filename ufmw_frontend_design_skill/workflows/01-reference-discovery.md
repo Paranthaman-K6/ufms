@@ -8,18 +8,20 @@
 Classify the project, detect the existing stack, and identify reference URLs for design inspiration.
 
 ## Steps
-1. Read `.ufme/AGENT_STATE.md` and `.ufme/ENVIRONMENT.md`.
-2. Run `scripts/detect-stack.sh` to detect frontend and backend frameworks/tools.
-3. Run `scripts/detect-platform.sh` to record host OS/compatibility (Arch Linux required).
-4. Create `.ufme/PROJECT_SPEC.md` from the brief, repo, screenshot, or reference site.
-5. Create `.ufme/REFERENCES.md` to catalog reference URLs.
+1. **Ask the user:** "Do you have any reference website URLs you'd like to use as design inspiration?"
+   - If **yes**: Ask for the link(s). Record each URL in `.ufme/REFERENCES.md`.
+   - If **no**: Skip reference analysis; proceed with standard frontend engineering workflow.
+2. Read `.ufme/AGENT_STATE.md` and `.ufme/ENVIRONMENT.md`.
+3. Run `scripts/detect-stack.sh` to detect frontend and backend frameworks/tools.
+4. Run `scripts/detect-platform.sh` to record host OS/compatibility (Arch Linux required).
+5. Create `.ufme/PROJECT_SPEC.md` from the brief, repo, screenshot, or reference site.
 6. Record classification: new, frontend-only, backend-only, or full-stack.
 7. Update `.ufme/TASKS.md` (T-01) and `.ufme/AGENT_STATE.md`.
 8. Delegate next: reference analysis (if references exist) or backend intelligence.
 
 ## Output
 - `.ufme/PROJECT_SPEC.md`
-- `.ufme/REFERENCES.md`
+- `.ufme/REFERENCES.md` (only if user provided reference URLs)
 - `.ufme/TASKS.md` (T-01 marked COMPLETE)
 
 ---
