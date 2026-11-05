@@ -34,6 +34,19 @@ async function launchBrowser(name = 'chromium') {
   return driver;
 }
 
+async function getSessionInfo() {
+  if (!driver) return null;
+  let caps = {};
+  try { caps = await driver.getCapabilities(); } catch (e) { caps = {}; }
+  const get = (key) => (typeof caps.get === 'function' ? caps.get(key) : caps[key]);
+  return {
+    engine: engineName,
+    browserName: get('browserName') || null,
+    browserVersion: get('browserVersion') || get('version') || null,
+    platformName: get('platformName') || null,
+  };
+}
+
 async function goto(url) {
   if (!driver) throw new Error('Browser not launched. Call launchBrowser() first.');
   await driver.get(url);
@@ -150,5 +163,5 @@ module.exports = {
   launchBrowser, goto, click, type, submit, waitForSelector,
   screenshot, setViewport, setWindowSize, executeScript, collectConsoleErrors,
   collectFailedRequests, getNetworkResult, validateLinks, isConsoleSupported,
-  close, screenshotElement, VIEWPORTS,
+  getSessionInfo, close, screenshotElement, VIEWPORTS,
 };

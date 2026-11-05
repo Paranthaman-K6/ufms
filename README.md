@@ -31,7 +31,7 @@ It never invents endpoints, never forces a framework change without justificatio
 
 ## What you get
 
-- **6 agents** — `universal-frontend-master` (primary entry point), `ufme-orchestrator` (primary orchestrator), and 4 specialist subagents, invokable with `@agent-name`.
+- **6 agents** — `universal-frontend-master` (the only primary entry point), `ufme-orchestrator` (delegated orchestration subagent), and 4 specialist subagents, invokable with `@agent-name`.
 - **4 execution profiles as sub-commands** — `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous`, with a conditional agent chain (skip backend when no backend exists, skip designer for single-page edits).
 - **Persistent memory** — `.ufme/` artifacts per project; shared cross-project data in `~/.config/ufme/`.
 - **Native browser testing** — Selenium WebDriver for Chromium and Firefox, headless by default, screenshots at mobile/tablet/laptop/desktop.
@@ -75,7 +75,7 @@ flowchart LR
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Entry point; delegates to orchestrator | `@universal-frontend-master` |
-| `ufme-orchestrator` | primary | Plan, delegation, task state, acceptance, conflict resolution | N/A (internal) |
+| `ufme-orchestrator` | subagent | Plan, profile enforcement, context packing, delegation, acceptance | N/A (internal) |
 | `ufme-designer` | subagent | Research, PRD, sitemap, design system, critique | `@ufme-designer` |
 | `ufme-backend-analyst` | subagent | API map, auth map, capabilities, error handling | `@ufme-backend-analyst` |
 | `ufme-builder` | subagent | Architecture, pages, components, API client, integration | `@ufme-builder` |
@@ -85,10 +85,10 @@ flowchart LR
 
 Run any time in any project:
 
-- `/profile/lite` — orchestrator + builder + script audits only (small edits, quick prototypes)
-- `/profile/standard` — balanced for typical frontend projects (default)
-- `/profile/advanced` — full agent set for complex projects with full audits
-- `/profile/autonomous` — unattended runs with exhaustive verification
+- `/profile/lite` — primary + builder (1 concurrent delegate; small edits, quick prototypes)
+- `/profile/standard` — balanced for typical frontend projects, including backend integration and audit (default)
+- `/profile/advanced` — all six roles for complex projects with full audits
+- `/profile/autonomous` — unattended runs with exhaustive verification and every specialist available
 
 Configs live in `universal-frontend-master-source/profiles/`.
 
@@ -108,7 +108,7 @@ Slash commands to nudge an active session at a specific pass:
 ### Requirements
 
 - [OpenCode](https://opencode.ai)
-- Node.js 18+ and npm
+- Node.js `^22.23.4`, `^24.22.1`, or `>=26.12.1` (`.nvmrc` pins 24) and npm
 - Python 3.9+
 - Chromium and/or Firefox (Selenium Manager fetches matching drivers)
 
@@ -129,11 +129,33 @@ INSTALL_DIR=/path/to/project \
 
 Reproducible installs are supported: pin a tag with `UFME_TAG` and verify the downloaded tarball with `UFME_TARBALL_SHA256`.
 
+For offline, CI, or local testing, install from a checkout without network access:
+
+```bash
+UFME_SOURCE_DIR="$PWD" UFME_SKIP_NPM=1 bash install.sh
+```
+
+`UFME_SKIP_NPM=1` leaves the target `package.json` untouched (the tests use it). Repeat installs merge into existing directories instead of nesting them and never overwrite project memory.
+
 The installer:
 1. Installs agents, skill, commands, and `opencode.json` **globally** under `~/.config/opencode/` (user scope — available to every project).
 2. Stores cross-project shared data in `~/.config/ufme/` (library registry, evidence).
 3. Seeds project-local `.ufme/` memory templates into the target project (never overwrites existing).
 4. Copies `universal-frontend-master-source/` into the target project.
+5. Installs the project-local audit dependency set (`selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`, `pngjs`, `pixelmatch`) when the target has a `package.json`.
+
+The installer also copies slash commands globally (`.opencode/commands/ufme/`) and project-locally so `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous` and `/ufme/*` are available in every project.
+
+### Uninstall
+
+```bash
+INSTALL_DIR=/path/to/project bash uninstall.sh            # remove project-local agents/skill/commands/source
+bash uninstall.sh --global-only                            # remove global agents/skill/commands
+bash uninstall.sh --project-only                            # remove project-local only
+```
+
+`uninstall.sh` is idempotent and removes only UFME-managed paths. It preserves project memory (`.ufme/`), `opencode.json`, `package.json`, dependencies and every other user file.
+
 
 ### Run the skill in any project
 
@@ -225,22 +247,28 @@ npm test
 | `build-agents.py` | Python | Generate agent definition files from source specs |
 | `seed-project-memory.py` | Python | Seed missing `.ufme/` project files from templates without overwriting existing data |
 | `install.sh` | Bash | User-scope install (all projects), cross-project data in `~/.config/ufme/` |
+| `uninstall.sh` | Bash | Idempotent scoped uninstall: removes managed agents, skill, commands and source tree; preserves `.ufme/` memory, `opencode.json`, `package.json` |
 
-Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Selenium is the only runtime dependency.
+Python handles parsing and JSON work without `jq` or extra packages; Bash stays for thin orchestration; Node scripts drive browser-adjacent tooling (snapshot, visual diff, axe-core). Runtime dependencies are `selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`, `pngjs` and `pixelmatch` (project-local, installed by `install.sh`).
 
 ## Testing and evidence
 
 ```bash
-npm test                    # browser validation + security + regression
-npm run test:browser        # real Selenium run (Chromium/Firefox)
+npm ci                      # pngjs + pixelmatch power visual diffs
+npm test                    # every unit/integration suite below
+npm run test:browser -- http://localhost:5173   # real Selenium run
 python3 universal-frontend-master-source/scripts/self-improve.py
-python3 universal-frontend-master-source/scripts/quality-check.py
+python3 universal-frontend-master-source/scripts/quality-check.py --target http://localhost:5173
 ```
 
-- `npm test` — browser abstraction validation, security flags, regression suite.
-- `test:browser` — real browser launch, navigation, console/network capture, screenshots; skipped cleanly when no browser is installed.
-- `self-improve.py` — checks every core doc, agent frontmatter, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
-- `quality-check.py` — runs real checks and writes `.ufme/evidence/quality-report.json`; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons.
+- `npm test` — browser abstraction, security flags, regression, visual diff, agent structure, quality gate, profiles, context packs, auditor contract, and clean install.
+- `test:*` — run one suite: `test:visual`, `test:visual-cross`, `test:agents`, `test:quality`, `test:profiles`, `test:context`, `test:auditor`, `test:install`, `test:uninstall`, `test:perf`.
+- `test:browser` — real browser launch, navigation, console/network capture, screenshots; BLOCKED (not silently skipped) when no browser is installed.
+- `self-improve.py` — checks every core doc, agent frontmatter, profile, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
+- `quality-check.py` — runs type/lint/test/build/browser/axe/Lighthouse/slop/visual/dependency checks and writes `.ufme/evidence/quality-report.json`; thresholds are flags or `UFME_*` env vars; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons. `--only audit` treats a11y, perf, slop and visual as **required**: a skipped required check makes the gate BLOCKED, and a check that exits 0 without fresh, valid evidence is FAIL (never PASS). Use `--require <ids|preset>` to apply the same rule to other checks.
+- Visual regression: `visual-diff.js` detects changed, missing-baseline, missing-current and size-mismatched screenshots. Ordinary runs never modify the baseline; a missing baseline yields `BASELINE_MISSING` (exit 4) instead of silently seeding one. `--create-baseline` creates one only when absent; `--update-baseline` explicitly replaces it. The quality gate reports BLOCKED when a required visual check has no baseline.
+- `execution-profiles.sh --enforce` — validates the proposed delegation against the profile's `primaryAgent`/`allowedAgents`/`maxConcurrentDelegates`, enforcing sequential role availability and the parallel concurrency cap; records `.ufme/evidence/profile-enforcement.json`.
+- `ctx-pack.py --agent <role> --task "..."` — writes a task-aware, token-budgeted brief to `.ufme/evidence/ctx-<role>.md`.
 
 Evidence is written to `.ufme/evidence/` so a reviewer can inspect what actually ran.
 
@@ -254,7 +282,7 @@ Evidence is written to `.ufme/evidence/` so a reviewer can inspect what actually
 | `npm publish` | Denied |
 | Dependencies | Project-local only |
 | Containers, Playwright | Not used |
-| Browser sandbox | Preserved; never `--no-sandbox` |
+| Browser sandbox | Preserved by default; `UFME_CHROME_FLAGS`/`UFME_FIREFOX_FLAGS` (e.g. CI `--no-sandbox`) are an explicit opt-in |
 | Missing system dependency | Reported with exact setup command; work marked BLOCKED |
 
 See `opencode.json` and `universal-frontend-master-source/core/SAFETY.md`.

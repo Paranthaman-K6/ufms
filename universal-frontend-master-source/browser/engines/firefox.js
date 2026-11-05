@@ -124,7 +124,8 @@ function normalizeBidiEvent(ev) {
 async function launchFirefoxWithNetwork(binary) {
   const o = new firefox.Options();
   if (binary) o.setBinary(binary);
-  o.addArguments('-headless');
+  const extraFlags = (process.env.UFME_FIREFOX_FLAGS || '').split(/\s+/).filter(Boolean);
+  o.addArguments('-headless', ...extraFlags);
   firefoxLoggingPrefs(o);
   const driver = await new Builder()
     .forBrowser('firefox')

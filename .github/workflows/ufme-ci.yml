@@ -6,32 +6,140 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  UFME_EVIDENCE_DIR: ${{ github.workspace }}/.ufme/evidence
+  UFME_CHROME_FLAGS: "--headless=new --no-sandbox --disable-dev-shm-usage"
+  UFME_LH_MIN_SCORE: "80"
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - name: Checkout (full history for cross-commit comparison)
+        uses: actions/checkout@v5
         with:
-          node-version: 20
+          fetch-depth: 0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Profile enforcement
+        run: |
+          set -euo pipefail
+          PROFILES=universal-frontend-master-source/scripts/execution-profiles.sh
+          bash "$PROFILES" --enforce lite \
+            --delegates ufme-builder
+          bash "$PROFILES" --enforce standard \
+            --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor
+          bash "$PROFILES" --enforce advanced \
+            --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor,ufme-orchestrator
+          bash "$PROFILES" --enforce autonomous \
+            --delegates ufme-designer,ufme-builder,ufme-backend-analyst,ufme-auditor,ufme-orchestrator \
+            --parallel
 
       - name: Test
         run: npm test
 
-      - name: Build prototype and run browser tests
+      - name: Installer and uninstaller smoke test
         run: |
+          set -euo pipefail
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/xdg" \
+            UFME_USER_CONFIG="$TMP/data" UFME_SOURCE_DIR="$PWD" \
+            UFME_SKIP_NPM=1 INSTALL_DIR="$TMP/project" \
+            bash install.sh
+          test -f "$TMP/xdg/opencode/agents/ufme-builder.md"
+          test -f "$TMP/xdg/opencode/commands/ufme/audit.md"
+          test -f "$TMP/project/universal-frontend-master-source/scripts/quality-check.py"
+          HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/xdg" INSTALL_DIR="$TMP/project" \
+            bash uninstall.sh
+          test ! -e "$TMP/xdg/opencode/agents/ufme-builder.md"
+          test ! -e "$TMP/project/universal-frontend-master-source"
+          test -f "$TMP/project/.ufme/TASKS.md"
+
+      - name: Dependency security
+        run: npm audit --audit-level=high
+
+      - name: Browser and accessibility audit
+        run: |
+          set -euo pipefail
+          mkdir -p "$UFME_EVIDENCE_DIR"
+          bash universal-frontend-master-source/scripts/check-native-browser.sh
           python3 universal-frontend-master-source/scripts/generate-prototype.py
           python3 -m http.server 5173 --directory prototypes &
           SERVER_PID=$!
-          sleep 2
-          npm run test:browser http://localhost:5173 || true
-          kill $SERVER_PID || true
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:5173 && break
+            sleep 1
+          done
+          npm run test:browser http://localhost:5173
+          node universal-frontend-master-source/scripts/audit-a11y.js \
+            http://localhost:5173
+
+      - name: Cross-commit visual regression (base vs HEAD)
+        run: |
+          set -euo pipefail
+          BASE_DIR="$RUNNER_TEMP/ufme-base"
+          git worktree add --detach "$BASE_DIR" origin/main
+          # Seed the base checkout with the same project memory (the prototype
+          # generator reads .ufme/, which is gitignored).
+          python3 universal-frontend-master-source/scripts/seed-project-memory.py "$BASE_DIR"
+          python3 "$BASE_DIR/universal-frontend-master-source/scripts/generate-prototype.py"
+          python3 universal-frontend-master-source/scripts/generate-prototype.py
+
+          python3 -m http.server 5174 --directory "$BASE_DIR/prototypes" &
+          BASE_PID=$!
+          python3 -m http.server 5173 --directory prototypes &
+          HEAD_PID=$!
+          trap 'kill "$BASE_PID" "$HEAD_PID" 2>/dev/null || true' EXIT
+          for port in 5174 5173; do
+            for _ in $(seq 1 30); do
+              curl -fsS -o /dev/null "http://localhost:$port" && break
+              sleep 1
+            done
+          done
+
+          # Capture the base commit with the HEAD browser runner so only the
+          # served page content differs between the two sides. Clean first so
+          # screenshots from an earlier step (test:browser) cannot mix in.
+          rm -rf "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
+          mkdir -p "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
+          node universal-frontend-master-source/browser/run.js \
+            http://localhost:5174 "$UFME_EVIDENCE_DIR/baseline" \
+            "$UFME_EVIDENCE_DIR/browser-base.json" --screenshots-only
+          node universal-frontend-master-source/browser/run.js \
+            http://localhost:5173 "$UFME_EVIDENCE_DIR/screenshots" \
+            "$UFME_EVIDENCE_DIR/browser-head.json" --screenshots-only
+
+          node universal-frontend-master-source/scripts/visual-diff.js \
+            --baseline "$UFME_EVIDENCE_DIR/baseline" \
+            --current "$UFME_EVIDENCE_DIR/screenshots" \
+            --out "$UFME_EVIDENCE_DIR/visual-diff.json"
+
+      - name: Lighthouse performance audit
+        run: |
+          set -euo pipefail
+          python3 -m http.server 5173 --directory prototypes &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:5173 && break
+            sleep 1
+          done
+          bash universal-frontend-master-source/scripts/audit-perf.sh http://localhost:5173
+          UFME_SLOP_PATH=prototypes \
+            python3 universal-frontend-master-source/scripts/quality-check.py \
+              --only audit --require audit --target http://localhost:5173 \
+              --report "$UFME_EVIDENCE_DIR/quality-report.json"
 
       - name: Build agents (check)
         run: python3 universal-frontend-master-source/scripts/build-agents.py --check
@@ -55,9 +163,9 @@ jobs:
 
               # Prove an existing user file is preserved by a second seed.
               tasks = memory / "TASKS.md"
-              tasks.write_text("# user-owned task state\\n", encoding="utf-8")
+              tasks.write_text("# user-owned task state\n", encoding="utf-8")
               subprocess.run(["python3", str(script), str(target)], check=True)
-              assert tasks.read_text(encoding="utf-8") == "# user-owned task state\\n"
+              assert tasks.read_text(encoding="utf-8") == "# user-owned task state\n"
           PY
 
       - name: Seed project runtime memory for self-audit
@@ -65,3 +173,14 @@ jobs:
 
       - name: Self-improve
         run: python3 universal-frontend-master-source/scripts/self-improve.py
+
+      - name: Upload evidence (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ufme-evidence-${{ github.sha }}
+          path: |
+            .ufme/evidence/
+            .ufme/SELF_IMPROVEMENT.md
+          if-no-files-found: warn
+          retention-days: 14

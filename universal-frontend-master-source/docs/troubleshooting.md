@@ -12,10 +12,13 @@ If it reports a missing shared library (e.g. `libnss3.so`), note the package and
 Browser testing stays BLOCKED until the dependency is confirmed installed. Non-browser work
 continues.
 
-## selenium-webdriver not installed
+## Audit dependencies not installed
+The quality gate reports SKIPPED/BLOCKED when a dependency is missing. Install the full
+project-local set:
 ```
-npm install -D selenium-webdriver
+npm install -D selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch
 ```
+`install.sh` does this automatically when the target has a `package.json`.
 
 ## Selenium Manager cannot resolve a driver
 Record the diagnostic in `.ufme/ENVIRONMENT.md` and prompt the user with a safe remediation

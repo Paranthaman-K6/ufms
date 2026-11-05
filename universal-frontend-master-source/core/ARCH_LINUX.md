@@ -27,4 +27,5 @@ If Chromium or Firefox headless launch fails (e.g. missing `libnss3.so`, `libatk
 ## Portability
 
 The skill is Arch Linux-first but the same scripts, agents, and Selenium abstraction work on
-any Linux with Node.js, npm, a system browser, and the `selenium-webdriver` package.
+any Linux or macOS with Node.js `^22.23.4 || ^24.22.1 || >=26.12.1`, npm, a system browser,
+and the project-local audit dependencies.

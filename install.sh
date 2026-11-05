@@ -12,6 +12,8 @@
 #   UFME_USER_CONFIG=/custom/path                        # override cross-project data dir
 #   UFME_TAG=v1.2.0                                      # pin install to a release tag
 #   UFME_TARBALL_SHA256=<sha256>                         # verify tarball checksum, abort on mismatch
+#   UFME_SOURCE_DIR=/path/to/checkout                     # install from a local checkout (offline/CI)
+#   UFME_SKIP_NPM=1                                      # skip the project-local npm install step
 #
 # Global install (user scope — available to all projects):
 #   ~/.config/opencode/agents/*.md              # agent definitions
@@ -26,7 +28,7 @@
 #   universal-frontend-master-source/             # source tree (includes browser runner)
 #   .ufme/                                        # per-project memory templates (seeded only)
 #   opencode.json                                 # permission policy (merged)
-#   package.json (dev dep)                        # selenium-webdriver, if npm + package.json exist
+#   package.json (dev dep)                        # full audit dependency set, if npm + package.json exist
 set -euo pipefail
 
 REPO="Paranthaman-K6/ufms"
@@ -34,12 +36,24 @@ BRANCH="main"
 TARGET="${INSTALL_DIR:-$PWD}"
 UFME_USER_CONFIG="${UFME_USER_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ufme}"
 OPENCODE_USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-NPM_HINT='npm i -D selenium-webdriver'
+NPM_DEPS=(selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch)
+NPM_HINT="npm i -D ${NPM_DEPS[*]}"
 
 log() { echo "[ufme-install] $*"; }
 
-command -v curl >/dev/null 2>&1 || { log "ERROR: curl is required"; exit 1; }
-command -v tar  >/dev/null 2>&1 || { log "ERROR: tar is required"; exit 1; }
+# Cross-platform helpers: macOS ships shasum, minimal Linux images may only have openssl.
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v openssl >/dev/null 2>&1; then
+    openssl dgst -sha256 "$1" | awk '{print $NF}'
+  else
+    log "ERROR: no sha256 tool found (need sha256sum, shasum or openssl)"
+    return 1
+  fi
+}
 
 log "Installing Universal Frontend Master skill"
 log "Target project: $TARGET"
@@ -52,37 +66,44 @@ log "Cross-project data dir: $UFME_USER_CONFIG"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-if [ -n "${UFME_TAG:-}" ]; then
-  TARBALL="https://github.com/${REPO}/archive/refs/tags/${UFME_TAG}.tar.gz"
-  REF_LABEL="tag ${UFME_TAG}"
+if [ -n "${UFME_SOURCE_DIR:-}" ]; then
+  SRC="$(cd "$UFME_SOURCE_DIR" && pwd)"
+  log "Installing from local source: $SRC"
 else
-  TARBALL="https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
-  REF_LABEL="branch ${BRANCH}"
-fi
+  command -v curl >/dev/null 2>&1 || { log "ERROR: curl is required"; exit 1; }
+  command -v tar  >/dev/null 2>&1 || { log "ERROR: tar is required"; exit 1; }
 
-log "Downloading $REPO ($REF_LABEL)..."
-curl -fsSL "$TARBALL" -o "$TMP/repo.tar.gz"
-
-# Optional checksum verification (UFME_TARBALL_SHA256) — abort on mismatch.
-if [ -n "${UFME_TARBALL_SHA256:-}" ]; then
-  EXPECTED="${UFME_TARBALL_SHA256//[[:space:]]/}"
-  EXPECTED="${EXPECTED,,}"
-  ACTUAL="$(sha256sum "$TMP/repo.tar.gz" | awk '{print $1}')"
-  if [ "$ACTUAL" != "$EXPECTED" ]; then
-    log "ERROR: tarball sha256 mismatch — aborting install."
-    log "  Expected: $EXPECTED"
-    log "  Actual:   $ACTUAL"
-    log "The downloaded archive may be truncated or tampered with. Nothing was installed."
-    exit 1
+  if [ -n "${UFME_TAG:-}" ]; then
+    TARBALL="https://github.com/${REPO}/archive/refs/tags/${UFME_TAG}.tar.gz"
+    REF_LABEL="tag ${UFME_TAG}"
+  else
+    TARBALL="https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
+    REF_LABEL="branch ${BRANCH}"
   fi
-  log "Tarball sha256 verified: $ACTUAL"
-fi
 
-tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
-# Top-level dir differs between branch archives (ufms-<branch>) and tag
-# archives (ufms-<tag>) — detect it instead of hardcoding.
-SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -print -quit)"
-[ -n "$SRC" ] || { log "ERROR: empty archive"; exit 1; }
+  log "Downloading $REPO ($REF_LABEL)..."
+  curl -fsSL "$TARBALL" -o "$TMP/repo.tar.gz"
+
+  # Optional checksum verification (UFME_TARBALL_SHA256) — abort on mismatch.
+  if [ -n "${UFME_TARBALL_SHA256:-}" ]; then
+    EXPECTED="$(printf '%s' "$UFME_TARBALL_SHA256" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+    ACTUAL="$(sha256_of "$TMP/repo.tar.gz")"
+    if [ "$ACTUAL" != "$EXPECTED" ]; then
+      log "ERROR: tarball sha256 mismatch — aborting install."
+      log "  Expected: $EXPECTED"
+      log "  Actual:   $ACTUAL"
+      log "The downloaded archive may be truncated or tampered with. Nothing was installed."
+      exit 1
+    fi
+    log "Tarball sha256 verified: $ACTUAL"
+  fi
+
+  tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
+  # Top-level dir differs between branch archives (ufms-<branch>) and tag
+  # archives (ufms-<tag>) — detect it instead of hardcoding.
+  SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d -print | sed -n '1p')"
+  [ -n "$SRC" ] || { log "ERROR: empty archive"; exit 1; }
+fi
 
 [ -d "$SRC/.opencode/skills/universal-frontend-master" ] || { log "ERROR: skill not found in archive"; exit 1; }
 
@@ -97,7 +118,11 @@ log "Installing skill globally to $OPENCODE_USER_CONFIG/skills/universal-fronten
 mkdir -p "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
 cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$OPENCODE_USER_CONFIG/skills/universal-frontend-master/"
 
-log "Installing global opencode.json (agent registry + default agent + commands) ..."
+log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
+mkdir -p "$OPENCODE_USER_CONFIG/commands"
+cp -R "$SRC/.opencode/commands/." "$OPENCODE_USER_CONFIG/commands/" 2>/dev/null || true
+
+log "Installing global opencode.json (default agent, commands, permissions) ..."
 GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
 
 # Preserve any existing user settings, but ensure our agents/commands/default_agent are present.
@@ -105,8 +130,8 @@ if [ -f "$GLOBAL_CONFIG" ]; then
   cp "$GLOBAL_CONFIG" "$GLOBAL_CONFIG.bak.$(date +%s)"
 fi
 
-# Build the global opencode.json from the archive's version as the base, then ensure
-# user-scoped agent references point to ~/.config/opencode/agents/*.md.
+# Build the global opencode.json from the archive's version as the base, preserve
+# existing user keys, and keep file-based agent discovery (no inline agent registry).
 python3 - "$GLOBAL_CONFIG" "$SRC/opencode.json" <<'PYEOF'
 import json, sys, os
 
@@ -116,27 +141,6 @@ archive_cfg_path = sys.argv[2]
 with open(archive_cfg_path) as f:
     archive_cfg = json.load(f)
 
-# Start from archive opencode.json, but remap agent prompt paths to global user dir.
-cfg = archive_cfg.get("agent", {})
-for agent_id, agent_def in cfg.items():
-    prompt = agent_def.get("prompt", "")
-    if prompt.startswith("{file:.opencode/agents/"):
-        agent_file = prompt.replace("{file:.opencode/agents/", "").rstrip("}")
-        agent_def["prompt"] = f"{{file:~/.config/opencode/agents/{agent_file}}}"
-
-# Ensure default_agent points to universal-frontend-master
-cfg_default = archive_cfg.get("default_agent", "universal-frontend-master")
-cfg = {"default_agent": cfg_default, "agent": cfg}
-
-# Merge commands from archive if any
-if "command" in archive_cfg:
-    cfg["command"] = archive_cfg["command"]
-
-# Preserve top-level permission rules from archive
-if "permission" in archive_cfg:
-    cfg["permission"] = archive_cfg["permission"]
-
-# Preserve existing user config keys (later write merges back)
 existing = {}
 if os.path.exists(global_path):
     try:
@@ -145,27 +149,29 @@ if os.path.exists(global_path):
     except Exception:
         existing = {}
 
-# Merge: archive-provided agents/commands win, but keep any user-only keys.
-if "agent" in existing:
-    # Keep existing user agents that aren't in our set
-    for aid, adef in existing["agent"].items():
-        if aid not in cfg["agent"]:
-            cfg["agent"][aid] = adef
-if "command" in existing:
-    for cid, cdef in existing["command"].items():
-        if cid not in cfg["command"]:
-            cfg["command"][cid] = cdef
-if "permission" in existing:
-    # Deep-merge permission sections
-    for section, rules in existing["permission"].items():
-        if section not in cfg["permission"]:
-            cfg["permission"][section] = rules
-        else:
-            if isinstance(rules, dict):
-                cfg["permission"][section].update(rules)
+cfg = dict(existing)
+# File-based agents live in ~/.config/opencode/agents, so no inline "agent" block.
+cfg.pop("agent", None)
+cfg.setdefault("$schema", archive_cfg.get("$schema", "https://opencode.ai/config.json"))
+cfg["default_agent"] = archive_cfg.get("default_agent", "universal-frontend-master")
+
+for key in ("command", "permission"):
+    if key not in archive_cfg:
+        continue
+    if isinstance(archive_cfg[key], dict) and isinstance(cfg.get(key), dict):
+        merged = dict(archive_cfg[key])
+        for name, value in cfg[key].items():
+            if isinstance(value, dict) and isinstance(merged.get(name), dict):
+                merged[name] = {**value, **merged[name]}
+            else:
+                merged.setdefault(name, value)
+        cfg[key] = merged
+    else:
+        cfg[key] = archive_cfg[key]
 
 with open(global_path, "w") as f:
     json.dump(cfg, f, indent=2)
+    f.write("\n")
 
 print(f"Wrote global opencode.json to {global_path}")
 PYEOF
@@ -185,11 +191,15 @@ fi
 # 4. Project-local install (target project — seed only, never overwrite)
 # ------------------------------------------------------------------
 log "Installing project-local files into $TARGET ..."
-mkdir -p "$TARGET/.opencode/skills" "$TARGET/.opencode/agents" "$TARGET/.ufme"
+mkdir -p "$TARGET/.opencode/skills/universal-frontend-master" \
+         "$TARGET/.opencode/agents" "$TARGET/.opencode/commands" "$TARGET/.ufme" \
+         "$TARGET/universal-frontend-master-source"
 
-cp -R "$SRC/.opencode/skills/universal-frontend-master" "$TARGET/.opencode/skills/" 2>/dev/null || true
+# Repeat installs merge into the existing directories instead of nesting them.
+cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$TARGET/.opencode/skills/universal-frontend-master/"
 cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
-cp -R "$SRC/universal-frontend-master-source" "$TARGET/"
+cp -R "$SRC/.opencode/commands/." "$TARGET/.opencode/commands/" 2>/dev/null || true
+cp -R "$SRC/universal-frontend-master-source/." "$TARGET/universal-frontend-master-source/"
 
 # Browser runner check — bundled browser automation lives in the source tree.
 if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
@@ -209,24 +219,24 @@ if [ ! -f "$TARGET/opencode.json" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 5. Project-local npm dependency (selenium-webdriver, best-effort)
+# 5. Project-local npm dependencies (full audit set, best-effort)
 # ------------------------------------------------------------------
-if [ -f "$TARGET/package.json" ]; then
+if [ -f "$TARGET/package.json" ] && [ -z "${UFME_SKIP_NPM:-}" ]; then
   if command -v npm >/dev/null 2>&1; then
-    log "Installing project-local dev dependency: $NPM_HINT ..."
-    if (cd "$TARGET" && npm install -D selenium-webdriver --loglevel=error >"$TMP/npm.log" 2>&1); then
-      log "selenium-webdriver installed as a dev dependency."
+    log "Installing project-local dev dependencies: $NPM_HINT ..."
+    if (cd "$TARGET" && npm install -D "${NPM_DEPS[@]}" --loglevel=error >"$TMP/npm.log" 2>&1); then
+      log "Audit dependencies installed: ${NPM_DEPS[*]}"
     else
-      log "WARNING: npm install failed. Install the browser dependency manually:"
+      log "WARNING: npm install failed. Install the browser/audit dependencies manually:"
       log "  cd \"$TARGET\" && $NPM_HINT"
       log "(npm output kept at $TMP — note it is removed when this installer exits; rerun to see the error.)"
     fi
   else
-    log "npm not found. Install the browser dependency manually:"
+    log "npm not found. Install the browser/audit dependencies manually:"
     log "  cd \"$TARGET\" && $NPM_HINT"
   fi
 else
-  log "No package.json in $TARGET. To enable browser validation, run in your project:"
+  log "No package.json in $TARGET (or UFME_SKIP_NPM set). To enable browser and audit validation, run in your project:"
   log "  $NPM_HINT"
 fi
 

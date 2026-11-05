@@ -9,8 +9,9 @@
 set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 UFME_DIR="$ROOT_DIR/.ufme"
-SCREENSHOT_DIR="$UFME_DIR/evidence/screenshots"
-RESULTS_FILE="$UFME_DIR/evidence/browser-results.json"
+EVIDENCE_DIR="${UFME_EVIDENCE_DIR:-$UFME_DIR/evidence}"
+SCREENSHOT_DIR="$EVIDENCE_DIR/screenshots"
+RESULTS_FILE="$EVIDENCE_DIR/browser-results.json"
 CHECK_SCRIPT="$ROOT_DIR/universal-frontend-master-source/scripts/check-native-browser.sh"
 
 URL="${1:-http://localhost:5173}"
@@ -25,21 +26,22 @@ CHECK_RC=$?
 if [ $CHECK_RC -ne 0 ]; then
   log "Browser setup BLOCKED. Browser-dependent tests cannot run."
   cat > "$RESULTS_FILE" <<JSON
-{"url":"$URL","status":"BLOCKED","reason":"browser setup failed","timestamp":"$(date -Iseconds)"}
+{"url":"$URL","status":"BLOCKED","reason":"browser setup failed","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSON
   exit 1
 fi
 
-# Step 2: detect whether URL responds
+# Step 2: detect whether the target URL responds. A dead server is a real
+# failure of the system under test, not an unsupported environment.
 if ! command -v curl >/dev/null 2>&1; then
   log "curl not available; skipping URL responsiveness check."
 else
   if curl -fsS -o /dev/null --max-time 10 "$URL" >/dev/null 2>&1; then
     log "URL responds: $URL"
   else
-    log "BLOCKED: URL did not respond: $URL (is the dev server running?)"
+    log "FAIL: URL did not respond: $URL (is the dev server running?)"
     cat > "$RESULTS_FILE" <<JSON
-{"url":"$URL","status":"BLOCKED","reason":"URL did not respond","timestamp":"$(date -Iseconds)"}
+{"url":"$URL","status":"FAIL","reason":"URL did not respond","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSON
     exit 1
   fi

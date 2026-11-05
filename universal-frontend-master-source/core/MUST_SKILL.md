@@ -116,19 +116,22 @@ Write quality report to `.ufme/evidence/quality-report.json`. Document limitatio
 
 Run any time to switch profile:
 
-- `/profile/lite` — minimal agents, shallow research, basic verification (max 2 agents)
-- `/profile/standard` — balanced for typical frontend projects (max 4 agents, default)
-- `/profile/advanced` — full agents for complex projects with full audits (max 7 agents)
-- `/profile/autonomous` — all specialist agents with exhaustive verification (max 12 agents)
+- `/profile/lite` — primary + builder only, shallow research, basic verification (1 concurrent delegate; small edits, quick prototypes)
+- `/profile/standard` — designer, builder, backend-analyst and auditor (2 concurrent delegates, 4 roles; default)
+- `/profile/advanced` — all six roles including the orchestrator (4 concurrent delegates; complex projects, full audits)
+- `/profile/autonomous` — all six roles (5 concurrent delegates, exhaustive verification)
 
-Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
+Profiles declare `primaryAgent` (always active, never counted as a delegate),
+`allowedAgents` (every role the profile may activate) and `maxConcurrentDelegates`
+(simultaneously active specialists; the primary is excluded). Profiles live in
+`universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
 
 ## Installed agents
 
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
 | `universal-frontend-master` | primary | Primary entry point; delegates to orchestrator | `@universal-frontend-master` |
-| `ufme-orchestrator` | primary | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
+| `ufme-orchestrator` | subagent | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
 | `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities | `@ufme-backend-analyst` |
 | `ufme-designer` | subagent | Research, licenses, PRD/flows, design system | `@ufme-designer` |
 | `ufme-builder` | subagent | Architecture, pages, API client, integration | `@ufme-builder` |
@@ -152,7 +155,7 @@ Shared across every project on the machine (never overwritten by install):
 - `~/.config/opencode/agents/*.md` — agent definitions (global)
 - `~/.config/opencode/skills/universal-frontend-master/SKILL.md` — skill definition (global)
 - `~/.config/opencode/commands/` — slash commands (global)
-- `~/.config/opencode/opencode.json` — agent registry + default agent
+- `~/.config/opencode/opencode.json` — default agent + permission policy
 
 ## Project-local artifacts
 

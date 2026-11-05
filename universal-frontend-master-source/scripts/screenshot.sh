@@ -2,9 +2,9 @@
 # screenshot.sh
 # Capture Selenium screenshots via the runtime abstraction in
 # universal-frontend-master-source/browser/. Default screenshot budget is
-# viewport-only at mobile 390x844 and desktop 1440x900 (JPEG q~70, width
-# capped at 1280px). Dark theme is captured only when the page defines
-# prefers-color-scheme rules or a theme toggle.
+# viewport-only at mobile 390x844 and desktop 1440x900 (native PNG plus a
+# manifest of actual dimensions). Dark theme is captured only when the page
+# defines prefers-color-scheme rules or a theme toggle.
 #
 # Safety: project-local only.
 set -u

@@ -135,8 +135,11 @@ async function launchChromiumWithNetwork(binary) {
   // setBinary() is not available on Chrome Options in selenium-webdriver v4.
   // Chrome locates its binary automatically via the CHROME_BIN env var or
   // system PATH. Do not call setBinary() to avoid incompatibility.
+  // UFME_CHROME_FLAGS lets a runner add flags the environment needs, e.g.
+  // CI containers that require --no-sandbox. Sandboxing stays on by default.
+  const extraFlags = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
   o.addArguments('--headless=new', '--disable-dev-shm-usage',
-    '--disable-gpu', '--window-size=1440,900');
+    '--disable-gpu', '--window-size=1440,900', ...extraFlags);
   applyLoggingPrefs(o);
 
   const driver = await new Builder()
