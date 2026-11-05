@@ -116,12 +116,15 @@ Write quality report to `.ufme/evidence/quality-report.json`. Document limitatio
 
 Run any time to switch profile:
 
-- `/profile/lite` — minimal agents, shallow research, basic verification (max 2 agents)
-- `/profile/standard` — balanced for typical frontend projects (max 4 agents, default)
-- `/profile/advanced` — full agents for complex projects with full audits (max 7 agents)
-- `/profile/autonomous` — all specialist agents with exhaustive verification (max 12 agents)
+- `/profile/lite` — primary + builder only, shallow research, basic verification (1 concurrent delegate; small edits, quick prototypes)
+- `/profile/standard` — designer, builder, backend-analyst and auditor (2 concurrent delegates, 4 roles; default)
+- `/profile/advanced` — all six roles including the orchestrator (4 concurrent delegates; complex projects, full audits)
+- `/profile/autonomous` — all six roles (5 concurrent delegates, exhaustive verification)
 
-Profiles live in `universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
+Profiles declare `primaryAgent` (always active, never counted as a delegate),
+`allowedAgents` (every role the profile may activate) and `maxConcurrentDelegates`
+(simultaneously active specialists; the primary is excluded). Profiles live in
+`universal-frontend-master-source/profiles/{lite,standard,advanced,autonomous}.json`.
 
 ## Installed agents
 

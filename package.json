@@ -7,17 +7,20 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/install/run.sh",
+    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && node tests/visual/cross-commit.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/perf/run.sh && bash tests/install/run.sh && bash tests/uninstall/run.sh",
     "test:validate": "node tests/browser/validate.js",
     "test:security": "node tests/browser/security.js",
     "test:regression": "node tests/regression/run.js",
     "test:visual": "node tests/visual/run.js",
+    "test:visual-cross": "node tests/visual/cross-commit.js",
     "test:agents": "python3 tests/agents/run.py",
     "test:quality": "python3 tests/quality/run.py",
     "test:profiles": "python3 tests/profiles/run.py",
     "test:context": "python3 tests/context/run.py",
     "test:auditor": "python3 tests/auditor/run.py",
     "test:install": "bash tests/install/run.sh",
+    "test:uninstall": "bash tests/uninstall/run.sh",
+    "test:perf": "bash tests/perf/run.sh",
     "test:browser": "bash universal-frontend-master-source/scripts/browser-test.sh"
   },
   "keywords": [

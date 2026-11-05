@@ -118,6 +118,10 @@ log "Installing skill globally to $OPENCODE_USER_CONFIG/skills/universal-fronten
 mkdir -p "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
 cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$OPENCODE_USER_CONFIG/skills/universal-frontend-master/"
 
+log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
+mkdir -p "$OPENCODE_USER_CONFIG/commands"
+cp -R "$SRC/.opencode/commands/." "$OPENCODE_USER_CONFIG/commands/" 2>/dev/null || true
+
 log "Installing global opencode.json (default agent, commands, permissions) ..."
 GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
 
@@ -188,12 +192,13 @@ fi
 # ------------------------------------------------------------------
 log "Installing project-local files into $TARGET ..."
 mkdir -p "$TARGET/.opencode/skills/universal-frontend-master" \
-         "$TARGET/.opencode/agents" "$TARGET/.ufme" \
+         "$TARGET/.opencode/agents" "$TARGET/.opencode/commands" "$TARGET/.ufme" \
          "$TARGET/universal-frontend-master-source"
 
 # Repeat installs merge into the existing directories instead of nesting them.
 cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$TARGET/.opencode/skills/universal-frontend-master/"
 cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+cp -R "$SRC/.opencode/commands/." "$TARGET/.opencode/commands/" 2>/dev/null || true
 cp -R "$SRC/universal-frontend-master-source/." "$TARGET/universal-frontend-master-source/"
 
 # Browser runner check — bundled browser automation lives in the source tree.

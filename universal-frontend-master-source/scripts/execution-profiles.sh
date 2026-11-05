@@ -11,11 +11,19 @@
 #       [--parallel] [--research <shallow|moderate|deep>] \
 #       [--verify <basic|standard|thorough|exhaustive>] \
 #       [--browser <basic|standard|comprehensive>] [--json]
+#   execution-profiles.sh --enforce <profile> --delegates <csv> [...]  # primary added automatically
+#
+# Schema: profiles declare
+#   primaryAgent            always active entry agent (never counted as a delegate)
+#   allowedAgents           every role the profile may activate, including the primary
+#   maxConcurrentDelegates  concurrent specialist slots (primary excluded)
 #
 # Enforcement checks:
-#   * active agent count <= profile maxAgents
+#   * the primary agent is active exactly once
 #   * every agent belongs to the profile's allowed set
-#   * parallelism is not requested when the profile forbids it
+#   * concurrent delegates <= maxConcurrentDelegates
+#   * maxConcurrentDelegates never exceeds the real delegate role count
+#   * parallelism is not requested when the profile forbids it or only one delegate is active
 #   * requested research/verification/browser depth does not exceed the profile
 #   * security constraints are always reported and never bypassed
 #
@@ -33,7 +41,7 @@ log() { echo "[execution-profiles] $*"; }
 
 usage() {
   echo "Usage: $0 [lite|standard|advanced|autonomous] [--json]"
-  echo "       $0 --enforce <profile> --agents <a,b,...> [--parallel]"
+  echo "       $0 --enforce <profile> (--agents <a,b,...> | --delegates <a,b,...>) [--parallel]"
   echo "          [--research <shallow|moderate|deep>] [--verify <basic|standard|thorough|exhaustive>]"
   echo "          [--browser <basic|standard|comprehensive>] [--json]"
 }
@@ -83,8 +91,9 @@ show_profile() {
 import json, sys
 p = json.loads(sys.argv[1])
 print(f"Profile: {p['name']}")
-for key in ("maxAgents", "allowedAgents", "researchDepth", "allowedParallelism",
-            "verificationDepth", "resourceBudget", "browserTestingLevel", "selfImprovement"):
+for key in ("primaryAgent", "maxConcurrentDelegates", "allowedAgents", "researchDepth",
+            "allowedParallelism", "verificationDepth", "resourceBudget",
+            "browserTestingLevel", "selfImprovement"):
     print(f"  {key}: {p.get(key)}")
 print("\n# Security constraints (never bypassed by any profile)")
 for key, value in (p.get("securityConstraints") or {}).items():
@@ -94,12 +103,12 @@ PY
 }
 
 enforce_profile() {
-  local profile="$1" agents="$2" parallel="$3" research="$4" verify="$5" browser="$6" as_json="$7"
+  local profile="$1" agents="$2" delegates="$3" parallel="$4" research="$5" verify="$6" browser="$7" as_json="$8"
   local profile_json
   profile_json="$(load_profile "$profile")" || exit $?
 
   mkdir -p "$EVIDENCE_DIR"
-  PROFILE_JSON="$profile_json" AGENTS="$agents" PARALLEL="$parallel" \
+  PROFILE_JSON="$profile_json" AGENTS="$agents" DELEGATES="$delegates" PARALLEL="$parallel" \
     RESEARCH="$research" VERIFY="$verify" BROWSER="$browser" AS_JSON="$as_json" \
     EVIDENCE="$EVIDENCE_DIR/profile-enforcement.json" \
     python3 - <<'PY'
@@ -107,7 +116,8 @@ import json, os, sys
 from datetime import datetime, timezone
 
 p = json.loads(os.environ["PROFILE_JSON"])
-agents = [a.strip() for a in os.environ["AGENTS"].split(",") if a.strip()]
+raw_agents = [a.strip() for a in os.environ["AGENTS"].split(",") if a.strip()]
+delegate_arg = [a.strip() for a in os.environ["DELEGATES"].split(",") if a.strip()]
 parallel = os.environ["PARALLEL"] == "1"
 requested = {
     "research": os.environ["RESEARCH"],
@@ -116,7 +126,10 @@ requested = {
 }
 as_json = os.environ["AS_JSON"] == "1"
 
-ALLOWED = set(p.get("allowedAgents") or [])
+name = p.get("name", "?")
+primary = p.get("primaryAgent")
+allowed = list(p.get("allowedAgents") or [])
+max_delegates = p.get("maxConcurrentDelegates")
 RANKS = {
     "research": ["shallow", "moderate", "deep"],
     "verify": ["basic", "standard", "thorough", "exhaustive"],
@@ -125,26 +138,55 @@ RANKS = {
 FIELDS = {"research": "researchDepth", "verify": "verificationDepth",
           "browser": "browserTestingLevel"}
 
-name = p["name"]
-max_agents = int(p.get("maxAgents", 0))
 violations = []
+if not isinstance(primary, str) or not primary:
+    violations.append(f"profile '{name}' declares no primaryAgent")
+if not isinstance(max_delegates, int) or isinstance(max_delegates, bool) or max_delegates < 1:
+    violations.append(f"profile '{name}' declares no positive integer maxConcurrentDelegates")
+if not allowed:
+    violations.append(f"profile '{name}' declares no allowedAgents")
+if primary and allowed and primary not in allowed:
+    violations.append(f"primaryAgent '{primary}' is not in allowedAgents for profile '{name}'")
+
+available_delegates = [a for a in allowed if a != primary]
+if isinstance(max_delegates, int) and max_delegates > len(available_delegates):
+    violations.append(
+        f"profile '{name}' advertises {max_delegates} concurrent delegates but only "
+        f"{len(available_delegates)} delegate roles exist")
+
+if raw_agents and delegate_arg:
+    violations.append("use either --agents (full set) or --delegates, not both")
+if delegate_arg:
+    agents = ([primary] if primary else []) + delegate_arg
+else:
+    agents = raw_agents
 
 if not agents:
     violations.append("no active agents provided")
-if not ALLOWED:
-    violations.append(f"profile '{name}' declares no allowedAgents")
-if len(agents) > max_agents:
-    violations.append(
-        f"agent count {len(agents)} exceeds maxAgents {max_agents} for profile '{name}'")
+if primary and agents.count(primary) == 0:
+    violations.append(f"active set must include the primary agent '{primary}'")
+if primary and agents.count(primary) > 1:
+    violations.append(f"primary agent '{primary}' listed more than once")
 if len(set(agents)) != len(agents):
-    violations.append("duplicate agent names in --agents")
-unknown = sorted(set(agents) - ALLOWED)
+    violations.append("duplicate agent names in the active set")
+unknown = sorted(set(agents) - set(allowed))
 if unknown:
     violations.append(
-        f"agents not allowed in profile '{name}': {unknown} "
-        f"(allowed: {sorted(ALLOWED)})")
+        f"agents not allowed in profile '{name}': {unknown} (allowed: {sorted(allowed)})")
+
+delegates = [a for a in agents if a != primary]
+# --agents lists every role activated over the task; only parallel execution makes
+# them concurrent. Sequential delegation is bounded by the role set, not by the
+# concurrency cap.
+concurrent = len(delegates) if parallel else (1 if delegates else 0)
+if parallel and isinstance(max_delegates, int) and len(delegates) > max_delegates:
+    violations.append(
+        f"{len(delegates)} concurrent delegates exceed maxConcurrentDelegates "
+        f"{max_delegates} for profile '{name}'")
 if parallel and not p.get("allowedParallelism", False):
     violations.append(f"parallel execution is disabled for profile '{name}'")
+if parallel and len(delegates) < 2:
+    violations.append("parallel execution requires at least two concurrent delegates")
 for key, value in requested.items():
     if not value:
         continue
@@ -158,9 +200,14 @@ for key, value in requested.items():
 
 effective = {
     "profile": name,
+    "primaryAgent": primary,
     "activeAgents": agents,
-    "allowedAgents": sorted(ALLOWED),
-    "maxAgents": max_agents,
+    "delegates": delegates,
+    "delegateCount": len(delegates),
+    "concurrentDelegates": concurrent,
+    "maxConcurrentDelegates": max_delegates,
+    "availableAgents": sorted(allowed),
+    "availableDelegateRoles": sorted(available_delegates),
     "researchDepth": p.get(FIELDS["research"]),
     "allowedParallelism": bool(p.get("allowedParallelism", False)),
     "verificationDepth": p.get(FIELDS["verify"]),
@@ -183,7 +230,8 @@ if as_json:
     print(json.dumps(effective, indent=2))
 else:
     print(f"[execution-profiles] Profile: {name}")
-    print(f"  Active agents ({len(agents)}/{max_agents}): {', '.join(agents) or '(none)'}")
+    print(f"  Primary: {primary}")
+    print(f"  Delegates ({len(delegates)}/{max_delegates}): {', '.join(delegates) or '(none)'}")
     print(f"  Research: {effective['researchDepth']} | "
           f"Parallel: {effective['allowedParallelism']} | "
           f"Verification: {effective['verificationDepth']} | "
@@ -212,12 +260,14 @@ main() {
       exit 2
     fi
     shift
-    local profile="${1:-}" agents="" parallel="0" research="" verify="" browser="" as_json="0"
+    local profile="${1:-}" agents="" delegates="" parallel="0" research="" verify="" browser="" as_json="0"
     shift || true
     while [ $# -gt 0 ]; do
       case "$1" in
         --agents) agents="${2:-}"; shift 2 ;;
         --agents=*) agents="${1#*=}"; shift ;;
+        --delegates) delegates="${2:-}"; shift 2 ;;
+        --delegates=*) delegates="${1#*=}"; shift ;;
         --parallel) parallel="1"; shift ;;
         --research) research="${2:-}"; shift 2 ;;
         --research=*) research="${1#*=}"; shift ;;
@@ -229,12 +279,12 @@ main() {
         *) log "ERROR: unknown option: $1"; usage >&2; exit 2 ;;
       esac
     done
-    if ! validate_profile_name "$profile" || [ -z "$agents" ]; then
-      log "ERROR: --enforce requires a valid profile and --agents <csv>"
+    if ! validate_profile_name "$profile" || { [ -z "$agents" ] && [ -z "$delegates" ]; }; then
+      log "ERROR: --enforce requires a valid profile and --agents <csv> or --delegates <csv>"
       usage >&2
       exit 2
     fi
-    enforce_profile "$profile" "$agents" "$parallel" "$research" "$verify" "$browser" "$as_json"
+    enforce_profile "$profile" "$agents" "$delegates" "$parallel" "$research" "$verify" "$browser" "$as_json"
     exit $?
   fi
 

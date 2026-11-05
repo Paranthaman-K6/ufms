@@ -1,7 +1,8 @@
 {
   "name": "advanced",
-  "description": "Full agent set for complex frontend projects with full audits.",
-  "maxAgents": 7,
+  "description": "Full agent set with an orchestrator for complex projects and thorough audits.",
+  "primaryAgent": "universal-frontend-master",
+  "maxConcurrentDelegates": 4,
   "allowedAgents": [
     "universal-frontend-master",
     "ufme-orchestrator",

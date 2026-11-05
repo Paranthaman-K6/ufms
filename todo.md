@@ -1,117 +1,87 @@
-# Todo — UFMS Autonomous Production-Readiness Pass
+# Todo — UFMS Autonomous Production Hardening (pass 3)
 
-Execution plan for the second autonomous improvement pass on `fix/autonomous-p0-p1-repair`
-(PR #3). Status: `[ ]` TODO, `[~]` IN PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
+Branch `fix/autonomous-p0-p1-repair` rebased onto `origin/main` (`3220d96b`, PR #4 merged).
+Status: `[ ]` TODO, `[~]` IN PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
+Every `[x]` must carry executable evidence below it.
 
-Every item below was verified against the working tree before being scheduled. The
-previous pass's 262-check `self-improve.py` result and the green CI run `41778560645` are
-treated as already-verified and are not rebuilt. This pass only fixes newly verified
-defects and extends coverage.
+Independent findings from this pass (not copied from prior reports):
 
----
-
-## P0 — Runtime, Security, Fail-Closed Gate
-
-- [x] **P0.1 Runtime and dependency compatibility** *(Owner: Builder)*
-  - **Verified defect**: `package.json` declared no `engines`, no `.nvmrc`; CI ran Node 20 while `selenium-webdriver@4.52.0` requires `^22.23.4 || ^24.22.1 || >=26.12.1`; README claimed Node 18+.
-  - **Expected result**: one declared runtime range matching every direct dependency; CI pins it; docs match.
-  - **Acceptance**: `.nvmrc` inside range; `npm ci --engine-strict` exits 0; CI uses the pinned major.
-  - **Evidence**: `engines` in `package.json`; `.nvmrc` = 24; `.npmrc` `engine-strict=true`; `npm ci` rc=0 and `npm ci --engine-strict` rc=0 (no `EBADENGINE`); CI `node-version: 24`; README/compatibility/ARCH_LINUX/installation docs updated.
-  - **Progress**: COMPLETE.
-
-- [x] **P0.2 Dependency security** *(Owner: Auditor)*
-  - **Verified defect**: `npm audit` = 10 high / 20 moderate / 0 critical, rooted in `lighthouse@12.8.2`; the offered `lighthouse@13.6.0` still pulled 5 moderate advisories through `@sentry/node` → `glob`/`minimatch`.
-  - **Expected result**: zero known vulnerabilities, or each residual one justified in docs.
-  - **Acceptance**: `npm audit --audit-level=moderate` exits 0; lockfile consistent; clean `npm ci` exits 0.
-  - **Evidence**: pinned exact `lighthouse@13.5.0` → `npm audit` "found 0 vulnerabilities", rc=0; `npm ci` from the lock rc=0; rationale recorded in `compatibility.md`.
-  - **Progress**: COMPLETE.
-
-- [x] **P0.3 Fail-closed quality gate** *(Owner: Builder + Auditor)*
-  - **Verified defect**: `quality-check.py` let a required audit check SKIP into overall PASS; a11y/perf/slop/visual PASS was recorded without validating that result JSON existed, was fresh and had the expected fields; visual baseline auto-creation was recorded as PASS.
-  - **Expected result**: missing/invalid/skipped evidence for a required check can never yield PASS.
-  - **Acceptance**: tests cover required-SKIPPED→BLOCKED, invalid a11y/perf/slop/visual evidence→FAIL, baseline-created→BLOCKED, valid evidence→PASS; existing tests still pass.
-  - **Evidence**: `python3 tests/quality/run.py` → 18 passed, 0 failed (9 pre-existing + 9 new). Gate now requires `--require`/`UFME_REQUIRE_CHECKS` ⊆ `--only`, auto-requires a11y/perf/slop/visual for the audit preset, reads per-check result paths from `UFME_*` envs, rejects stale evidence, and emits `required`/`requiredNotPassed` in the report.
-  - **Progress**: COMPLETE.
-
-- [x] **P0.4 Complete visual regression** *(Owner: Builder)*
-  - **Verified defect**: `visual-diff.js` detected a current image without a baseline but not a baseline image with no current capture.
-  - **Expected result**: changed, missing-baseline, missing-current and size-mismatch images are all detected; first-run baseline is not success.
-  - **Acceptance**: new visual test for baseline-only image; existing tests still pass.
-  - **Evidence**: `node tests/visual/run.js` → 10 passed, 0 failed, including "a baseline image with no current capture FAILs".
-  - **Progress**: COMPLETE.
-
-## P1 — Automation, Portability, Agent Consistency
-
-- [x] **P1.1 End-to-end CI quality validation** *(Owner: Auditor)*
-  - **Verified defect**: CI ran unit suites and a browser smoke test but never ran `quality-check.py` against the served prototype.
-  - **Expected result**: CI executes real audit checks on the generated prototype.
-  - **Acceptance**: workflow runs the audit preset with required checks against a live server; local reproduction documented; YAML valid.
-  - **Evidence**: `.github/workflows/ufme-ci.yml` merged browser + audit step (generate → serve → browser test → seed baseline → `--only audit --require audit`); YAML parses; the same command locally returned **Overall: PASS** on real Chromium 156 with 0 axe violations, Lighthouse 100/100/96, 0 slop findings and 0 visual diff.
-  - **Progress**: COMPLETE.
-
-- [x] **P1.2 Evidence directory and portable shell** *(Owner: Builder)*
-  - **Verified defect**: `audit-a11y.js`, `audit-perf.sh`, `browser-test.sh` hardcoded `.ufme/evidence`; `audit-perf.sh`, `browser-test.sh`, `detect-platform.sh` used GNU-only `date -Iseconds`; `install.sh` used `sha256sum` and bash-4 `${var,,}`; `find -print -quit` is not BSD-portable.
-  - **Expected result**: `UFME_EVIDENCE_DIR` honored everywhere; checksums and timestamps work on GNU and BSD/macOS; no bash-4-only syntax.
-  - **Acceptance**: scripts write under an overridden evidence dir; `bash -n` clean; install test exercises a `sha256` fallback with a `shasum`/`openssl`-only PATH.
-  - **Evidence**: real run wrote browser/a11y/perf/slop/visual evidence under `/tmp/opencode/e2e-*` with `UFME_EVIDENCE_DIR`; `bash -n` clean for all touched shell scripts; install test "sha256 falls back to openssl without sha256sum/shasum" PASS; timestamps use POSIX `date -u +...`.
-  - **Progress**: COMPLETE.
-
-- [x] **P1.3 Installer installs the full audit dependency set** *(Owner: Builder)*
-  - **Verified defect**: `install.sh` installed only `selenium-webdriver`, so axe/Lighthouse/pixelmatch audits SKIPPED after a fresh install.
-  - **Expected result**: a project with `package.json` receives all runtime audit dependencies.
-  - **Acceptance**: install test with a stub `npm` asserts every required package is passed to `npm install -D`.
-  - **Evidence**: `bash tests/install/run.sh` → 34 passed, 0 failed, including "npm receives selenium-webdriver @axe-core/webdriverjs lighthouse pngjs pixelmatch".
-  - **Progress**: COMPLETE.
-
-- [x] **P1.4 Profiles are data-driven and contradictions removed** *(Owner: Orchestrator + Designer)*
-  - **Verified defect**: `execution-profiles.sh` hardcoded allowed agent sets; `designer.md` set `bash: deny` while instructing the agent to run `scripts/search-libraries.py`.
-  - **Expected result**: each profile JSON owns its `allowedAgents`, enforcement reads it, and agent instructions match declared permissions.
-  - **Acceptance**: profile test proves a JSON-only change alters enforcement; `build-agents.py --check` passes; no agent instructs a denied tool.
-  - **Evidence**: `allowedAgents` added to all four profiles; enforcement reads it (with `UFME_PROFILES_DIR` override and a non-empty check); `python3 tests/profiles/run.py` → 16 passed, 0 failed including "allowedAgents comes from profile JSON"; designer now asks the orchestrator to run the script; `build-agents.py --check` → "in sync".
-  - **Progress**: COMPLETE.
-
-- [x] **P1.5 Context efficiency measurement** *(Owner: Orchestrator)*
-  - **Verified defect**: `ctx-pack.py` reported packed size but never quantified avoided raw context.
-  - **Expected result**: every brief states raw artifact tokens, packed tokens and saved percentage.
-  - **Acceptance**: new context test asserts the savings fields; budgets still hold.
-  - **Evidence**: `python3 tests/context/run.py` → 12 passed, 0 failed including "packed size is measured against raw artifact tokens"; footer carries `Raw artifacts / packed / saved %`.
-  - **Progress**: COMPLETE.
-
-- [x] **P1.6 Documentation synchronization** *(Owner: Universal Frontend Master)*
-  - **Verified defect**: README said Node 18+; docs lacked the supported range, fail-closed semantics, visual baseline policy, profile data source and install dependency set.
-  - **Acceptance**: docs match implemented behavior; no stale version or topology claims.
-  - **Evidence**: README, `compatibility.md`, `troubleshooting.md`, `installation-arch-linux.md`, `ARCH_LINUX.md` updated and reviewed against code.
-  - **Progress**: COMPLETE.
-
-## P2 — Final Validation and Delivery
-
-- [x] **P2.1 Full local validation** *(Owner: Auditor)*
-  - **Acceptance**: `npm test` exit 0; `build-agents.py --check` in sync; `self-improve.py` 0 FAIL; real browser + audit run produce evidence.
-  - **Evidence**: `npm test` rc=0 (visual 10, agents 9, quality 18, profiles 16, context 12, auditor 9, install 34); `build-agents.py --check` "in sync"; `self-improve.py` 262 PASS / 0 FAIL; real Chromium browser run PASS; audit preset PASS (see P1.1).
-  - **Progress**: COMPLETE.
-
-- [x] **P2.2 Commit, push, CI green, report** *(Owner: Universal Frontend Master)*
-  - **Acceptance**: commit pushed to `fix/autonomous-p0-p1-repair`; PR updated; CI success; final report distinguishes PASS / FAIL / SKIPPED / BLOCKED.
-  - **Evidence**: commits `4f497827` and `fbbc1579` pushed; PR #4 opened (PR #3 was already merged); CI run `41803694415` green with the audit step reporting **PASS: 4, FAIL: 0, SKIPPED: 0, BLOCKED: 0 — Overall: PASS** (axe 0 violations, Lighthouse 100/100/96, slop 0, visual 0). The first run `41803217583` honestly reported **BLOCKED** on a skipped Lighthouse check; the fix added `UFME_CHROME_FLAGS` for runner Chromium instead of masking the skip.
-  - **Progress**: COMPLETE.
+- Profiles: lite excludes the builder (cannot implement); standard excludes backend-analyst and auditor (cannot integrate or audit); `maxAgents` mixes the always-on primary with delegates; autonomous advertises 12 concurrent agents but only 5 delegate roles exist.
+- Screenshots: `encodeImage()` passes the PNG via an IIFE with no arguments, so canvas encoding always fails and silently falls back to PNG; the documented JPEG budget is dead code. Meanwhile `visual-diff.js` only reads PNG, so fixing the encoder alone would break comparison.
+- Visual gate: a missing baseline is auto-created during ordinary validation; `--update-baseline` silently overwrites the baseline; no expected-dimension check; no page-state/viewport manifest.
+- CI seeds the visual baseline from the same build it then compares, which cannot detect a regression introduced by that build.
+- Lighthouse failures (browser launch, crash, invalid report) are all reported as SKIPPED, so a broken audit looks like a missing dependency; best-practices is not required or range-checked.
+- Browser: `browser/run.js` writes status `FAILED` while the contract is `FAIL`; the selected browser and its version are not verified against the driver that actually ran. `check-native-browser.sh` probes Python Selenium (not the project's Node stack), so it reports "NOT TESTED/NOT WORKING" even when Node Selenium works, and ignores `UFME_EVIDENCE_DIR`.
+- `browser-test.sh` records BLOCKED when the target URL does not respond (server problem, not an unsupported environment).
+- CI uses `actions/checkout@v4`/`setup-node@v4` (Node 20 deprecation warnings) and uploads no evidence or diagnostic artifacts; it does not enforce profiles, installer behavior, or dependency security.
+- No uninstall path is documented, and install/upgrade behavior is only covered by the installer test, not by CI.
 
 ---
 
-## Verified and intentionally skipped (already working)
+## P0 — Profiles
 
-- Six-agent topology (one primary + orchestrator subagent) — `tests/agents/run.py` (9 PASS).
-- Quality report atomic writes, timing, browser PASS/FAIL/BLOCKED/timeout — `tests/quality/run.py`.
-- Context budget enforcement and DECISIONS rotation — `tests/context/run.py`.
-- Seed-memory preservation, repeat-install merging, missing-source failure — `tests/install/run.sh`.
-- Browser abstraction and security flag checks — `tests/browser/*`.
-- Full 262-check `self-improve.py` sweep.
+- [x] **P0.1 Redesign profile schema and enforcement** *(Owner: Orchestrator)*
+  - **Evidence**: `python3 tests/profiles/run.py` → 31 PASS. All four profiles (lite/standard/advanced/autonomous) rewritten with `primaryAgent`/`allowedAgents`/`maxConcurrentDelegates`; `--enforce` accepts designed delegation, rejects unknown/duplicate roles, rejects missing primary, enforces delegate concurrency and parallelism semantics, writes `profile-enforcement.json`.
+  - **Values**: lite=1 delegate, standard=2, advanced=4, autonomous=5 (= real delegate role count; no phantom 12).
 
-## Honest limitations
+- [x] **P0.2 Align orchestrator, skill docs and commands with the schema**
+  - **Evidence**: `tests/agents/run.py` → 9 PASS; `build-agents.py --check` in sync; core docs (MUST_SKILL.md, MASTER_SKILL.md, MULTI_AGENT_ORCHESTRATION.md, agents/orchestrator.md, agents/universal-frontend-master.md, README.md) rewritten; no doc references `maxAgents` or ceilings 2/4/7/12.
 
-- The CI visual baseline is seeded from the current build in the same run, so CI validates
-  the mechanics (baseline vs. current, pixelmatch, gate wiring), not cross-run pixel drift.
-  Cross-run regression needs a committed `.ufme/evidence/baseline` in the consuming project.
-- Lighthouse thresholds default to 0 (report scores, no hard minimum) unless
-  `UFME_PERF_MIN_SCORE` is set; the gate still fails on invalid evidence.
-- The untracked local fixture `prototypes/Portfolio Prototype/` has 2 slop findings; it is
-  gitignored and absent from CI checkouts, so it does not affect the gate.
+## P0 — Visual regression
+
+- [x] **P0.3 Baseline lifecycle is explicit and safe**
+  - **Evidence**: `node tests/visual/run.js` → 25 PASS. Missing baseline → `BASELINE_MISSING` exit 4 (nothing written); `--create-baseline` creates only when absent, refuses existing baseline exit 2; `--update-baseline` explicit, reports `BASELINE_UPDATED`, removes stale baseline files; ordinary runs never modify baseline (content hash asserted in tests).
+
+- [x] **P0.4 Detect all regression classes + expected dimensions**
+  - **Evidence**: `node tests/visual/run.js` → 25 PASS covering unchanged, changed, missing-baseline, missing-current, size-mismatch, unreadable, plus manifest `missing-screenshot`, `unexpected-screenshot`, `dimension-mismatch`, `manifest-invalid`. One test per class; manifest width/height mismatch fails.
+
+- [x] **P0.5 Screenshots must be valid comparison inputs**
+  - **Evidence**: Real browser run `browser-run.js` → `browser-base.json`/`browser-head.json` status PASS, Chromium 156.0.8078.79, 4 screenshots captured, manifest written with actual width/height/viewport/theme. `node tests/visual/run.js` → 25 PASS (pngjs-decodable PNGs, manifest matches pixels).
+
+- [x] **P0.6 Real cross-commit comparison in CI**
+  - **Evidence**: `tests/visual/cross-commit.js` → 4 PASS (two real git commits; base-vs-head FAIL on change, base/base and head/head PASS). Real local run: base(origin/main) vs HEAD → visual-diff.json PASS, maxDiffRatio=0, 4 images unchanged. CI step added to `.github/workflows/ufme-ci.yml`.
+
+## P0 — Lighthouse and gate evidence
+
+- [x] **P0.7 Separate failure classes and validate every score**
+  - **Evidence**: `python3 tests/quality/run.py` → 21 PASS (incl. 8 perf cases: SKIPPED 5 / BLOCKED 6 / FAIL 4 / contradicting exit-status / valid all-three PASS / missing best-practices / below threshold / unreachable URL). `bash tests/perf/run.sh` → 9 PASS (missing dep → SKIPPED 5, no browser → BLOCKED 6, browser failure → FAIL 4 kind=browser, crash → FAIL 4 kind=audit, invalid JSON → FAIL 4, missing score → FAIL 4, out-of-range → FAIL 4, valid RAN 0 three scores, missing URL → exit 2).
+  - Real Lighthouse run against local prototype: performance=100, accessibility=100, bestPractices=96, status=RAN, exit 0.
+
+## P0 — Browser consistency
+
+- [x] **P0.8 One browser truth**
+  - **Evidence**: Real browser run → `status: PASS`, `browser: chromium`, `session: {engine: chromium, browserName: chrome, browserVersion: 156.0.8078.79, platformName: linux}`; capture aborts after navigation failure; `check-native-browser.sh` → READY (Chromium 156.0.8078.79), writes `browser-setup.json`, honors `UFME_EVIDENCE_DIR`, no "NOT TESTED" claims. `browser-test.sh` → URL unreachable records `status: FAIL`. `UFME_CHROME_FLAGS`/`UFME_FIREFOX_FLAGS` supported by engines + setup probe.
+
+## P0 — CI completeness and retention
+
+- [x] **P0.9 Integrated CI + artifacts + supported actions**
+  - **Evidence**: `.github/workflows/ufme-ci.yml` rewritten: `actions/checkout@v5`, `setup-node@v5`, `upload-artifact@v4 if: always()`, fetch-depth: 0, profile enforcement (all four), installer/uninstaller smoke test, `npm audit --audit-level=high`, cross-commit visual capture from `origin/main` via worktree, full audit preset with `UFME_CHROME_FLAGS="--headless=new --no-sandbox --disable-dev-shm-usage"`, Lighthouse gate with `UFME_LH_MIN_SCORE: "80"`.
+  - Local validation: `npm test` → 198 PASS / 0 FAIL; `self-improve.py` → 262 PASS / 0 FAIL; real browser + Lighthouse + cross-commit all pass.
+
+## P1 — Whole-system review fixes
+
+- [x] **P1.1 Uninstall/upgrade path documented and tested**
+  - **Evidence**: New `uninstall.sh` (idempotent, `--project-only`/`--global-only`, removes only managed agents/skill/commands/source tree, preserves `.ufme/`, `opencode.json`, `package.json`). `tests/uninstall/run.sh` → 21 PASS (install→uninstall, removals verified, user files preserved, repeat uninstall, `--project-only`). README documents uninstall. `install.sh` now copies slash commands globally and project-locally.
+
+- [ ] **P1.2 Context/token efficiency measured on real memory**
+  - **Acceptance**: ctx-pack savings reported with actual numbers from this repo.
+
+- [x] **P1.3 Docs match behavior** (profiles, visual lifecycle, Lighthouse statuses, CI)
+  - **Evidence**: README updated (uninstall section, test scripts list incl. `test:uninstall`/`test:perf`/`test:visual-cross`, explicit baseline lifecycle, sandbox opt-in via UFME_CHROME_FLAGS). Installation docs updated with commands install + uninstall subsection.
+
+- [ ] **P1.4 Independent review pass** (fresh eyes over the diff; fix what it finds).
+
+## P2 — Final validation and delivery
+
+- [x] **P2.1 Full local suite**, `self-improve.py`, real browser + audit + cross-commit
+  - **Evidence**: `npm test` → 198 PASS / 0 FAIL (rc=0). `self-improve.py` → 262 PASS / 0 FAIL. Real browser run (Chromium 156.0.8078.79) → PASS on base and HEAD. Real Lighthouse → performance=100 / accessibility=100 / bestPractices=96 / status=RAN / exit 0. Real cross-commit visual diff → PASS, maxDiffRatio=0.
+
+- [ ] **P2.2 Commit, push, PR #5, green CI on the final commit, final report.**
+
+## Verified and intentionally unchanged
+
+- Six-agent topology (one primary + five specialists) and installed/source parity.
+- Fail-closed quality gate core (required-SKIPPED → BLOCKED, stale/invalid → FAIL).
+- Install portability (sha256 fallbacks, POSIX dates), repeat-install memory preservation.
+- ctx-pack budget enforcement and DECISIONS rotation.
+- Security: Selenium-only, no Playwright/containers/sudo, `npm audit` clean (0 vulnerabilities).

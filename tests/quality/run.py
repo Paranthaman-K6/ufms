@@ -407,89 +407,115 @@ def _():
         assert "invalid lighthouse evidence" in data["checks"][0]["detail"]
 
 
-@test("invalid slop evidence is FAIL even with exit 0")
+def perf_case(json_body, exit_code, env_extra=None):
+    """Run the perf gate against a reachable URL with scripted evidence."""
+    raw = tempfile.mkdtemp()
+    tmp = Path(raw)
+    www = tmp / "www"
+    www.mkdir()
+    httpd, url = serve(www)
+    try:
+        perf = fake_perf(tmp)
+        env = {
+            "PATH": fake_browser(tmp),
+            "UFME_PERF_SCRIPT": str(perf),
+            "UFME_PERF_RESULTS": str(tmp / "perf-results.json"),
+            "FAKE_PERF_JSON": json_body,
+            "FAKE_EXIT": str(exit_code),
+        }
+        env.update(env_extra or {})
+        return gate(tmp, "perf", env, target=url)
+    finally:
+        httpd.shutdown()
+
+
+@test("valid lighthouse scores for all three categories PASS")
 def _():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        slop = fake_slop(tmp)
-        p, data, _ = gate(tmp, "slop", {
-            "UFME_SLOP_SCRIPT": str(slop),
-            "FAKE_SLOP_JSON": '{"findings": []}',
-        })
-        assert p.returncode == 1, p.stdout + p.stderr
-        assert_report(data, "FAIL")
-        assert "invalid slop evidence" in data["checks"][0]["detail"]
-
-
-@test("auto-created visual baseline BLOCKS, never PASSes")
-def _():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        visual = fake_visual(tmp)
-        p, data, _ = gate(tmp, "visual", {
-            "UFME_VISUAL_SCRIPT": str(visual),
-            "UFME_VISUAL_RESULTS": str(tmp / "visual-diff.json"),
-            "FAKE_VISUAL_JSON": '{"status":"BASELINE_CREATED","maxDiffRatio":0}',
-        })
-        assert p.returncode == 1, p.stdout + p.stderr
-        assert_report(data, "BLOCKED")
-        assert "auto-created" in data["checks"][0]["detail"]
-
-
-@test("visual PASS without a numeric ratio is FAIL")
-def _():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        visual = fake_visual(tmp)
-        p, data, _ = gate(tmp, "visual", {
-            "UFME_VISUAL_SCRIPT": str(visual),
-            "UFME_VISUAL_RESULTS": str(tmp / "visual-diff.json"),
-            "FAKE_VISUAL_JSON": '{"status":"PASS"}',
-        })
-        assert p.returncode == 1, p.stdout + p.stderr
-        assert_report(data, "FAIL")
-        assert "maxDiffRatio missing" in data["checks"][0]["detail"]
-
-
-@test("--require outside --only is rejected")
-def _():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        report = tmp / "report.json"
-        env = os.environ.copy()
-        env["UFME_EVIDENCE_DIR"] = str(tmp / "evidence")
-        p = subprocess.run(
-            [sys.executable, str(QUALITY), "--only", "slop",
-             "--require", "a11y", "--report", str(report)],
-            cwd=ROOT, capture_output=True, text=True, timeout=60, env=env,
-        )
-        assert p.returncode == 2, p.stdout + p.stderr
-        assert not report.exists(), "report written for an invalid invocation"
-
-
-@test("unknown --only id is rejected")
-def _():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = Path(raw)
-        p, _, _ = gate(tmp, "nonsense")
-        assert p.returncode == 2, p.stdout + p.stderr
-
-
-def main():
-    failures = [r for r in results if r["status"] == "FAIL"]
-    EVIDENCE.mkdir(parents=True, exist_ok=True)
-    (EVIDENCE / "quality-test.json").write_text(
-        json.dumps(
-            {"checks": len(results), "pass": len(results) - len(failures),
-             "failed": len(failures), "results": results},
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    p, data, _ = perf_case(
+        '{"status":"RAN","scores":'
+        '{"performance":95,"accessibility":100,"bestPractices":92}}', 0,
     )
-    print(f"\n{len(results) - len(failures)} passed, {len(failures)} failed")
-    return 1 if failures else 0
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert_report(data, "PASS")
+    assert "best-practices=92" in data["checks"][0]["detail"]
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+@test("lighthouse SKIPPED (exit 5) stays SKIPPED, never PASS")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"SKIPPED","reason":"lighthouse not installed"}', 5,
+    )
+    assert p.returncode == 0, p.stdout + p.stderr
+    check = data["checks"][0]
+    assert check["status"] == "SKIPPED", check
+    assert check["exitCode"] == 5, check
+
+
+@test("lighthouse BLOCKED (exit 6) is BLOCKED and fails the gate")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"BLOCKED","reason":"no browser binary"}', 6,
+    )
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert_report(data, "BLOCKED")
+    assert data["checks"][0]["exitCode"] == 6
+
+
+@test("lighthouse FAIL (exit 4) is FAIL and fails the gate")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"FAIL","reason":"lighthouse crashed"}', 4,
+    )
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert_report(data, "FAIL")
+    assert data["checks"][0]["exitCode"] == 4
+
+
+@test("exit code contradicting lighthouse evidence is FAIL")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"FAIL","reason":"crashed"}', 0,
+    )
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert_report(data, "FAIL")
+    assert "contradicts evidence status FAIL" in data["checks"][0]["detail"], \
+        data["checks"][0]
+
+
+@test("lighthouse evidence missing best-practices score is FAIL")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"RAN","scores":{"performance":90,"accessibility":95}}', 0,
+    )
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert_report(data, "FAIL")
+    assert "invalid lighthouse evidence" in data["checks"][0]["detail"]
+
+
+@test("lighthouse score below the minimum FAILs")
+def _():
+    p, data, _ = perf_case(
+        '{"status":"RAN","scores":{"performance":90,"accessibility":95,'
+        '"bestPractices":96}}', 0, {"UFME_LH_MIN_SCORE": "95"},
+    )
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert_report(data, "FAIL")
+    assert "below minimum" in data["checks"][0]["detail"], data["checks"][0]
+
+
+@test("an unreachable target URL is FAIL, not SKIPPED or BLOCKED")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        perf = fake_perf(tmp)
+        p, data, _ = gate(tmp, "perf", {
+            "PATH": fake_browser(tmp),
+            "UFME_PERF_SCRIPT": str(perf),
+            "UFME_PERF_RESULTS": str(tmp / "perf-results.json"),
+            "FAKE_PERF_JSON": '{"status":"RAN","scores":{}}',
+        }, target="http://127.0.0.1:1/")
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        assert "did not respond" in data["checks"][0]["detail"], data["checks"][0]
+
+

@@ -27,10 +27,10 @@ reference router all live in `SKILL.md`.
 
 ## Execution profiles
 
-- `/profile/lite` — orchestrator + builder + script audits (small edits, prototypes)
-- `/profile/standard` — default; skips agents whose stage does not apply
-- `/profile/advanced` — full agent set with full audit loop
-- `/profile/autonomous` — unattended run with exhaustive verification
+- `/profile/lite` — primary + builder (1 concurrent delegate; small edits, quick prototypes)
+- `/profile/standard` — default; designer, builder, backend-analyst and auditor (2 concurrent delegates)
+- `/profile/advanced` — all six roles including the orchestrator (4 concurrent delegates, full audit loop)
+- `/profile/autonomous` — all six roles (5 concurrent delegates, unattended exhaustive verification)
 
 ## Install paths (user scope)
 

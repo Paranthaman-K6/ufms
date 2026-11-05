@@ -81,7 +81,9 @@ OPTIONS = {
 }
 OPTIONS["maxA11yViolations"] = int(os.environ.get("UFME_A11Y_MAX_VIOLATIONS", 0) or 0)
 OPTIONS["maxSlopFindings"] = int(os.environ.get("UFME_SLOP_MAX_FINDINGS", 0) or 0)
-OPTIONS["minPerfScore"] = int(os.environ.get("UFME_PERF_MIN_SCORE", 0) or 0)
+OPTIONS["minPerfScore"] = int(
+    os.environ.get("UFME_LH_MIN_SCORE") or os.environ.get("UFME_PERF_MIN_SCORE") or 0
+)
 try:
     OPTIONS["maxVisualDiff"] = float(os.environ.get("UFME_VISUAL_MAX_DIFF", 0.001))
 except ValueError:
@@ -377,8 +379,8 @@ def run_perf_gate():
         return
     if not url_responds(OPTIONS["target"]):
         record(
-            "SKIPPED", label, 0,
-            f"target URL did not respond: {OPTIONS['target']} — start the dev server and re-run",
+            "FAIL", label, 0,
+            f"target URL did not respond: {OPTIONS['target']} — the site under test is unreachable",
         )
         return
     log(f"Running lighthouse audit against {OPTIONS['target']}")
@@ -398,40 +400,47 @@ def run_perf_gate():
         record("FAIL", label, 1, str(e))
         return
     rc = p.returncode
-    if rc == 0:
-        data, problem = read_evidence(PERF_RESULTS, started)
-        scores = (data or {}).get("scores")
-        problem = problem or (
-            None if data.get("status") == "RAN"
-            and isinstance(scores, dict)
-            and is_number(scores.get("performance"))
-            and is_number(scores.get("accessibility"))
-            and 0 <= scores["performance"] <= 100
-            and 0 <= scores["accessibility"] <= 100
-            else "invalid lighthouse evidence: expected status=RAN and numeric scores"
-        )
-        if problem:
-            record("FAIL", label, rc, problem)
-            return
-        detail = (
-            f"perf={scores.get('performance')} a11y={scores.get('accessibility')}"
-            f" best-practices={scores.get('bestPractices')}"
-        )
-        minimum = OPTIONS["minPerfScore"]
-        below = [
-            f"{key}={value}" for key, value in scores.items()
-            if is_number(value) and minimum and value < minimum
-        ]
-        if below:
-            record("FAIL", label, 0, f"{detail}; below minimum {minimum}: {', '.join(below)}")
-        else:
-            record("PASS", label, 0, detail)
-    elif rc == 5:
-        reason = json_field(PERF_RESULTS, "reason") or "lighthouse unavailable or failed"
-        record("SKIPPED", label, rc, reason)
-    else:
+    data, problem = read_evidence(PERF_RESULTS, started)
+    reason = json_field(PERF_RESULTS, "reason") if data else ""
+    expected = {0: "RAN", 4: "FAIL", 5: "SKIPPED", 6: "BLOCKED"}.get(rc)
+    if expected is None:
         first = (p.stderr or p.stdout or "").strip().splitlines()
         record("FAIL", label, rc, first[0][:200] if first else "")
+        return
+    status = (data or {}).get("status")
+    if status != expected:
+        record("FAIL", label, rc,
+               f"exit {rc} contradicts evidence status {status or 'missing'}")
+        return
+    if rc == 5:
+        record("SKIPPED", label, rc, reason or "lighthouse unavailable")
+        return
+    if rc == 6:
+        record("BLOCKED", label, rc, reason or "browser environment unsupported")
+        return
+    if rc == 4:
+        record("FAIL", label, rc, reason or "lighthouse audit failed")
+        return
+    scores = (data or {}).get("scores")
+    required = ("performance", "accessibility", "bestPractices")
+    if problem or not isinstance(scores, dict) or any(
+        not is_number(scores.get(key)) or not 0 <= scores.get(key) <= 100
+        for key in required
+    ):
+        record("FAIL", label, rc,
+               problem or "invalid lighthouse evidence: expected RAN and numeric "
+               "performance/accessibility/best-practices scores in 0-100")
+        return
+    detail = (
+        f"perf={scores.get('performance')} a11y={scores.get('accessibility')}"
+        f" best-practices={scores.get('bestPractices')}"
+    )
+    minimum = OPTIONS["minPerfScore"]
+    below = [f"{key}={scores[key]}" for key in required if minimum and scores[key] < minimum]
+    if below:
+        record("FAIL", label, 0, f"{detail}; below minimum {minimum}: {', '.join(below)}")
+    else:
+        record("PASS", label, 0, detail)
 
 
 def run_slop_gate():
@@ -517,6 +526,12 @@ def run_visual_gate():
     elif p.returncode == 3:
         reason = json_field(VISUAL_RESULTS, "reason") or "no screenshots"
         record("SKIPPED", label, 3, reason)
+    elif p.returncode == 4:
+        reason = json_field(VISUAL_RESULTS, "reason") or "baseline missing"
+        record("BLOCKED", label, 4, f"no visual baseline: {reason}")
+    elif p.returncode == 2:
+        first = (p.stderr or p.stdout or "").strip().splitlines()
+        record("FAIL", label, 2, first[0][:200] if first else "invalid visual invocation")
     else:
         record("FAIL", label, p.returncode, (p.stderr or p.stdout or "").strip()[:200])
 

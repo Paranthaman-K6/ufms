@@ -54,11 +54,14 @@ Preserve the existing architecture and update relevant `.ufme/` artifacts.
 
 The orchestrator selects an execution profile via
 `scripts/execution-profiles.sh <lite|standard|advanced|autonomous>`. Profile configs live in
-`universal-frontend-master-source/profiles/` and control max agents, research depth, allowed
-parallelism, verification depth, resource budgets, browser testing level, and self-improvement
-policy. Security constraints (no sudo/pacman/systemctl/doas/pkexec/su, no Playwright, no
-containers, project-local npm only, mandatory acceptance criteria) are never bypassed by any
-profile.
+`universal-frontend-master-source/profiles/` and control the primary agent, allowed roles,
+concurrent delegate limit, research depth, allowed parallelism, verification depth, resource
+budget, browser testing level, and self-improvement policy. `allowedAgents` lists every role
+the profile may activate; `maxConcurrentDelegates` caps only simultaneously active specialists
+(the primary is never counted), so sequential work can use all allowed roles while `--parallel`
+runs stay within the cap. Security constraints (no sudo/pacman/systemctl/doas/pkexec/su, no
+Playwright, no containers, project-local npm only, mandatory acceptance criteria) are never
+bypassed by any profile.
 
 ## Task checkpoints
 

@@ -16,8 +16,12 @@ entry agent (`universal-frontend-master`) delegates to you; you orchestrate spec
 1. Read `.ufme/AGENT_STATE.md`, `.ufme/TASKS.md`, `.ufme/ENVIRONMENT.md`, `.ufme/DECISIONS.md`.
 2. Apply the active profile **before** delegating:
    `bash universal-frontend-master-source/scripts/execution-profiles.sh --enforce <profile> \
-     --agents <active,csv> [--parallel] [--research <depth>] [--verify <depth>] [--browser <level>]`
-   - Use the profile's real ceilings: lite 2, standard 4, advanced 7, autonomous 12.
+     --delegates <active,specialist,csv> [--parallel] [--research <depth>] [--verify <depth>] [--browser <level>]`
+   - `--delegates` lists specialists only; the profile's `primaryAgent` is added automatically.
+     Use `--agents` when you need to pass the full active set explicitly.
+   - `allowedAgents` is the set of roles the profile may use; `maxConcurrentDelegates` caps
+     how many run at once. Sequential work may use every allowed role; `--parallel` is
+     rejected above the cap. Lite 1, standard 2, advanced 4, autonomous 5 concurrent delegates.
    - Honor `allowedParallelism`, `researchDepth`, `verificationDepth`, `browserTestingLevel`,
      and `selfImprovement`; record the effective settings in `.ufme/AGENT_STATE.md`.
    - Never bypass security constraints (`no sudo/pacman/systemctl/playwright/containers`).

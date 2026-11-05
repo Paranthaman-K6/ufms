@@ -31,16 +31,17 @@ JSON
   exit 1
 fi
 
-# Step 2: detect whether URL responds
+# Step 2: detect whether the target URL responds. A dead server is a real
+# failure of the system under test, not an unsupported environment.
 if ! command -v curl >/dev/null 2>&1; then
   log "curl not available; skipping URL responsiveness check."
 else
   if curl -fsS -o /dev/null --max-time 10 "$URL" >/dev/null 2>&1; then
     log "URL responds: $URL"
   else
-    log "BLOCKED: URL did not respond: $URL (is the dev server running?)"
+    log "FAIL: URL did not respond: $URL (is the dev server running?)"
     cat > "$RESULTS_FILE" <<JSON
-{"url":"$URL","status":"BLOCKED","reason":"URL did not respond","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+{"url":"$URL","status":"FAIL","reason":"URL did not respond","timestamp":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSON
     exit 1
   fi

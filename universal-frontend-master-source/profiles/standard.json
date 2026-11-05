@@ -1,12 +1,14 @@
 {
   "name": "standard",
-  "description": "Balanced agent set for typical frontend projects.",
-  "maxAgents": 4,
+  "description": "Balanced delegation for typical frontend projects, including backend integration and independent audit.",
+  "primaryAgent": "universal-frontend-master",
+  "maxConcurrentDelegates": 2,
   "allowedAgents": [
     "universal-frontend-master",
-    "ufme-orchestrator",
     "ufme-designer",
-    "ufme-builder"
+    "ufme-builder",
+    "ufme-backend-analyst",
+    "ufme-auditor"
   ],
   "researchDepth": "moderate",
   "allowedParallelism": true,

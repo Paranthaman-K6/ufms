@@ -1,8 +1,12 @@
 {
   "name": "lite",
-  "description": "Minimal agent set for simple tasks. Low resource usage.",
-  "maxAgents": 2,
-  "allowedAgents": ["universal-frontend-master", "ufme-orchestrator"],
+  "description": "Minimal delegation for small edits and prototypes: the primary builds directly or hands off to the builder.",
+  "primaryAgent": "universal-frontend-master",
+  "maxConcurrentDelegates": 1,
+  "allowedAgents": [
+    "universal-frontend-master",
+    "ufme-builder"
+  ],
   "researchDepth": "shallow",
   "allowedParallelism": false,
   "verificationDepth": "basic",

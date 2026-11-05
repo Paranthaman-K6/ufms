@@ -4,7 +4,8 @@ audit-a11y.js — all: run axe-core against <url> via Selenium WebDriver.
 
 Uses @axe-core/webdriverjs so the scan runs against a real, native browser.
 Prefers headless Chromium/Chrome, falls back to headless Firefox. The
-sandbox is always preserved (--no-sandbox is never added).
+sandbox is preserved by default; UFME_CHROME_FLAGS / UFME_FIREFOX_FLAGS can
+opt into environment-specific flags such as CI's --no-sandbox.
 
 Writes .ufme/evidence/a11y-results.json and prints one line per violation:
 
@@ -121,12 +122,17 @@ function buildDriver(mode, bin) {
   const { Builder } = webdriver;
   if (mode === 'firefox') {
     const opts = new FirefoxOptions().setBinary(bin).addArguments('-headless');
+    const extra = (process.env.UFME_FIREFOX_FLAGS || '').split(/\s+/).filter(Boolean);
+    if (extra.length) opts.addArguments(...extra);
     return new Builder().forBrowser('firefox').setFirefoxOptions(opts).build();
   }
-  // Chromium sandbox is preserved: --no-sandbox is never added.
+  // Sandbox stays on by default; UFME_CHROME_FLAGS is the explicit opt-in for
+  // environments (CI containers) that cannot use it.
   const opts = new ChromeOptions();
   opts.setChromeBinaryPath(bin);
   opts.addArguments('--headless=new', '--disable-dev-shm-usage');
+  const extra = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
+  if (extra.length) opts.addArguments(...extra);
   // Selenium Manager recognizes the browser name 'chrome' for chromium too.
   return new Builder().forBrowser('chrome').setChromeOptions(opts).build();
 }

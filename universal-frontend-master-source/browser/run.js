@@ -33,6 +33,9 @@ const POLICY = {
     startedAt: new Date().toISOString(),
     status: 'RUNNING', // PASS | FAIL | SKIPPED | BLOCKED
     browser: null,
+    requestedBrowser: null,
+    session: null,
+    manifest: null,
     screenshots: [],
     consoleErrors: [],
     failedRequests: [],
@@ -55,24 +58,17 @@ const POLICY = {
   try {
     // 1. Browser launch (mandatory)
     let launched = false;
-    try {
-      await browser.launchBrowser('chromium');
-      results.browser = 'chromium';
-      launched = true;
-      addCheck('browserLaunch:chromium', 'PASS');
-    } catch (e) {
-      results.errors.push(`chromium launch failed: ${e.message}`);
-      addCheck('browserLaunch:chromium', 'FAIL', e.message);
-    }
-    if (!launched) {
+    for (const name of ['chromium', 'firefox']) {
+      results.requestedBrowser = name;
       try {
-        await browser.launchBrowser('firefox');
-        results.browser = 'firefox';
+        await browser.launchBrowser(name);
+        results.browser = name;
         launched = true;
-        addCheck('browserLaunch:firefox', 'PASS');
+        addCheck(`browserLaunch:${name}`, 'PASS');
+        break;
       } catch (e) {
-        results.errors.push(`firefox launch failed: ${e.message}`);
-        addCheck('browserLaunch:firefox', 'FAIL', e.message);
+        results.errors.push(`${name} launch failed: ${e.message}`);
+        addCheck(`browserLaunch:${name}`, 'FAIL', e.message);
       }
     }
     if (!launched) {
@@ -81,10 +77,24 @@ const POLICY = {
       throw new Error('No browser could launch via Selenium WebDriver');
     }
 
+    // Report the engine that actually launched, not merely the one requested.
+    results.session = await browser.getSessionInfo();
+    const reported = String((results.session && results.session.browserName) || '').toLowerCase();
+    const expected = results.requestedBrowser === 'chromium' ? /chrome|chromium/ : /firefox/;
+    if (!reported || !expected.test(reported)) {
+      addCheck('browserIdentity', 'FAIL',
+        `requested ${results.requestedBrowser}, driver reports ${reported || 'unknown'}`);
+    } else {
+      addCheck('browserIdentity', 'PASS',
+        `${results.session.browserName} ${results.session.browserVersion || ''}`.trim());
+    }
+
     // 2. Navigation (mandatory)
+    let navigated = false;
     try {
       await browser.goto(url);
       await new Promise((r) => setTimeout(r, 2000));
+      navigated = true;
       addCheck('navigation', 'PASS', url);
     } catch (e) {
       results.errors.push(`navigation failed: ${e.message}`);
@@ -92,31 +102,37 @@ const POLICY = {
     }
 
     // 3. Screenshots (budget-scoped), light theme mandatory.
+    //    Capture is aborted after a failed navigation: screenshots of the
+    //    browser error page would be misleading evidence.
     //    Dark pass runs ONLY when the page defines prefers-color-scheme rules
     //    or a theme toggle exists (todo 4.2); otherwise SKIPPED.
-    try {
-      const name = screenshotsOnly ? 'fullpage' : 'home';
-      const light = await screenshot.captureBudget(browser, screenshotDir, name, 'light');
-      results.screenshots.push(...light);
-      addCheck(`screenshot:${name}:light`, 'PASS', `${light.length} capture(s)`);
+    if (!navigated) {
+      addCheck('screenshot:all', 'SKIPPED', 'navigation failed; capture aborted');
+    } else {
+      try {
+        const name = screenshotsOnly ? 'fullpage' : 'home';
+        const light = await screenshot.captureBudget(browser, screenshotDir, name, 'light');
+        results.screenshots.push(...light);
+        addCheck(`screenshot:${name}:light`, 'PASS', `${light.length} capture(s)`);
 
-      const darkSupported = await screenshot.detectDarkSupport(browser);
-      if (darkSupported) {
-        try {
-          const dark = await screenshot.captureBudget(browser, screenshotDir, name, 'dark');
-          results.screenshots.push(...dark);
-          addCheck(`screenshot:${name}:dark`, 'PASS', `${dark.length} capture(s)`);
-        } catch (e) {
-          results.errors.push(`dark theme screenshots: ${e.message}`);
-          addCheck(`screenshot:${name}:dark`, 'SKIPPED', e.message);
+        const darkSupported = await screenshot.detectDarkSupport(browser);
+        if (darkSupported) {
+          try {
+            const dark = await screenshot.captureBudget(browser, screenshotDir, name, 'dark');
+            results.screenshots.push(...dark);
+            addCheck(`screenshot:${name}:dark`, 'PASS', `${dark.length} capture(s)`);
+          } catch (e) {
+            results.errors.push(`dark theme screenshots: ${e.message}`);
+            addCheck(`screenshot:${name}:dark`, 'SKIPPED', e.message);
+          }
+        } else {
+          addCheck('dark-theme:detect', 'SKIPPED',
+            'page defines no prefers-color-scheme rules or theme toggle; dark pass skipped');
         }
-      } else {
-        addCheck('dark-theme:detect', 'SKIPPED',
-          'page defines no prefers-color-scheme rules or theme toggle; dark pass skipped');
+      } catch (e) {
+        results.errors.push(`screenshot capture failed: ${e.message}`);
+        addCheck('screenshot:all', 'FAIL', e.message);
       }
-    } catch (e) {
-      results.errors.push(`screenshot capture failed: ${e.message}`);
-      addCheck('screenshot:all', 'FAIL', e.message);
     }
 
     // 4. Console errors (policy: warning)
@@ -147,6 +163,19 @@ const POLICY = {
       addCheck('network:failures', 'PASS', 'no network failures');
     }
 
+    // 5b. Screenshot manifest: dimensions must match the files on disk.
+    if (navigated) {
+      try {
+        if (results.screenshots.length === 0) throw new Error('no screenshots captured');
+        results.manifest = screenshot.writeManifest(screenshotDir, results.screenshots, { url });
+        addCheck('screenshotManifest', 'PASS',
+          `${results.screenshots.length} image(s) -> ${results.manifest}`);
+      } catch (e) {
+        results.errors.push(`screenshot manifest failed: ${e.message}`);
+        addCheck('screenshotManifest', 'FAIL', e.message);
+      }
+    }
+
     // Calculate overall status from individual check results.
     let hasBlocked = false;
     let hasFail = false;
@@ -158,7 +187,7 @@ const POLICY = {
     if (hasBlocked) {
       results.status = 'BLOCKED';
     } else if (hasFail) {
-      results.status = 'FAILED';
+      results.status = 'FAIL';
     } else {
       // Check if any mandatory check was skipped (e.g., screenshots skipped = fail)
       const mandatorySkipped = results.checks.some(c =>
@@ -166,7 +195,7 @@ const POLICY = {
         (c.name.includes('screenshot') || c.name.includes('browserLaunch') || c.name.includes('navigation'))
       );
       if (mandatorySkipped) {
-        results.status = 'FAILED';
+        results.status = 'FAIL';
       } else {
         results.status = 'PASS';
       }
@@ -174,7 +203,7 @@ const POLICY = {
 
   } catch (e) {
     if (results.status !== 'BLOCKED') {
-      results.status = 'FAILED';
+      results.status = 'FAIL';
       results.errors.push(e.message);
     }
   } finally {

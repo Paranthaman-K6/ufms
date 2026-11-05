@@ -8,10 +8,11 @@
 //                                 viewports plus tablet 768 / laptop 1280.
 //
 // Other behaviors:
-//   - Output width capped at 1280px via in-page canvas downscale (no extra
-//     deps; native PNG bytes are kept only if canvas encoding is impossible).
-//   - Encoded as JPEG quality ~70 via in-page canvas (todo 4.2: JPEG/WebP
-//     instead of PNG) instead of raw PNG.
+//   - Captures are written as the driver's native PNG bytes so pngjs and
+//     pixelmatch can decode them; no lossy re-encode.
+//   - Every capture records its actual pixel width/height, and
+//     writeManifest() records file + dimensions + viewport/theme next to the
+//     screenshots for visual-diff.js to verify.
 //   - Section crops via element.takeScreenshot() for each --sections selector
 //     (comma-separated or repeated flags).
 //   - Dark-theme pass ONLY when the page actually defines
@@ -45,10 +46,8 @@ const BUDGET_VIEWPORTS = {
   desktop: { width: 1440, height: 900 },
 };
 
-// Downscale cap and JPEG quality for the light built-in encoder.
-const MAX_OUTPUT_WIDTH = 1280;
-const MAX_CANVAS_HEIGHT = 16000; // stay under Chrome's 16384 canvas limit
-const JPEG_QUALITY = 0.7;
+// Downscale cap and canvas limit no longer apply: comparison needs the native
+// PNG, so captures keep the exact pixel dimensions the driver produced.
 
 // ---- CLI flag helpers (shared runtime state: same process as run.js) ----
 
@@ -87,59 +86,53 @@ function getSectionSelectors() {
 
 // ---- Light built-in processing (no extra dependencies) ----
 
-// Re-encode a raw Selenium PNG (base64) via an in-page canvas:
-//   - downscales to MAX_OUTPUT_WIDTH wide (and MAX_CANVAS_HEIGHT tall),
-//   - encodes JPEG at JPEG_QUALITY.
-// Falls back to the untouched PNG bytes when canvas processing is not
-// possible (e.g. exotic drivers or canvas memory limits).
-async function encodeImage(browser, base64Png) {
-  const script = `
-return (function () {
-  return new Promise(function (resolve, reject) {
-    try {
-      var img = new Image();
-      img.onload = function () {
-        try {
-          var scale = Math.min(1, ${MAX_OUTPUT_WIDTH} / img.naturalWidth, ${MAX_CANVAS_HEIGHT} / img.naturalHeight);
-          var canvas = document.createElement('canvas');
-          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-          var ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', ${JPEG_QUALITY}));
-        } catch (encodeErr) {
-          reject(encodeErr);
-        }
-      };
-      img.onerror = function () { reject(new Error('screenshot image decode failed')); };
-      img.src = 'data:image/png;base64,' + arguments[0];
-    } catch (outerErr) {
-      reject(outerErr);
-    }
-  });
-})()`;
-  try {
-    const dataUrl = await browser.executeScript(script, base64Png);
-    const marker = 'data:image/jpeg;base64,';
-    if (typeof dataUrl === 'string' && dataUrl.startsWith(marker)) {
-      return { buffer: Buffer.from(dataUrl.slice(marker.length), 'base64'), ext: '.jpg', encoding: 'jpeg' };
-    }
-  } catch (e) {
-    // Canvas processing unavailable; keep the untouched PNG below.
+// Read width/height straight from the PNG IHDR chunk. Keeps screenshot capture
+// dependency-free while giving the manifest real pixel dimensions.
+function pngDimensions(buffer) {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (buffer.length < 24 || !buffer.subarray(0, 8).equals(signature)) {
+    throw new Error('capture is not a PNG');
   }
-  return {
-    buffer: Buffer.from(base64Png, 'base64'),
-    ext: '.png',
-    encoding: 'png-fallback',
-  };
+  if (buffer.toString('ascii', 12, 16) !== 'IHDR') {
+    throw new Error('PNG has no IHDR chunk');
+  }
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
 async function saveScreenshot(browser, outDir, baseName, base64Png) {
-  const encoded = await encodeImage(browser, base64Png);
-  const file = path.join(outDir, `${baseName}${encoded.ext}`);
-  fs.writeFileSync(file, encoded.buffer);
+  const file = path.join(outDir, `${baseName}.png`);
+  const buffer = Buffer.from(base64Png, 'base64');
+  fs.writeFileSync(file, buffer);
   assertFile(file);
-  return { file, size: fs.statSync(file).size, encoding: encoded.encoding };
+  const { width, height } = pngDimensions(buffer);
+  return { file, size: buffer.length, encoding: 'png', width, height };
+}
+
+// Record the captures that actually exist on disk. Dimensions are re-read from
+// each file, so the manifest cannot drift from the pixels it describes.
+function writeManifest(outDir, captures, meta = {}) {
+  const images = new Map();
+  for (const capture of captures) {
+    if (!capture || !capture.file || !fs.existsSync(capture.file)) continue;
+    const { width, height } = pngDimensions(fs.readFileSync(capture.file));
+    images.set(path.basename(capture.file), {
+      file: path.basename(capture.file),
+      width,
+      height,
+      viewport: capture.viewport || null,
+      theme: capture.theme || null,
+      ...(capture.selector ? { selector: capture.selector } : {}),
+    });
+  }
+  const manifest = {
+    generatedAt: new Date().toISOString(),
+    ...meta,
+    images: [...images.values()],
+  };
+  const file = path.join(outDir, 'manifest.json');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`);
+  return file;
 }
 
 function assertFile(file) {
@@ -349,14 +342,13 @@ module.exports = {
   captureSection,
   captureBudget,
   detectDarkSupport,
-  encodeImage,
+  writeManifest,
+  pngDimensions,
   applyTheme,
   budget: getBudget,
   sectionSelectors: getSectionSelectors,
   VIEWPORTS,
   BUDGET_MODES,
   BUDGET_VIEWPORTS,
-  MAX_OUTPUT_WIDTH,
-  JPEG_QUALITY,
   DARK_MODE_MODES,
 };
