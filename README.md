@@ -48,7 +48,7 @@ It never invents endpoints, never forces a framework change without justificatio
 
 | Layer | Owner | Responsibility |
 |-------|-------|----------------|
-| Entry point | `universal-frontend-master` | User-facing primary agent; delegates to orchestrator |
+| Entry point | `universal-frontend-master` | User-facing primary agent; delegates per active profile |
 | Orchestration | `ufme-orchestrator` | Plans, delegates, resolves conflicts, enforces acceptance, owns memory |
 | Specialists | 4 subagents | Design, backend, build, audit |
 | Execution | `scripts/` + `tests/browser/` | Deterministic checks, browser automation, screenshots, quality reports |
@@ -74,7 +74,7 @@ flowchart LR
 
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
-| `universal-frontend-master` | primary | Entry point; delegates to orchestrator | `@universal-frontend-master` |
+| `universal-frontend-master` | primary | Entry point; delegates per active profile (orchestrator only in advanced/autonomous; direct specialist delegation in lite/standard) | `@universal-frontend-master` |
 | `ufme-orchestrator` | subagent | Plan, profile enforcement, context packing, delegation, acceptance | N/A (internal) |
 | `ufme-designer` | subagent | Research, PRD, sitemap, design system, critique | `@ufme-designer` |
 | `ufme-backend-analyst` | subagent | API map, auth map, capabilities, error handling | `@ufme-backend-analyst` |

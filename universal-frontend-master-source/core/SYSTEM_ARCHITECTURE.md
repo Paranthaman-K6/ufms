@@ -4,12 +4,13 @@
 
 universal-frontend-master is an OpenCode skill built on a multi-agent, multi-phase pipeline.
 Agents collaborate through shared persistent project memory in `.ufme/` and a structured
-delegation protocol. The system is Arch Linux-first but portable.
+delegation protocol. The system is Arch Linux-native and Arch Linux-only.
 
 ## Layers
 
 1. Entry layer — `universal-frontend-master` (the only `mode: primary`). Classifies the
-   project, applies the execution profile, and delegates to the orchestrator.
+   project, applies the execution profile, and delegates per `allowedAgents` (orchestrator
+   only in advanced/autonomous; direct specialist delegation in lite/standard).
 2. Orchestration layer — `ufme-orchestrator` (mode: subagent). Packs task context, enforces
    profile limits, owns `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md`, resolves conflicts, and
    enforces acceptance criteria.

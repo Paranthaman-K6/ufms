@@ -18,7 +18,7 @@ reference router all live in `SKILL.md`.
 
 | Agent | Mode | Role |
 |-------|------|------|
-| `universal-frontend-master` | primary | Entry point; starts the session, delegates to orchestrator |
+| `universal-frontend-master` | primary | Entry point; starts the session, delegates per active profile |
 | `ufme-orchestrator` | subagent | Plans, delegates, enforces acceptance, owns memory |
 | `ufme-designer` | subagent | Research, product brief, design system, critique |
 | `ufme-backend-analyst` | subagent | API map, auth map, backend contracts (skipped when no backend detected) |

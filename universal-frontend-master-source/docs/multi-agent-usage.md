@@ -8,15 +8,18 @@
 
 ## How agents collaborate
 
-1. The primary entry agent (`universal-frontend-master`) delegates to the orchestrator
-   (`ufme-orchestrator`, `mode: subagent`), which reads `.ufme/AGENT_STATE.md` and
-   `.ufme/ENVIRONMENT.md`.
-2. It creates/updates `.ufme/TASKS.md` and delegates one coherent task at a time.
-3. Each specialist subagent (`mode: subagent`) returns a structured result: status
-   (`COMPLETE`/`BLOCKED`/`NEEDS_INPUT`), files, decisions, open questions, blocking deps,
-   recommended next agent.
-4. The orchestrator updates memory and delegates the next dependent task.
-5. Parallel work only when tasks don't modify the same files. Disagreements are resolved by
+1. The primary entry agent (`universal-frontend-master`) reads `.ufme/AGENT_STATE.md` and
+   `.ufme/ENVIRONMENT.md`, then resolves the active execution profile (`lite`, `standard`,
+   `advanced`, or `autonomous`).
+2. It enforces the profile via `execution-profiles.sh --enforce`, which validates the
+   proposed delegation against `allowedAgents` and `maxConcurrentDelegates`.
+3. If the profile allows `ufme-orchestrator` (advanced, autonomous), the primary delegates
+   planning and specialist coordination to the orchestrator. Otherwise (lite, standard) the
+   primary delegates directly to the first permitted specialist.
+4. Each specialist subagent returns a structured result: status (`COMPLETE`/`BLOCKED`/`NEEDS_INPUT`),
+   files, decisions, open questions, blocking deps, recommended next agent.
+5. The orchestrator (when active) updates memory and delegates the next dependent task.
+6. Parallel work only when tasks don't modify the same files. Disagreements are resolved by
    the orchestrator and recorded in `.ufme/DECISIONS.md`.
 
 ## Specialist agents

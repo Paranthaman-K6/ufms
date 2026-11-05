@@ -17,7 +17,7 @@ metadata:
 
 ## Primary entry point agent: `@universal-frontend-master`
 
-Invoke this agent directly with `@universal-frontend-master` to start a frontend engineering session. It is the only user-facing primary agent; it delegates orchestration to `ufme-orchestrator`, which coordinates 4 specialist subagents.
+Invoke this agent directly with `@universal-frontend-master` to start a frontend engineering session. It is the only user-facing primary agent; it resolves the active execution profile and delegates according to `allowedAgents` — to `ufme-orchestrator` for specialist coordination (advanced, autonomous) or directly to permitted specialists (lite, standard).
 
 ## Proper workflow (multi-agent pipeline)
 
@@ -130,7 +130,7 @@ Profiles declare `primaryAgent` (always active, never counted as a delegate),
 
 | Agent | Mode | Role | Invoke with |
 |-------|------|------|-------------|
-| `universal-frontend-master` | primary | Primary entry point; delegates to orchestrator | `@universal-frontend-master` |
+| `universal-frontend-master` | primary | Primary entry point; delegates per active profile (orchestrator only in advanced/autonomous) | `@universal-frontend-master` |
 | `ufme-orchestrator` | subagent | Plans, delegates, enforces acceptance, owns memory | N/A (internal) |
 | `ufme-backend-analyst` | subagent (mandatory) | API map, auth map, capabilities | `@ufme-backend-analyst` |
 | `ufme-designer` | subagent | Research, licenses, PRD/flows, design system | `@ufme-designer` |
