@@ -107,8 +107,13 @@ run_case() {
   local args=("http://127.0.0.1:9/")
   [ -n "$no_url" ] && args=()
 
+  # Scope the evidence dir to the sandbox so the workflow-level UFME_EVIDENCE_DIR
+  # (set by CI) does not leak into the sandboxed audit-perf.sh run.
+  mkdir -p "$SANDBOX/.ufme/evidence"
+
   local rc
-  PATH="$SANDBOX/bin" FAKE_LH_MODE="$npx_mode" \
+  PATH="$SANDBOX/bin" UFME_EVIDENCE_DIR="$SANDBOX/.ufme/evidence" \
+    FAKE_LH_MODE="$npx_mode" \
     bash "$SANDBOX/universal-frontend-master-source/scripts/audit-perf.sh" "${args[@]}" \
     >"$SANDBOX/stdout.log" 2>"$SANDBOX/stderr.log"
   rc=$?
