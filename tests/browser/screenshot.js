@@ -78,16 +78,25 @@ async function captureFullPage(browser, outDir, name, theme = 'light', darkModeM
   return results;
 }
 
-async function captureSection(browser, outDir, name, selector, viewport = 'desktop') {
+async function captureSection(browser, outDir, name, selector, viewport = 'desktop', theme = 'light') {
   await browser.setViewport(viewport);
+  if (theme === 'dark') {
+    try {
+      await browser.executeScript(
+        `document.documentElement.style.colorScheme='dark';`
+      );
+    } catch (e) {
+      // Dark theme override not applicable; continue with light capture.
+    }
+  }
   await browser.waitForSelector(selector);
 
   const base64 = await browser.screenshotElement(selector);
-  const file = path.join(outDir, `${name}-section-${viewport}.png`);
+  const file = path.join(outDir, `${name}-section-${selector.replace(/[^a-z0-9_-]+/gi, '-')}-${viewport}-${theme}.png`);
   fs.writeFileSync(file, Buffer.from(base64, 'base64'));
   assertFile(file);
 
-  return { viewport, file, selector, size: fs.statSync(file).size };
+  return { viewport, file, selector, theme, size: fs.statSync(file).size };
 }
 
 module.exports = {

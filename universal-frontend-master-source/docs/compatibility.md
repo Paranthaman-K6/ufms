@@ -11,10 +11,9 @@
 - Python 3.9+ for scripts; no third-party Python packages required.
 
 ## Platform
-- Arch Linux-first (native Chromium + Firefox, Wayland/X11/headless).
-- Portable to any Linux or macOS with Node.js, npm, a system browser, and the
-  dependencies above. Shell helpers fall back between `sha256sum`, `shasum` and
-  `openssl`, and timestamps use POSIX `date -u`.
+- Arch Linux (native Chromium + Firefox, Wayland/X11/headless) — the only supported platform.
+- Install browsers: `sudo pacman -S chromium firefox`.
+- Shell helpers use POSIX tools available on Arch Linux (`sha256sum`, `date -u`).
 
 ## Quality gate semantics
 - Required checks (`--require`, or the `audit` preset) cannot PASS when SKIPPED.

@@ -325,16 +325,23 @@ async function captureBudget(browser, outDir, name, theme = 'light', darkModeMod
   return results;
 }
 
-async function captureSection(browser, outDir, name, selector, viewport = 'desktop') {
+async function captureSection(browser, outDir, name, selector, viewport = 'desktop', theme = 'light') {
   await browser.setViewport(viewport);
+  if (theme === 'dark') {
+    try {
+      await applyTheme(browser, theme);
+    } catch (e) {
+      // Dark theme override not applicable; continue with light capture.
+    }
+  }
   await browser.waitForSelector(selector);
 
   const base64 = await browser.screenshotElement(selector);
   const saved = await saveScreenshot(
-    browser, outDir, `${name}-section-${selector.replace(/[^a-z0-9_-]+/gi, '-')}-${viewport}`
+    browser, outDir, `${name}-section-${selector.replace(/[^a-z0-9_-]+/gi, '-')}-${viewport}-${theme}`, base64
   );
 
-  return { viewport, selector, budget: getBudget(), ...saved };
+  return { viewport, selector, theme, budget: getBudget(), ...saved };
 }
 
 module.exports = {

@@ -24,8 +24,8 @@ If Chromium or Firefox headless launch fails (e.g. missing `libnss3.so`, `libatk
 3. Prompt the user with the exact command (e.g. `sudo pacman -S nss`).
 4. Wait for the user to confirm installation before retrying.
 
-## Portability
+## Supported platform
 
-The skill is Arch Linux-first but the same scripts, agents, and Selenium abstraction work on
-any Linux or macOS with Node.js `^22.23.4 || ^24.22.1 || >=26.12.1`, npm, a system browser,
-and the project-local audit dependencies.
+Arch Linux is the only supported platform. The scripts, agents, and Selenium
+abstraction require Arch Linux with Node.js `^22.23.4 || ^24.22.1 || >=26.12.1`,
+npm, system Chromium and Firefox, and the project-local audit dependencies.

@@ -6,7 +6,7 @@ Turns a brief, existing repo, API docs, screenshot, or reference site into a com
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![OpenCode Skill](https://img.shields.io/badge/opencode-skill-111827)](https://opencode.ai)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Node](https://img.shields.io/badge/node-%5E22.23.4%20%7C%20%5E24.22.1%20%7C%20%3E%3D26.12.1-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 
 ```text
@@ -112,7 +112,7 @@ Slash commands to nudge an active session at a specific pass:
 - Python 3.9+
 - Chromium and/or Firefox (Selenium Manager fetches matching drivers)
 
-Cross-platform by default (Linux, macOS, WSL). Arch Linux is a first-class, tested platform — not a requirement.
+Arch Linux is the only supported platform. Install Chromium/Firefox via `pacman`.
 
 ### Install once (user scope — all projects)
 

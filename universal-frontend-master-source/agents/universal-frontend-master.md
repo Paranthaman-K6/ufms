@@ -30,14 +30,21 @@ coordinates the four specialist subagents: `ufme-designer`, `ufme-builder`,
 3. Resolve the active profile (`lite`, `standard`, `advanced`, `autonomous`) and enforce it:
    `bash universal-frontend-master-source/scripts/execution-profiles.sh --enforce <profile> --delegates <csv>`
    (specialists only; the primary is added automatically).
-4. Delegate to `ufme-orchestrator` with the task, acceptance criteria, and profile.
+4. Delegate according to the profile's `allowedAgents`:
+   - If the profile allows `ufme-orchestrator` (advanced, autonomous): delegate to
+     `ufme-orchestrator`, which coordinates the specialist subagents.
+   - If the profile does NOT allow `ufme-orchestrator` (lite, standard): delegate directly
+     to the first permitted specialist (`ufme-builder` for lite; designer/builder/
+     backend-analyst/auditor for standard). The primary never delegates to a role the
+     profile forbids.
 5. Update `.ufme/AGENT_STATE.md` and `.ufme/TASKS.md` after each delegation.
 6. Run `scripts/self-improve.py` after each delivery.
 7. Repeat until acceptance criteria pass, or document limitations and blockers.
 
 ## Delegation
 - `ufme-orchestrator` (subagent): planning, context packing, specialist delegation, task
-  state, acceptance enforcement, conflict resolution.
+  state, acceptance enforcement, conflict resolution. Used only by profiles that allow it
+  (advanced, autonomous).
 - `ufme-designer` (subagent): research, PRD/sitemap/flows, design system, critique.
 - `ufme-builder` (subagent): architecture, implementation, integration, tests.
 - `ufme-backend-analyst` (subagent): API/auth/capability maps from evidence.
