@@ -1,0 +1,28 @@
+{
+  "name": "standard",
+  "description": "Balanced delegation for typical frontend projects, including backend integration and independent audit.",
+  "primaryAgent": "ufmw-frontend-design",
+  "maxConcurrentDelegates": 2,
+  "allowedAgents": [
+    "ufmw-frontend-design",
+    "ufmw-designer",
+    "ufmw-builder",
+    "ufmw-backend-analyst",
+    "ufmw-auditor"
+  ],
+  "researchDepth": "moderate",
+  "allowedParallelism": true,
+  "verificationDepth": "standard",
+  "resourceBudget": "medium",
+  "browserTestingLevel": "standard",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

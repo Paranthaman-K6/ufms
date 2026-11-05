@@ -61,6 +61,16 @@ BROWSER_TEST_SCRIPT = Path(
     or (SCRIPTS_DIR / "browser-test.sh")
 )
 
+SEO_CRAWL_SCRIPT = Path(
+    os.environ.get("UFME_SEO_CRAWL_SCRIPT")
+    or (ROOT / "ufmw_seo_protocol_skill" / "scripts" / "seo-crawl.py")
+)
+SEO_ANALYZE_SCRIPT = Path(
+    os.environ.get("UFME_SEO_ANALYZE_SCRIPT")
+    or (ROOT / "ufmw_seo_protocol_skill" / "scripts" / "seo-analyze.py")
+)
+SEO_RESULTS = Path(os.environ.get("UFME_SEO_RESULTS") or (EVIDENCE / "seo-results.json"))
+
 TARGET_URL = os.environ.get("UFME_AUDIT_URL") or "http://localhost:5173"
 
 CHECKS = []
@@ -91,7 +101,7 @@ except ValueError:
 
 CHECK_IDS = [
     "typescript", "lint", "format", "unit", "build",
-    "browser", "a11y", "perf", "slop", "visual", "deps",
+    "browser", "a11y", "perf", "slop", "visual", "deps", "seo",
 ]
 PRESETS = {
     "audit": ["a11y", "perf", "slop", "visual"],
@@ -536,6 +546,72 @@ def run_visual_gate():
         record("FAIL", label, p.returncode, (p.stderr or p.stdout or "").strip()[:200])
 
 
+def run_seo_gate():
+    label = "SEO audit"
+    if not SEO_CRAWL_SCRIPT.exists() or not SEO_ANALYZE_SCRIPT.exists():
+        record("SKIPPED", label, 0, "SEO crawl/analyze scripts not found")
+        return
+    if not url_responds(OPTIONS["target"]):
+        record(
+            "SKIPPED", label, 0,
+            f"target URL did not respond: {OPTIONS['target']} — start the dev server and re-run",
+        )
+        return
+    log(f"Running SEO crawl against {OPTIONS['target']}")
+    started = time.time()
+    try:
+        p = subprocess.run(
+            [sys.executable, str(SEO_CRAWL_SCRIPT), OPTIONS["target"], "50"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        record("FAIL", label, 124, "SEO crawl timed out after 300s")
+        return
+    except OSError as e:
+        record("FAIL", label, 1, str(e))
+        return
+    if p.returncode != 0:
+        record("FAIL", label, p.returncode, (p.stderr or p.stdout or "").strip()[:200])
+        return
+    # Run analysis
+    try:
+        p2 = subprocess.run(
+            [sys.executable, str(SEO_ANALYZE_SCRIPT), str(EVIDENCE)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        record("FAIL", label, 124, "SEO analyze timed out after 60s")
+        return
+    except OSError as e:
+        record("FAIL", label, 1, str(e))
+        return
+    if p2.returncode != 0:
+        record("FAIL", label, p2.returncode, (p2.stderr or p2.stdout or "").strip()[:200])
+        return
+    data, problem = read_evidence(SEO_RESULTS, started)
+    if problem:
+        record("FAIL", label, 0, problem)
+        return
+    total = (data or {}).get("totalIssues", 0)
+    if not isinstance(total, int) or isinstance(total, bool):
+        record("FAIL", label, 0, "invalid SEO evidence: expected integer totalIssues")
+        return
+    issues_by_sev = (data or {}).get("issuesBySeverity", {})
+    critical = issues_by_sev.get("critical", 0)
+    major = issues_by_sev.get("major", 0)
+    minor = issues_by_sev.get("minor", 0)
+    record(
+        "PASS" if total == 0 else "FAIL", label, 0,
+        f"{total} SEO issues (critical={critical}, major={major}, minor={minor}) — results: {SEO_RESULTS}"
+    )
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -589,6 +665,7 @@ def checks_table(pkg):
         ("deps", lambda: run("Dependency audit", ["npm", "audit", "--audit-level=moderate"])
          if (ROOT / "package.json").exists()
          else record("SKIPPED", "Dependency audit", 0, "no package.json")),
+        ("seo", run_seo_gate),
     ]
 
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reference Site - Pricing Cards Example</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f3f4f6; }
+  .pricing {
+    max-width: 1000px;
+    margin: 4rem auto;
+    padding: 0 1rem;
+  }
+  .pricing h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #111827;
+    margin-bottom: 3rem;
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+  .pricing-card {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  }
+  .pricing-card.featured {
+    border-color: #2563eb;
+    box-shadow: 0 10px 25px -5px rgba(37,99,235,0.2);
+  }
+  .card-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .card-price {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 1.5rem;
+  }
+  .card-price span {
+    font-size: 1rem;
+    color: #6b7280;
+  }
+  .card-features {
+    list-style: none;
+    margin-bottom: 2rem;
+  }
+  .card-features li {
+    padding: 0.5rem 0;
+    color: #374151;
+  }
+  .card-features li::before {
+    content: "✓";
+    color: #2563eb;
+    font-weight: bold;
+    margin-right: 0.5rem;
+  }
+  .card-btn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+  }
+  .card-btn:hover {
+    background: #1d4ed8;
+  }
+  .featured .card-btn {
+    background: #111827;
+  }
+  .featured .card-btn:hover {
+    background: #000000;
+  }
+</style>
+</head>
+<body>
+  <section class="pricing">
+    <h2>Simple, transparent pricing</h2>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="card-name">Starter</div>
+        <div class="card-price">$0<span>/mo</span></div>
+        <ul class="card-features">
+          <li>Up to 3 projects</li>
+          <li>Basic templates</li>
+          <li>Community support</li>
+        </ul>
+        <button class="card-btn">Get Started</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="card-name">Professional</div>
+        <div class="card-price">$29<span>/mo</span></div>
+        <ul class="card-features">
+          <li>Unlimited projects</li>
+          <li>Premium templates</li>
+          <li>Priority support</li>
+          <li>Custom domains</li>
+        </ul>
+        <button class="card-btn">Get Started</button>
+      </div>
+      <div class="pricing-card">
+        <div class="card-name">Enterprise</div>
+        <div class="card-price">$99<span>/mo</span></div>
+        <ul class="card-features">
+          <li>Unlimited everything</li>
+          <li>White-label options</li>
+          <li>Dedicated support</li>
+          <li>SLA guaranteed</li>
+        </ul>
+        <button class="card-btn">Contact Sales</button>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

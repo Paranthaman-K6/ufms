@@ -1,0 +1,28 @@
+{
+  "name": "advanced",
+  "description": "Full SEO with analyst + auditor, thorough audits.",
+  "primaryAgent": "ufmw-seo-protocol",
+  "maxConcurrentDelegates": 4,
+  "allowedAgents": [
+    "ufmw-seo-protocol",
+    "ufmw-seo-technical",
+    "ufmw-seo-content",
+    "ufmw-seo-analyst",
+    "ufmw-seo-auditor"
+  ],
+  "researchDepth": "deep",
+  "allowedParallelism": true,
+  "verificationDepth": "thorough",
+  "resourceBudget": "high",
+  "browserTestingLevel": "comprehensive",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

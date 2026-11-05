@@ -1,0 +1,27 @@
+{
+  "name": "standard",
+  "description": "Balanced SEO for typical sites: technical + content + audit.",
+  "primaryAgent": "ufmw-seo-protocol",
+  "maxConcurrentDelegates": 2,
+  "allowedAgents": [
+    "ufmw-seo-protocol",
+    "ufmw-seo-technical",
+    "ufmw-seo-content",
+    "ufmw-seo-auditor"
+  ],
+  "researchDepth": "moderate",
+  "allowedParallelism": true,
+  "verificationDepth": "standard",
+  "resourceBudget": "medium",
+  "browserTestingLevel": "standard",
+  "selfImprovement": true,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}
