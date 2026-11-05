@@ -109,7 +109,9 @@ jobs:
           done
 
           # Capture the base commit with the HEAD browser runner so only the
-          # served page content differs between the two sides.
+          # served page content differs between the two sides. Clean first so
+          # screenshots from an earlier step (test:browser) cannot mix in.
+          rm -rf "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
           mkdir -p "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
           node universal-frontend-master-source/browser/run.js \
             http://localhost:5174 "$UFME_EVIDENCE_DIR/baseline" \
