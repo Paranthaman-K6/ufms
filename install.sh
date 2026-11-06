@@ -22,16 +22,18 @@
 #   both     — global + project (default when run interactively without INSTALL_SCOPE)
 #
 # Global install (user scope — available to all projects):
-#   $HOME/.config/opencode/agents/*.md              # agent definitions (incl. ufmw-seo-*.md)
-#   $HOME/.config/opencode/skills/*/SKILL.md        # skill definition (incl. ufmw-seo-protocol)
+#   $HOME/.config/opencode/agents/*.md              # agent definitions (incl. ufmw-seo-*.md, init-frontend)
+#   $HOME/.config/opencode/skills/*/SKILL.md        # skill definition (incl. ufmw-seo-protocol, init-frontend)
 #   $HOME/.config/opencode/commands/*               # slash commands (/profile/*, /lite, /standard, ...)
 #   $HOME/.config/opencode/commands/ufmw/seo-*.md   # SEO slash commands
+#   $HOME/.config/opencode/commands/ufmw/init-frontend*  # init-frontend slash commands
 #   $HOME/.config/opencode/opencode.json            # agent + command registry, default agent
 #   $HOME/.config/ufme/                             # cross-project shared data (library registry, state)
 #
 # Project-local install (target project only — never overwrites existing):
 #   $TARGET/.opencode/skills/universal-frontend-master/  # skill copy (project override)
 #   $TARGET/.opencode/skills/ufmw-seo-protocol/           # SEO skill copy (project override)
+#   $TARGET/.opencode/skills/init-frontend/                # init-frontend skill copy (project override)
 #   $TARGET/.opencode/agents/*.md                         # agent copy (project override)
 #   $TARGET/universal-frontend-master-source/             # source tree (includes browser runner)
 #   $TARGET/.ufme/                                        # per-project memory templates (seeded only)
@@ -313,6 +315,17 @@ if [ "$DO_GLOBAL" -eq 1 ]; then
   mkdir -p "$OPENCODE_USER_CONFIG/commands/ufmw"
   cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$OPENCODE_USER_CONFIG/commands/ufmw/"
 
+  log "Installing init-frontend agent globally to $OPENCODE_USER_CONFIG/agents ..."
+  cp -R "$SRC/skills/init-frontend/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
+
+  log "Installing init-frontend slash commands globally to $OPENCODE_USER_CONFIG/commands/ufmw ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/commands/ufmw"
+  cp -R "$SRC/skills/init-frontend/commands/ufmw/." "$OPENCODE_USER_CONFIG/commands/ufmw/"
+
+  log "Installing init-frontend skill globally to $OPENCODE_USER_CONFIG/skills/init-frontend ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/skills/init-frontend"
+  cp -R "$SRC/skills/init-frontend/." "$OPENCODE_USER_CONFIG/skills/init-frontend/"
+
   log "Installing global opencode.json (default agent, commands, permissions) ..."
   GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
 
@@ -403,6 +416,13 @@ if [ "$DO_PROJECT" -eq 1 ]; then
   mkdir -p "$TARGET/.opencode/skills/ufmw-seo-protocol"
   cp -R "$SRC/ufmw_seo_protocol_skill/." "$TARGET/.opencode/skills/ufmw-seo-protocol/"
 
+  # init-frontend skill — project-local (seed only, never overwrite)
+  cp -R "$SRC/skills/init-frontend/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+  mkdir -p "$TARGET/.opencode/commands/ufmw"
+  cp -R "$SRC/skills/init-frontend/commands/ufmw/." "$TARGET/.opencode/commands/ufmw/" 2>/dev/null || true
+  mkdir -p "$TARGET/.opencode/skills/init-frontend"
+  cp -R "$SRC/skills/init-frontend/." "$TARGET/.opencode/skills/init-frontend/"
+
   # Browser runner check — bundled browser automation lives in the source tree.
   if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
     log "Browser runner installed: universal-frontend-master-source/browser/run.js"
@@ -457,10 +477,12 @@ if [ "$DO_GLOBAL" -eq 1 ]; then
   log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
   log "Installed skill globally: $OPENCODE_USER_CONFIG/skills/universal-frontend-master"
   log "Installed SEO skill globally: $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
+  log "Installed init-frontend skill globally: $OPENCODE_USER_CONFIG/skills/init-frontend"
 fi
 if [ "$DO_PROJECT" -eq 1 ]; then
   log "Installed source tree: $TARGET/universal-frontend-master-source"
   log "Project-local seed: $TARGET/.ufme/"
+  log "Project-local init-frontend skill: $TARGET/.opencode/skills/init-frontend/"
 fi
 if [ "$DO_GLOBAL" -eq 1 ]; then
   log "Cross-project data: $UFME_USER_CONFIG (library registry shared across projects)"
