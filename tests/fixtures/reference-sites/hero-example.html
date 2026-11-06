@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reference Site - Hero Example</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; }
+  .hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    padding: 6rem 2rem;
+    text-align: center;
+  }
+  .hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .hero h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+  }
+  .hero p {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+  .btn-primary {
+    background: #ffffff;
+    color: #667eea;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+  }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Build amazing websites</h1>
+      <p>Create beautiful, responsive websites with our design system.</p>
+      <div class="hero-buttons">
+        <a href="/get-started" class="btn btn-primary">Get Started</a>
+        <a href="/learn-more" class="btn btn-secondary">Learn More</a>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

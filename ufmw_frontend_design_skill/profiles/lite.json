@@ -1,0 +1,25 @@
+{
+  "name": "lite",
+  "description": "Minimal delegation for small edits and prototypes: the primary builds directly or hands off to the builder.",
+  "primaryAgent": "ufmw-frontend-design",
+  "maxConcurrentDelegates": 1,
+  "allowedAgents": [
+    "ufmw-frontend-design",
+    "ufmw-builder"
+  ],
+  "researchDepth": "shallow",
+  "allowedParallelism": false,
+  "verificationDepth": "basic",
+  "resourceBudget": "low",
+  "browserTestingLevel": "basic",
+  "selfImprovement": false,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

@@ -1,0 +1,25 @@
+{
+  "name": "lite",
+  "description": "Minimal SEO for small sites: primary + builder only, basic checks.",
+  "primaryAgent": "ufmw-seo-protocol",
+  "maxConcurrentDelegates": 1,
+  "allowedAgents": [
+    "ufmw-seo-protocol",
+    "ufmw-seo-technical"
+  ],
+  "researchDepth": "shallow",
+  "allowedParallelism": false,
+  "verificationDepth": "basic",
+  "resourceBudget": "low",
+  "browserTestingLevel": "basic",
+  "selfImprovement": false,
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true,
+    "projectLocalNpmOnly": true
+  },
+  "mandatoryAcceptanceCriteria": true
+}

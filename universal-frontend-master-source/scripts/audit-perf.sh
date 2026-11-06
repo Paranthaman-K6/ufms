@@ -36,6 +36,13 @@ mkdir -p "$EVIDENCE_DIR"
 
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 CHROME_FLAGS="${UFME_CHROME_FLAGS:---headless=new}"
+# CI/container environments need --no-sandbox for Chromium to launch.
+# Add it automatically if not already present and we're not in a desktop session.
+if echo "$CHROME_FLAGS" | grep -q -- '--no-sandbox'; then
+  : # already present
+elif [ -n "${CI:-}" ] || [ ! -d "${XDG_RUNTIME_DIR:-}" ]; then
+  CHROME_FLAGS="$CHROME_FLAGS --no-sandbox"
+fi
 
 if [ $# -lt 1 ] || [ -z "${1:-}" ]; then
   err "Usage: bash audit-perf.sh <url>"
