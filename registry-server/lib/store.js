@@ -51,7 +51,10 @@ async function readBlobJson(blobPath, fallback) {
   const { head } = await import("@vercel/blob");
   try {
     const meta = await head(blobPath, blobToken() ? { token: blobToken() } : {});
-    const response = await fetch(meta.url, { cache: "no-store" });
+    // Public blob URLs are CDN-cached for a month, so a fresh write stays
+    // invisible until the ETag changes the cache key.
+    const version = encodeURIComponent(meta.etag || String(meta.uploadedAt || ""));
+    const response = await fetch(`${meta.url}?v=${version}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`blob read failed: HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
