@@ -44,6 +44,7 @@ setup() {
   export UFME_USER_CONFIG="$TMP/ufme-data"
   export UFME_SOURCE_DIR="$ROOT"
   export UFME_SKIP_NPM=1
+  export INSTALL_SCOPE=both
   export INSTALL_DIR="$TMP/project"
   mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$INSTALL_DIR"
 }
@@ -166,6 +167,83 @@ sha256_of '$INSTALL_DIR/package.json'")"
     "[ '$ACTUAL' = '$BEFORE_PACKAGE' ]"
 else
   printf 'SKIP: sha256 fallback test (sha256sum unavailable)\n'
+fi
+
+# ------------------------------------------------------------------
+# Selection: UFME_SKILLS and UFME_SKIP_* narrow the install
+# ------------------------------------------------------------------
+SEL_TMP="$(mktemp -d)"
+mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \
+   UFME_SOURCE_DIR="$ROOT" UFME_SKIP_NPM=1 INSTALL_DIR="$SEL_TMP/project" \
+   INSTALL_SCOPE=both UFME_SKILLS=init-frontend \
+   bash "$INSTALL" >"$SEL_TMP/install.log" 2>&1; then
+  pass "UFME_SKILLS install exits 0"
+else
+  fail "UFME_SKILLS install exits 0" "see $SEL_TMP/install.log"
+fi
+check "UFME_SKILLS installs the chosen skill" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/init-frontend/SKILL.md' ]"
+check "UFME_SKILLS skips the other skills" \
+  "[ ! -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+rm -rf "$SEL_TMP"
+
+SEL_TMP="$(mktemp -d)"
+mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \
+   UFME_SOURCE_DIR="$ROOT" UFME_SKIP_NPM=1 INSTALL_DIR="$SEL_TMP/project" \
+   INSTALL_SCOPE=both UFME_SKIP_AGENTS=1 UFME_SKIP_COMMANDS=1 UFME_SKIP_MEMORY=1 \
+   bash "$INSTALL" >"$SEL_TMP/install.log" 2>&1; then
+  pass "skip flags install exits 0"
+else
+  fail "skip flags install exits 0" "see $SEL_TMP/install.log"
+fi
+check "UFME_SKIP_AGENTS installs no agents" \
+  "[ ! -d '$SEL_TMP/xdg/opencode/agents' ] || [ -z \"\$(ls -A '$SEL_TMP/xdg/opencode/agents')\" ]"
+check "UFME_SKIP_COMMANDS installs no commands" \
+  "[ ! -d '$SEL_TMP/xdg/opencode/commands' ] || [ -z \"\$(ls -A '$SEL_TMP/xdg/opencode/commands')\" ]"
+check "UFME_SKIP_MEMORY leaves .ufme empty" \
+  "[ -z \"\$(ls -A '$SEL_TMP/project/.ufme')\" ]"
+check "skip flags still install skills" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+rm -rf "$SEL_TMP"
+
+SEL_TMP="$(mktemp -d)"
+mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \
+   UFME_SOURCE_DIR="$ROOT" UFME_SKIP_NPM=1 INSTALL_DIR="$SEL_TMP/project" \
+   INSTALL_SCOPE=both UFME_SKILLS=not-a-skill \
+   bash "$INSTALL" >"$SEL_TMP/install.log" 2>&1; then
+  fail "unknown UFME_SKILLS fails" "installer exited 0"
+else
+  pass "unknown UFME_SKILLS fails"
+fi
+check "unknown skill is named in the error" \
+  "grep -q \"unknown skill 'not-a-skill'\" '$SEL_TMP/install.log'"
+check "unknown skill installs nothing" \
+  "[ ! -d '$SEL_TMP/xdg/opencode/skills' ]"
+rm -rf "$SEL_TMP"
+
+# TUI: Enter on the default screen (everything selected) installs everything.
+if command -v script >/dev/null 2>&1; then
+  SEL_TMP="$(mktemp -d)"
+  mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+  if printf '\r' | script -qec \
+     "env -u INSTALL_SCOPE -u UFME_NONINTERACTIVE HOME='$SEL_TMP/home' XDG_CONFIG_HOME='$SEL_TMP/xdg' UFME_USER_CONFIG='$SEL_TMP/ufme' UFME_SOURCE_DIR='$ROOT' UFME_SKIP_NPM=1 INSTALL_DIR='$SEL_TMP/project' bash '$INSTALL'" \
+     /dev/null >"$SEL_TMP/tui.log" 2>&1; then
+    pass "TUI Enter installs everything"
+  else
+    fail "TUI Enter installs everything" "see $SEL_TMP/tui.log"
+  fi
+  check "TUI installed agents" \
+    "[ -f '$SEL_TMP/xdg/opencode/agents/universal-frontend-master.md' ]"
+  check "TUI installed skills" \
+    "[ -f '$SEL_TMP/xdg/opencode/skills/init-frontend/SKILL.md' ]"
+  check "TUI installed project memory" \
+    "[ -f '$SEL_TMP/project/.ufme/TASKS.md' ]"
+  rm -rf "$SEL_TMP"
+else
+  printf 'SKIP: TUI pty test (script unavailable)\n'
 fi
 
 # ------------------------------------------------------------------

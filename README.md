@@ -124,6 +124,12 @@ Arch Linux is the only supported platform. Install Chromium/Firefox via `pacman`
 curl -fsSL https://raw.githubusercontent.com/Paranthaman-K6/ufms/main/install.sh | bash
 ```
 
+The installer opens a TUI that asks **what to install** — scope (project /
+global / both), which skills, agents, commands, project memory, and audit npm
+dependencies. Everything is selected by default (the recommendation); press
+Enter to accept, or Space to toggle a row, Left/Right to change scope, and `q`
+to cancel.
+
 Install into a specific project directory:
 
 ```bash
@@ -131,18 +137,38 @@ INSTALL_DIR=/path/to/project \
   curl -fsSL https://raw.githubusercontent.com/Paranthaman-K6/ufms/main/install.sh | bash
 ```
 
+Skip the TUI for scripted installs (installs everything unless narrowed):
+
+```bash
+INSTALL_SCOPE=both UFME_SKILLS=universal-frontend-master,ufmw-seo-protocol \
+  bash install.sh
+INSTALL_SCOPE=project UFME_SKIP_AGENTS=1 UFME_SKIP_COMMANDS=1 bash install.sh
+```
+
+| Env var | Effect |
+|---------|--------|
+| `INSTALL_SCOPE=project\|global\|both` | Scope; setting it skips the TUI |
+| `UFME_SKILLS=a,b` | Install only these skills (default: all) |
+| `UFME_SKIP_AGENTS=1` | Skip agents |
+| `UFME_SKIP_COMMANDS=1` | Skip slash commands |
+| `UFME_SKIP_MEMORY=1` | Skip `.ufme/` project memory seeding |
+| `UFME_SKIP_NPM=1` | Skip the project-local audit dependencies |
+| `UFME_NONINTERACTIVE=1` | Never open the TUI |
+
+A non-interactive install with no `INSTALL_SCOPE` installs everything (`both`).
+
 Reproducible installs are supported: pin a tag with `UFME_TAG` and verify the downloaded tarball with `UFME_TARBALL_SHA256`.
 
 For offline, CI, or local testing, install from a checkout without network access:
 
 ```bash
-UFME_SOURCE_DIR="$PWD" UFME_SKIP_NPM=1 bash install.sh
+UFME_SOURCE_DIR="$PWD" UFME_SKIP_NPM=1 UFME_NONINTERACTIVE=1 bash install.sh
 ```
 
 `UFME_SKIP_NPM=1` leaves the target `package.json` untouched (the tests use it). Repeat installs merge into existing directories instead of nesting them and never overwrite project memory.
 
 The installer:
-1. Installs every agent from `agents/`, every command from `commands/`, and every skill from `skills/<name>/` **in full** under `~/.config/opencode/` (user scope — available to every project).
+1. Installs the selected agents from `agents/`, commands from `commands/`, and skills from `skills/<name>/` **in full** under `~/.config/opencode/` (user scope — available to every project).
 2. Stores cross-project shared data in `~/.config/ufme/` (library registry, evidence).
 3. Seeds project-local `.ufme/` memory templates into the target project (never overwrites existing).
 4. Copies `agents/`, `commands/`, and each `skills/<name>/` tree into the target project, plus `.opencode/skills/<name>/SKILL.md` for the project override.

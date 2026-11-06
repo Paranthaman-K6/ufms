@@ -13,13 +13,23 @@
 #   UFME_TAG=v1.2.0                                      # pin install to a release tag
 #   UFME_TARBALL_SHA256=<sha256>                         # verify tarball checksum, abort on mismatch
 #   UFME_SOURCE_DIR=/path/to/checkout                     # install from a local checkout (offline/CI)
-#   UFME_SKIP_NPM=1                                      # skip the project-local npm install step
-#   INSTALL_SCOPE=project|global|both                      # install scope (non-interactive)
+#   INSTALL_SCOPE=project|global|both                      # install scope (skips the TUI)
+#   UFME_SKILLS=name1,name2                               # only these skills (default: all)
+#   UFME_SKIP_AGENTS=1                                    # skip agents
+#   UFME_SKIP_COMMANDS=1                                  # skip slash commands
+#   UFME_SKIP_MEMORY=1                                    # skip .ufme/ project memory seeding
+#   UFME_SKIP_NPM=1                                       # skip the project-local npm install step
+#   UFME_NONINTERACTIVE=1                                 # never open the TUI
+#
+# Interactive install: a single TUI screen asks what to install — scope, skills,
+# agents, commands, project memory, audit dependencies — with everything selected
+# (scope both) as the recommendation. Press Enter to accept, q to cancel.
+# Non-interactive installs (INSTALL_SCOPE set, no terminal) install everything.
 #
 # Install scopes:
 #   project  — only the current project folder ($TARGET/.opencode/, $TARGET/skills/, $TARGET/.ufme/)
 #   global   — only OpenCode user config ($HOME/.config/opencode/, $HOME/.config/ufme/)
-#   both     — global + project (default when run interactively without INSTALL_SCOPE)
+#   both     — global + project (recommended; the default when non-interactive)
 #
 # Global install (user scope — available to all projects):
 #   $HOME/.config/opencode/agents/*.md         # every agent from top-level agents/
@@ -77,9 +87,14 @@ for arg in "$@"; do
       echo "  --self-update   Replace this installer with the latest copy from main"
       echo "  --check-update  Report whether a newer installer is available"
       echo
-      echo "Environment overrides:"
+      echo "Interactive (no env vars, terminal attached): a TUI asks what to install."
+      echo "Everything is selected by default; Enter installs, q cancels."
+      echo
+      echo "Environment overrides (skip the TUI):"
       echo "  INSTALL_DIR, UFME_USER_CONFIG, UFME_TAG, UFME_TARBALL_SHA256,"
-      echo "  UFME_SOURCE_DIR, UFME_SKIP_NPM"
+      echo "  UFME_SOURCE_DIR, INSTALL_SCOPE=project|global|both,"
+      echo "  UFME_SKILLS=a,b, UFME_SKIP_AGENTS=1, UFME_SKIP_COMMANDS=1,"
+      echo "  UFME_SKIP_MEMORY=1, UFME_SKIP_NPM=1, UFME_NONINTERACTIVE=1"
       exit 0
       ;;
   esac
@@ -166,77 +181,206 @@ if [ "$CHECK_UPDATE" -eq 1 ]; then
 fi
 
 # ------------------------------------------------------------------
-# Install scope selection
+# Install selection — TUI when interactive, env overrides when scripted
 # ------------------------------------------------------------------
-# Non-interactive: honor INSTALL_SCOPE env var, default to "both".
-# Interactive: prompt the user unless INSTALL_SCOPE is set.
 INSTALL_SCOPE="${INSTALL_SCOPE:-}"
 DO_GLOBAL=0
 DO_PROJECT=0
 
-pick_scope() {
-  if [ -n "$INSTALL_SCOPE" ]; then
-    case "$INSTALL_SCOPE" in
-      project|global|both) ;;
-      *)
-        log "ERROR: invalid INSTALL_SCOPE='$INSTALL_SCOPE' (use project, global, or both)"
-        exit 1
-        ;;
-    esac
-    return
-  fi
+WANT_AGENTS=1
+WANT_COMMANDS=1
+WANT_MEMORY=1
+WANT_NPM=1
+SELECTED_SKILLS=()
+AVAILABLE_SKILLS=()
+SCOPE_CHOICES=(project global both)
+SCOPE_HINTS=("this project only" "all projects (user config)" "every project - recommended")
 
-  # Non-interactive (CI, piped input, no TTY): default to both.
-  if [ ! -t 0 ]; then
-    INSTALL_SCOPE="both"
-    log "Non-interactive install detected — defaulting to scope: both"
-    return
-  fi
-
-  echo
-  echo "============================================================"
-  echo "  UFMW Install Scope"
-  echo "============================================================"
-  echo "  Project folder ($TARGET):"
-  echo "    .opencode/agents/*, .opencode/skills/, .opencode/commands/"
-  echo "    skills/universal-frontend-master/, .ufme/, opencode.json"
-  echo "    npm dev dependencies (if package.json exists)"
-  echo ""
-  echo "  OpenCode config / home:"
-  echo "    $HOME/.config/opencode/agents/*, skills/, commands/"
-  echo "    $HOME/.config/opencode/opencode.json"
-  echo "    $HOME/.config/ufme/ (shared library registry, evidence)"
-  echo ""
-  echo "  1) Project folder only"
-  echo "  2) OpenCode config / home only (global)"
-  echo "  3) Both (recommended — agents available in every project)"
-  echo "  4) Cancel"
-  echo "============================================================"
-  echo -n "Choose scope [1-4]: "
-  read -r choice || true
-  case "$choice" in
-    1) INSTALL_SCOPE="project" ;;
-    2) INSTALL_SCOPE="global" ;;
-    3) INSTALL_SCOPE="both" ;;
-    4|"") log "Install cancelled by user."; exit 0 ;;
-    *) log "Invalid choice — install cancelled."; exit 1 ;;
-  esac
+skill_available() {
+  local want="$1" name
+  for name in "${AVAILABLE_SKILLS[@]}"; do
+    [ "$name" = "$want" ] && return 0
+  done
+  return 1
 }
 
-pick_scope
+skill_selected() {
+  local want="$1" name
+  for name in ${SELECTED_SKILLS[@]+"${SELECTED_SKILLS[@]}"}; do
+    [ "$name" = "$want" ] && return 0
+  done
+  return 1
+}
 
-case "$INSTALL_SCOPE" in
-  project) DO_PROJECT=1 ;;
-  global)  DO_GLOBAL=1 ;;
-  both)    DO_GLOBAL=1; DO_PROJECT=1 ;;
-esac
+# Environment selection: validates INSTALL_SCOPE and UFME_SKILLS, applies skips.
+select_from_env() {
+  case "$INSTALL_SCOPE" in
+    project|global|both) ;;
+    "")
+      return 1
+      ;;
+    *)
+      log "ERROR: invalid INSTALL_SCOPE='$INSTALL_SCOPE' (use project, global, or both)"
+      exit 1
+      ;;
+  esac
 
-log "Install scope: $INSTALL_SCOPE (global=$DO_GLOBAL project=$DO_PROJECT)"
+  if [ -n "${UFME_SKILLS:-}" ]; then
+    SELECTED_SKILLS=()
+    local name
+    local IFS=','
+    for name in $UFME_SKILLS; do
+      name="$(printf '%s' "$name" | tr -d '[:space:]')"
+      [ -n "$name" ] || continue
+      if ! skill_available "$name"; then
+        log "ERROR: unknown skill '$name'"
+        log "  Available: ${AVAILABLE_SKILLS[*]}"
+        exit 1
+      fi
+      SELECTED_SKILLS+=("$name")
+    done
+    if [ "${#SELECTED_SKILLS[@]}" -eq 0 ]; then
+      log "ERROR: UFME_SKILLS selected no skills"
+      exit 1
+    fi
+  else
+    SELECTED_SKILLS=("${AVAILABLE_SKILLS[@]}")
+  fi
 
-log "Installing Universal Frontend Master skill"
-log "Target project: $TARGET"
-log "Global config dir: $OPENCODE_USER_CONFIG"
-log "Cross-project data dir: $UFME_USER_CONFIG"
+  if [ -n "${UFME_SKIP_AGENTS:-}" ]; then WANT_AGENTS=0; fi
+  if [ -n "${UFME_SKIP_COMMANDS:-}" ]; then WANT_COMMANDS=0; fi
+  if [ -n "${UFME_SKIP_MEMORY:-}" ]; then WANT_MEMORY=0; fi
+  if [ -n "${UFME_SKIP_NPM:-}" ]; then WANT_NPM=0; fi
+  return 0
+}
+
+tui_line() {
+  local row="$1" text="$2"
+  if [ "$row" -eq "$TUI_CURSOR" ]; then
+    printf '\033[7m%s\033[0m\n' "$text"
+  else
+    printf '%s\n' "$text"
+  fi
+}
+
+tui_toggle() {
+  local row="$1" count="$2" index name kept
+  if [ "$row" -eq 0 ]; then
+    TUI_SCOPE=$(( (TUI_SCOPE + 1) % 3 ))
+  elif [ "$row" -le "$count" ]; then
+    index=$((row - 1))
+    name="${AVAILABLE_SKILLS[$index]}"
+    if skill_selected "$name"; then
+      local -a next=()
+      for kept in ${SELECTED_SKILLS[@]+"${SELECTED_SKILLS[@]}"}; do
+        [ "$kept" = "$name" ] || next+=("$kept")
+      done
+      SELECTED_SKILLS=(${next[@]+"${next[@]}"})
+    else
+      SELECTED_SKILLS+=("$name")
+    fi
+  elif [ "$row" -eq $((count + 1)) ]; then
+    WANT_AGENTS=$((1 - WANT_AGENTS))
+  elif [ "$row" -eq $((count + 2)) ]; then
+    WANT_COMMANDS=$((1 - WANT_COMMANDS))
+  elif [ "$row" -eq $((count + 3)) ]; then
+    WANT_MEMORY=$((1 - WANT_MEMORY))
+  elif [ "$row" -eq $((count + 4)) ]; then
+    WANT_NPM=$((1 - WANT_NPM))
+  fi
+}
+
+# Single-screen TUI. Everything is selected by default (the recommendation);
+# Enter installs, q cancels. Returns 1 when the user cancels.
+tui_pick() {
+  local count=${#AVAILABLE_SKILLS[@]}
+  local total=$((count + 7))
+  local prev_trap key seq i name box
+
+  TUI_CURSOR=0
+  TUI_SCOPE=2
+  SELECTED_SKILLS=("${AVAILABLE_SKILLS[@]}")
+  WANT_AGENTS=1
+  WANT_COMMANDS=1
+  WANT_MEMORY=1
+  WANT_NPM=1
+
+  prev_trap="$(trap -p EXIT)"
+  trap 'printf "\033[?25h"' EXIT
+  printf '\033[?25l'
+
+  while true; do
+    printf '\033[H\033[2J'
+    printf '  UFMW installer - choose what to install\n'
+    printf '  ------------------------------------------------------------\n'
+    tui_line 0 "  Scope: < ${SCOPE_CHOICES[$TUI_SCOPE]} >  ${SCOPE_HINTS[$TUI_SCOPE]}"
+    printf '  ------------------------------------------------------------\n'
+    printf '  Skills\n'
+    for i in "${!AVAILABLE_SKILLS[@]}"; do
+      name="${AVAILABLE_SKILLS[$i]}"
+      if skill_selected "$name"; then box='[x]'; else box='[ ]'; fi
+      tui_line $((i + 1)) "  $box $name"
+    done
+    printf '  Include\n'
+    if [ "$WANT_AGENTS" -eq 1 ]; then box='[x]'; else box='[ ]'; fi
+    tui_line $((count + 1)) "  $box agents"
+    if [ "$WANT_COMMANDS" -eq 1 ]; then box='[x]'; else box='[ ]'; fi
+    tui_line $((count + 2)) "  $box slash commands"
+    if [ "$WANT_MEMORY" -eq 1 ]; then box='[x]'; else box='[ ]'; fi
+    tui_line $((count + 3)) "  $box project memory (.ufme seed)"
+    if [ "$WANT_NPM" -eq 1 ]; then box='[x]'; else box='[ ]'; fi
+    tui_line $((count + 4)) "  $box audit npm dependencies"
+    printf '  ------------------------------------------------------------\n'
+    tui_line $((count + 5)) "  [ Install ]"
+    tui_line $((count + 6)) "  [ Cancel ]"
+    printf '\n  Up/Down move   Space toggle   Left/Right scope   Enter install   q cancel\n'
+    printf '  Recommended: scope both, every skill, agents, commands, memory, npm\n'
+
+    IFS= read -rsn1 -u "$TUI_IN" key || key="q"
+    case "$key" in
+      $'\033')
+        seq=""
+        IFS= read -rsn2 -t 1 -u "$TUI_IN" seq || true
+        case "$seq" in
+          '[A') if [ "$TUI_CURSOR" -gt 0 ]; then TUI_CURSOR=$((TUI_CURSOR - 1)); fi ;;
+          '[B') if [ "$TUI_CURSOR" -lt $((total - 1)) ]; then TUI_CURSOR=$((TUI_CURSOR + 1)); fi ;;
+          '[C') if [ "$TUI_CURSOR" -eq 0 ]; then TUI_SCOPE=$(( (TUI_SCOPE + 1) % 3 )); fi ;;
+          '[D') if [ "$TUI_CURSOR" -eq 0 ]; then TUI_SCOPE=$(( (TUI_SCOPE + 2) % 3 )); fi ;;
+          '')
+            printf '\033[?25h'
+            trap - EXIT
+            if [ -n "$prev_trap" ]; then eval "$prev_trap"; fi
+            return 1
+            ;;
+        esac
+        ;;
+      ' ')
+        tui_toggle "$TUI_CURSOR" "$count"
+        ;;
+      ''|$'\r'|$'\n')
+        if [ "$TUI_CURSOR" -eq $((count + 6)) ]; then
+          printf '\033[?25h'
+          trap - EXIT
+          if [ -n "$prev_trap" ]; then eval "$prev_trap"; fi
+          return 1
+        fi
+        break
+        ;;
+      q|Q)
+        printf '\033[?25h'
+        trap - EXIT
+        if [ -n "$prev_trap" ]; then eval "$prev_trap"; fi
+        return 1
+        ;;
+    esac
+  done
+
+  printf '\033[?25h'
+  trap - EXIT
+  if [ -n "$prev_trap" ]; then eval "$prev_trap"; fi
+  INSTALL_SCOPE="${SCOPE_CHOICES[$TUI_SCOPE]}"
+  return 0
+}
 
 # ------------------------------------------------------------------
 # 1. Download repository source archive (branch or pinned tag)
@@ -285,24 +429,79 @@ fi
 
 [ -d "$SRC/skills/universal-frontend-master" ] || { log "ERROR: skill not found in archive"; exit 1; }
 
+# Skills available in the resolved source tree (the TUI lists these).
+AVAILABLE_SKILLS=()
+for skill_dir in "$SRC"/skills/*/; do
+  [ -d "$skill_dir" ] || continue
+  AVAILABLE_SKILLS+=("$(basename "$skill_dir")")
+done
+[ "${#AVAILABLE_SKILLS[@]}" -gt 0 ] || { log "ERROR: no skills found in $SRC/skills"; exit 1; }
+
 # ------------------------------------------------------------------
-# 2. Global install — user scope (all projects)
+# 2. What to install — TUI when interactive, env overrides when scripted
+# ------------------------------------------------------------------
+# TUI needs a terminal. With `curl | bash`, stdin is the script, so fall back
+# to /dev/tty when one is attached.
+TUI_IN=0
+INTERACTIVE=0
+if [ -z "${INSTALL_SCOPE:-}" ] && [ -z "${UFME_NONINTERACTIVE:-}" ]; then
+  if [ -t 0 ]; then
+    INTERACTIVE=1
+  elif exec 3<>/dev/tty 2>/dev/null; then
+    TUI_IN=3
+    INTERACTIVE=1
+  fi
+fi
+
+if [ "$INTERACTIVE" -eq 1 ]; then
+  if ! tui_pick; then
+    log "Install cancelled."
+    exit 0
+  fi
+else
+  if [ -z "${INSTALL_SCOPE:-}" ]; then
+    INSTALL_SCOPE="both"
+    log "Non-interactive install - installing everything (scope: both)"
+  fi
+  select_from_env
+fi
+
+case "$INSTALL_SCOPE" in
+  project) DO_PROJECT=1 ;;
+  global)  DO_GLOBAL=1 ;;
+  both)    DO_GLOBAL=1; DO_PROJECT=1 ;;
+esac
+
+log "Installing Universal Frontend Master skill"
+log "Target project: $TARGET"
+log "Global config dir: $OPENCODE_USER_CONFIG"
+log "Cross-project data dir: $UFME_USER_CONFIG"
+log "Install scope: $INSTALL_SCOPE (global=$DO_GLOBAL project=$DO_PROJECT)"
+log "Skills: ${SELECTED_SKILLS[*]}"
+log "Agents: $WANT_AGENTS  Commands: $WANT_COMMANDS  Memory: $WANT_MEMORY  npm: $WANT_NPM"
+
+# ------------------------------------------------------------------
+# 3. Global install — user scope (all projects)
 # ------------------------------------------------------------------
 if [ "$DO_GLOBAL" -eq 1 ]; then
-  log "Installing agents globally to $OPENCODE_USER_CONFIG/agents ..."
-  mkdir -p "$OPENCODE_USER_CONFIG/agents"
-  cp -R "$SRC/agents/." "$OPENCODE_USER_CONFIG/agents/"
+  if [ "$WANT_AGENTS" -eq 1 ]; then
+    log "Installing agents globally to $OPENCODE_USER_CONFIG/agents ..."
+    mkdir -p "$OPENCODE_USER_CONFIG/agents"
+    cp -R "$SRC/agents/." "$OPENCODE_USER_CONFIG/agents/"
+  fi
 
-  log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
-  mkdir -p "$OPENCODE_USER_CONFIG/commands"
-  cp -R "$SRC/commands/." "$OPENCODE_USER_CONFIG/commands/"
+  if [ "$WANT_COMMANDS" -eq 1 ]; then
+    log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
+    mkdir -p "$OPENCODE_USER_CONFIG/commands"
+    cp -R "$SRC/commands/." "$OPENCODE_USER_CONFIG/commands/"
+  fi
 
-  for skill_dir in "$SRC"/skills/*/; do
+  for skill_name in ${SELECTED_SKILLS[@]+"${SELECTED_SKILLS[@]}"}; do
+    skill_dir="$SRC/skills/$skill_name"
     [ -d "$skill_dir" ] || continue
-    skill_name="$(basename "$skill_dir")"
     log "Installing skill globally: $skill_name ..."
     mkdir -p "$OPENCODE_USER_CONFIG/skills/$skill_name"
-    cp -R "$skill_dir." "$OPENCODE_USER_CONFIG/skills/$skill_name/"
+    cp -R "$skill_dir/." "$OPENCODE_USER_CONFIG/skills/$skill_name/"
   done
 
   log "Installing global opencode.json (default agent, commands, permissions) ..."
@@ -315,11 +514,13 @@ if [ "$DO_GLOBAL" -eq 1 ]; then
 
   # Build the global opencode.json from the archive's version as the base, preserve
   # existing user keys, and keep file-based agent discovery (no inline agent registry).
-  python3 - "$GLOBAL_CONFIG" "$SRC/opencode.json" <<'PYEOF'
+  python3 - "$GLOBAL_CONFIG" "$SRC/opencode.json" "$WANT_AGENTS" "$WANT_COMMANDS" <<'PYEOF'
 import json, sys, os
 
 global_path = sys.argv[1]
 archive_cfg_path = sys.argv[2]
+want_agents = sys.argv[3] == "1"
+want_commands = sys.argv[4] == "1"
 
 with open(archive_cfg_path) as f:
     archive_cfg = json.load(f)
@@ -336,9 +537,13 @@ cfg = dict(existing)
 # File-based agents live in ~/.config/opencode/agents, so no inline "agent" block.
 cfg.pop("agent", None)
 cfg.setdefault("$schema", archive_cfg.get("$schema", "https://opencode.ai/config.json"))
-cfg["default_agent"] = archive_cfg.get("default_agent", "universal-frontend-master")
+# Only point at an agent we actually installed.
+if want_agents:
+    cfg["default_agent"] = archive_cfg.get("default_agent", "universal-frontend-master")
 
 for key in ("command", "permission"):
+    if key == "command" and not want_commands:
+        continue
     if key not in archive_cfg:
         continue
     if isinstance(archive_cfg[key], dict) and isinstance(cfg.get(key), dict):
@@ -360,7 +565,7 @@ print(f"Wrote global opencode.json to {global_path}")
 PYEOF
 
   # ------------------------------------------------------------------
-  # 3. Cross-project shared data directory (never overwrite existing)
+  # 4. Cross-project shared data directory (never overwrite existing)
   # ------------------------------------------------------------------
   log "Setting up cross-project shared data at $UFME_USER_CONFIG ..."
   mkdir -p "$UFME_USER_CONFIG/evidence"
@@ -374,7 +579,7 @@ else
 fi
 
 # ------------------------------------------------------------------
-# 4. Project-local install (target project — seed only, never overwrite)
+# 5. Project-local install (target project — seed only, never overwrite)
 # ------------------------------------------------------------------
 if [ "$DO_PROJECT" -eq 1 ]; then
   log "Installing project-local files into $TARGET ..."
@@ -382,29 +587,35 @@ if [ "$DO_PROJECT" -eq 1 ]; then
            "$TARGET/.opencode/skills" "$TARGET/.ufme" "$TARGET/skills"
 
   # Agents and commands: one source, mirrored into the project override.
-  cp -R "$SRC/agents/." "$TARGET/.opencode/agents/"
-  cp -R "$SRC/commands/." "$TARGET/.opencode/commands/"
+  if [ "$WANT_AGENTS" -eq 1 ]; then
+    cp -R "$SRC/agents/." "$TARGET/.opencode/agents/"
+  fi
+  if [ "$WANT_COMMANDS" -eq 1 ]; then
+    cp -R "$SRC/commands/." "$TARGET/.opencode/commands/"
+  fi
 
   # Skills: full source tree for scripts/templates, SKILL.md for the project override.
-  for skill_dir in "$SRC"/skills/*/; do
+  for skill_name in ${SELECTED_SKILLS[@]+"${SELECTED_SKILLS[@]}"}; do
+    skill_dir="$SRC/skills/$skill_name"
     [ -d "$skill_dir" ] || continue
-    skill_name="$(basename "$skill_dir")"
     mkdir -p "$TARGET/skills/$skill_name" "$TARGET/.opencode/skills/$skill_name"
-    cp -R "$skill_dir." "$TARGET/skills/$skill_name/"
+    cp -R "$skill_dir/." "$TARGET/skills/$skill_name/"
     cp "$skill_dir/SKILL.md" "$TARGET/.opencode/skills/$skill_name/SKILL.md"
   done
 
   # Browser runner check — bundled browser automation lives in the source tree.
   if [ -f "$TARGET/skills/universal-frontend-master/browser/run.js" ]; then
     log "Browser runner installed: skills/universal-frontend-master/browser/run.js"
-  else
+  elif [ -f "$TARGET/skills/universal-frontend-master/SKILL.md" ]; then
     log "WARNING: skills/universal-frontend-master/browser/run.js is missing."
     log "  Browser-driven validation (Selenium) will be unavailable."
     log "  Reinstall, or copy the browser/ directory from the repository manually."
   fi
 
   # Seed per-project memory from bundled templates (never overwrite existing).
-  python3 "$SRC/skills/universal-frontend-master/scripts/seed-project-memory.py" "$TARGET"
+  if [ "$WANT_MEMORY" -eq 1 ]; then
+    python3 "$SRC/skills/universal-frontend-master/scripts/seed-project-memory.py" "$TARGET"
+  fi
 
   # Point project opencode.json at global user config (project merges on top).
   if [ ! -f "$TARGET/opencode.json" ]; then
@@ -415,10 +626,10 @@ else
 fi
 
 # ------------------------------------------------------------------
-# 5. Project-local npm dependencies (full audit set, best-effort)
+# 6. Project-local npm dependencies (full audit set, best-effort)
 # ------------------------------------------------------------------
 if [ "$DO_PROJECT" -eq 1 ]; then
-  if [ -f "$TARGET/package.json" ] && [ -z "${UFME_SKIP_NPM:-}" ]; then
+  if [ "$WANT_NPM" -eq 1 ] && [ -f "$TARGET/package.json" ]; then
     if command -v npm >/dev/null 2>&1; then
       log "Installing project-local dev dependencies: $NPM_HINT ..."
       if (cd "$TARGET" && npm install -D "${NPM_DEPS[@]}" --loglevel=error >"$TMP/npm.log" 2>&1); then
@@ -433,7 +644,7 @@ if [ "$DO_PROJECT" -eq 1 ]; then
       log "  cd \"$TARGET\" && $NPM_HINT"
     fi
   else
-    log "No package.json in $TARGET (or UFME_SKIP_NPM set). To enable browser and audit validation, run in your project:"
+    log "Skipping audit npm dependencies (not selected, or no package.json in $TARGET). To enable browser and audit validation, run in your project:"
     log "  $NPM_HINT"
   fi
 else
@@ -441,19 +652,20 @@ else
 fi
 
 # ------------------------------------------------------------------
-# 6. Summary
+# 7. Summary
 # ------------------------------------------------------------------
 if [ "$DO_GLOBAL" -eq 1 ]; then
-  AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
-  log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
-  log "Installed skill globally: $OPENCODE_USER_CONFIG/skills/"
-  log "Installed SEO skill globally: $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
-  log "Installed init-frontend skill globally: $OPENCODE_USER_CONFIG/skills/init-frontend"
+  if [ "$WANT_AGENTS" -eq 1 ]; then
+    AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
+    log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
+  fi
+  log "Installed skills globally: ${SELECTED_SKILLS[*]}"
 fi
 if [ "$DO_PROJECT" -eq 1 ]; then
   log "Installed source tree: $TARGET/skills/"
-  log "Project-local seed: $TARGET/.ufme/"
-  log "Project-local init-frontend skill: $TARGET/.opencode/skills/init-frontend/"
+  if [ "$WANT_MEMORY" -eq 1 ]; then
+    log "Project-local seed: $TARGET/.ufme/"
+  fi
 fi
 if [ "$DO_GLOBAL" -eq 1 ]; then
   log "Cross-project data: $UFME_USER_CONFIG (library registry shared across projects)"

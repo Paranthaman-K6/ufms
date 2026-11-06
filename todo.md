@@ -109,3 +109,12 @@ Each ticket is self-contained: a fresh session can pick it up from the spec in
 - [x] `init-project.py` generates `.ufme/theme-showcase.pdf` automatically; `/ufmw/theme` regenerates it
 - [x] `tests/theme/run.py` (7 pass) and the e2e install proof (17 pass) cover generation, project marking, `--only`, and registry merge
 - **Blocked by:** T11
+
+## T14 — TUI installer with a recommended selection
+- [x] Single TUI screen asks what to install: scope, skills, agents, commands, project memory, audit npm dependencies
+- [x] Everything is selected by default (scope both) and labelled recommended; Enter installs, Space toggles, Left/Right changes scope, `q` cancels
+- [x] Pure bash (ANSI + `read -rsn1`), no new dependency; restores the previous `EXIT` trap (tmp cleanup)
+- [x] Works for `curl | bash` by reading keys from `/dev/tty` when stdin is the script
+- [x] Scripted installs: `INSTALL_SCOPE`, `UFME_SKILLS`, `UFME_SKIP_AGENTS|COMMANDS|MEMORY|NPM`, `UFME_NONINTERACTIVE`; a non-interactive run with no scope installs everything
+- [x] `tests/install/run.sh` covers env selection, skip flags, an unknown skill (exit 1), and the TUI via a pty (`script`) — 91 pass
+- **Blocked by:** T11

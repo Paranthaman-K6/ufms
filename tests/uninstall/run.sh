@@ -25,7 +25,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/xdg"
 export UFME_USER_CONFIG="$TMP/ufme-data" UFME_SOURCE_DIR="$ROOT"
-export UFME_SKIP_NPM=1 INSTALL_DIR="$TMP/project"
+export UFME_SKIP_NPM=1 INSTALL_DIR="$TMP/project" INSTALL_SCOPE=both
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$INSTALL_DIR"
 printf '{"name":"user-project"}\n' > "$INSTALL_DIR/package.json"
 
