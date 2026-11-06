@@ -32,7 +32,7 @@ The `init-frontend` skill transforms a project brief into a complete, accessible
 - **Asks design questions first** — palette, typography, visual style, reference URLs (mandatory, not skippable)
 - **Enforces constraints** — anti-AI-slop rules prevent generic, low-quality output
 - **Builds a design system** — Style Dictionary tokens, semantic color/typography/spacing scales
-- **Bakes in accessibility** — WCAG 2.2 AA from day one, axe-core verified
+- **Bakes in accessibility** — WCAG 2.2 AA from day one, static a11y gate verified
 - **Enforces performance budgets** — LCP, INP, CLS, input size limits in CI
 - **Supports templates** — 13 categories: landing, portfolio, blog, ecommerce, dashboard, admin, saas, docs, restaurant, realestate, event, nonprofit, resume
 
@@ -42,7 +42,7 @@ The `init-frontend` skill transforms a project brief into a complete, accessible
 
 | Requirement | Minimum | Notes |
 |-------------|---------|-------|
-| Node.js | 18+ | For Vite, axe-core, Lighthouse |
+| Node.js | 18+ | For Vite, Lighthouse |
 | npm / pnpm / yarn | Any | Package manager of choice |
 | Git | 2.0+ | For version control |
 | OpenCode | Latest | The skill runs within OpenCode |
@@ -224,7 +224,7 @@ Scaffold a new frontend project with full design system.
 - Project directory with `src/{components,tokens,pages,styles,assets,utils}/`
 - Design tokens (color, typography, spacing) as CSS variables + JSON
 - Responsive base styles with focus-visible rings, 24px min touch targets
-- `package.json` with Vite, Vitest, axe-core, Lighthouse
+- `package.json` with Vite, Vitest, Lighthouse
 - `perf-budget.json` with Lighthouse CI budgets
 - `.github/workflows/ci.yml` with build + a11y + perf gates
 - `README.md` with project docs
@@ -270,7 +270,7 @@ Add a component with full state matrix, Storybook stories, and accessibility tes
 **What it creates:**
 - `src/components/<Name>/<Name>.jsx` — Component source
 - `src/components/<Name>/<Name>.stories.jsx` — Storybook stories (Default + States)
-- `src/components/<Name>/<Name>.a11y.test.jsx` — axe-core accessibility test
+- `src/components/<Name>/<Name>.a11y.test.jsx` — static a11y accessibility test
 - `src/components/<Name>/<Name>.states.md` — State matrix documentation
 
 **Example:**
@@ -409,7 +409,7 @@ These rules are baked into the generated CSS and cannot be opted out of.
 | Skip link | `.skip-link` for keyboard users to bypass navigation |
 | Touch targets | Minimum 24px × 24px for all interactive elements |
 
-Verified with **axe-core** via `npm run test:a11y`.
+Verified with **static a11y gate** via `npm run test:a11y`.
 
 ---
 
@@ -475,7 +475,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
-      - run: npm run test:a11y     # axe-core WCAG 2.2 AA
+      - run: npm run test:a11y     # static a11y WCAG 2.2 AA
       - run: npm run test:perf     # Lighthouse performance budgets
 ```
 
@@ -487,7 +487,7 @@ Available npm scripts:
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build |
 | `npm run test` | Run Vitest unit tests |
-| `npm run test:a11y` | axe-core accessibility audit |
+| `npm run test:a11y` | static a11y audit |
 | `npm run test:perf` | Lighthouse performance budget check |
 
 ---

@@ -30,6 +30,7 @@ ROOT_DIR="$(pwd)"
 UFME_DIR="$ROOT_DIR/.ufme"
 CHOICES_FILE="$UFME_DIR/design-choices.json"
 DESIGN_SYSTEM_FILE="$UFME_DIR/DESIGN_SYSTEM.md"
+SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ ! -f "$DESIGN_SYSTEM_FILE" ]; then
   echo "ERROR: Design questions not answered yet." >&2
@@ -121,7 +122,7 @@ read -r COLOR_BG COLOR_SURFACE COLOR_TEXT COLOR_TEXT_MUTED COLOR_PRIMARY COLOR_P
 # ------------------------------------------------------------------
 # 2. Create project directory structure
 # ------------------------------------------------------------------
-mkdir -p "$PROJECT_DIR"/{src/{components,tokens,pages,styles,assets,utils},public,tests/{a11y,perf,responsive},.github/workflows}
+mkdir -p "$PROJECT_DIR"/{src/{components,tokens,pages,styles,assets,utils},scripts,public,tests/{a11y,perf,responsive},.github/workflows}
 
 # Copy template files if they exist
 if [ -d "$TEMPLATES_DIR/$TYPE" ]; then
@@ -261,6 +262,11 @@ button, a, [role="button"], input, select, textarea {
 CSS
 
 # ------------------------------------------------------------------
+# 9. Accessibility gate (static, dependency-free)
+# ------------------------------------------------------------------
+cp "$SCRIPTS_DIR/a11y.cjs" "$PROJECT_DIR/scripts/a11y.cjs"
+
+# ------------------------------------------------------------------
 # 5. Package.json
 # ------------------------------------------------------------------
 cat > "$PROJECT_DIR/package.json" <<JSON
@@ -274,13 +280,12 @@ cat > "$PROJECT_DIR/package.json" <<JSON
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:a11y": "axe-core-cli http://localhost:5173",
+    "test:a11y": "npm run build && node scripts/a11y.cjs dist",
     "test:perf": "lighthouse http://localhost:5173 --preset=desktop --budget-path=./perf-budget.json"
   },
   "devDependencies": {
     "vite": "^5.0.0",
     "vitest": "^1.0.0",
-    "axe-core": "^4.8.0",
     "lighthouse": "^11.0.0"
   }
 }
