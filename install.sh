@@ -57,6 +57,109 @@ sha256_of() {
   fi
 }
 
+# ------------------------------------------------------------------
+# Self-update: replace this installer with the latest copy from main.
+# ------------------------------------------------------------------
+SELF_UPDATE=0
+CHECK_UPDATE=0
+for arg in "$@"; do
+  case "$arg" in
+    --self-update) SELF_UPDATE=1 ;;
+    --check-update) CHECK_UPDATE=1 ;;
+    -h|--help)
+      echo "Usage: install.sh [--self-update|--check-update] [env vars...]"
+      echo
+      echo "  --self-update   Replace this installer with the latest copy from main"
+      echo "  --check-update  Report whether a newer installer is available"
+      echo
+      echo "Environment overrides:"
+      echo "  INSTALL_DIR, UFME_USER_CONFIG, UFME_TAG, UFME_TARBALL_SHA256,"
+      echo "  UFME_SOURCE_DIR, UFME_SKIP_NPM"
+      exit 0
+      ;;
+  esac
+done
+
+INSTALLER_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/install.sh"
+
+fetch_latest_installer() {
+  local out="$1"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$INSTALLER_URL" -o "$out"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$INSTALLER_URL" -O "$out"
+  else
+    log "ERROR: neither curl nor wget is available; cannot self-update"
+    return 1
+  fi
+}
+
+do_self_update() {
+  local tmp_new
+  tmp_new="$(mktemp)"
+
+  log "Checking for latest installer at $INSTALLER_URL ..."
+  if ! fetch_latest_installer "$tmp_new"; then
+    rm -f "$tmp_new"
+    log "ERROR: failed to download latest installer"
+    return 1
+  fi
+
+  local current new
+  current="$(sha256_of "$0")"
+  new="$(sha256_of "$tmp_new")"
+  if [ "$current" = "$new" ]; then
+    rm -f "$tmp_new"
+    log "Installer is already up to date (sha256: $new)"
+    return 0
+  fi
+
+  cp "$tmp_new" "$0"
+  chmod +x "$0"
+  rm -f "$tmp_new"
+  log "Installer updated to latest (sha256: $new)"
+  log "Re-running the updated installer (normal install mode)..."
+  # Re-exec without --self-update so we proceed to the actual install.
+  filtered=()
+  for a in "$@"; do
+    [ "$a" != "--self-update" ] && filtered+=("$a")
+  done
+  exec "$0" "${filtered[@]+"${filtered[@]}"}"
+}
+
+do_check_update() {
+  local tmp_new
+  tmp_new="$(mktemp)"
+
+  log "Checking for latest installer at $INSTALLER_URL ..."
+  if ! fetch_latest_installer "$tmp_new"; then
+    rm -f "$tmp_new"
+    log "ERROR: failed to download latest installer"
+    return 1
+  fi
+
+  local current new
+  current="$(sha256_of "$0")"
+  new="$(sha256_of "$tmp_new")"
+  rm -f "$tmp_new"
+  if [ "$current" = "$new" ]; then
+    log "Installer is already up to date (sha256: $new)"
+  else
+    log "UPDATE AVAILABLE: current=$current latest=$new"
+    log "Run: install.sh --self-update"
+  fi
+}
+
+if [ "$SELF_UPDATE" -eq 1 ]; then
+  do_self_update
+  exit 0
+fi
+
+if [ "$CHECK_UPDATE" -eq 1 ]; then
+  do_check_update
+  exit 0
+fi
+
 log "Installing Universal Frontend Master skill"
 log "Target project: $TARGET"
 log "Global config dir: $OPENCODE_USER_CONFIG"
