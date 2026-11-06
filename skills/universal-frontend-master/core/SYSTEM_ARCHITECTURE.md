@@ -4,7 +4,7 @@
 
 universal-frontend-master is an OpenCode skill built on a multi-agent, multi-phase pipeline.
 Agents collaborate through shared persistent project memory in `.ufme/` and a structured
-delegation protocol. The system is Arch Linux-native and Arch Linux-only.
+delegation protocol. The system is platform-agnostic: it runs anywhere OpenCode, Node.js, Python, and a native Chromium or Firefox are available. Arch Linux specifics live in `core/ARCH_LINUX.md`.
 
 ## Layers
 

@@ -12,8 +12,8 @@ Generated from the tree; run `python3 scripts/catalog.py` after moving files.
 | Skill | What it does | Path |
 |-------|--------------|------|
 | `init-frontend` | Initialize frontend projects with a design system — tokens, component architecture, responsive layout, accessibility foundations, performance budgets, and template selection based on project type. Asks ALL design questions before writing any code. | `skills/init-frontend/SKILL.md` |
-| `ufmw-frontend-design` | Arch Linux-native multi-agent frontend engineering skill for building responsive websites with reference-driven design, visual auditing, accessibility, performance, security, and production readiness. | `skills/ufmw-frontend-design/SKILL.md` |
-| `ufmw-seo-protocol` | Arch Linux-native autonomous SEO engineering skill for technical SEO, on-page optimization, structured data, internal linking, crawlability, indexing, keyword research, and Google Search Console integration. | `skills/ufmw-seo-protocol/SKILL.md` |
+| `ufmw-frontend-design` | Multi-agent frontend engineering skill for building responsive websites with reference-driven design, visual auditing, accessibility, performance, security, and production readiness. | `skills/ufmw-frontend-design/SKILL.md` |
+| `ufmw-seo-protocol` | Autonomous SEO engineering skill for technical SEO, on-page optimization, structured data, internal linking, crawlability, indexing, keyword research, and Google Search Console integration. | `skills/ufmw-seo-protocol/SKILL.md` |
 | `universal-frontend-master` | Multi-agent frontend engineering (multi-agent) for building and improving responsive frontend websites, with execution profiles (/profile/lite\|standard\|advanced\|autonomous) and evidence-driven auditors (a11y, perf, visual, security). | `skills/universal-frontend-master/SKILL.md` |
 
 ## Agents

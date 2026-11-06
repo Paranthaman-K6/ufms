@@ -1,6 +1,6 @@
 ---
 name: ufmw-seo-protocol
-description: Arch Linux-native autonomous SEO engineering skill for technical SEO, on-page optimization, structured data, internal linking, crawlability, indexing, keyword research, and Google Search Console integration.
+description: Autonomous SEO engineering skill for technical SEO, on-page optimization, structured data, internal linking, crawlability, indexing, keyword research, and Google Search Console integration.
 license: MIT
 compatibility: opencode
 metadata:

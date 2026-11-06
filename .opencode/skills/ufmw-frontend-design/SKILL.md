@@ -1,6 +1,6 @@
 ---
 name: ufmw-frontend-design
-description: Arch Linux-native multi-agent frontend engineering skill for building responsive websites with reference-driven design, visual auditing, accessibility, performance, security, and production readiness.
+description: Multi-agent frontend engineering skill for building responsive websites with reference-driven design, visual auditing, accessibility, performance, security, and production readiness.
 license: MIT
 compatibility: opencode
 metadata:
