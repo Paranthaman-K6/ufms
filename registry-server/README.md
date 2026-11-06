@@ -145,7 +145,14 @@ This folder is a monorepo package: set the Vercel project's **Root Directory** t
 runtime is pinned to Node 22 in `package.json` (`engines`); `nodejs26.x` still
 emits the Vercel `DEP0169` `url.parse` warning on every request.
 
-Live deployment (Hobby): <https://ufms-registry-server-mrparanthamans-projects.vercel.app>
+Live deployment (Hobby): <https://ufms-registry-server.vercel.app>
+
+A push to `main` builds a production deployment. If the production aliases keep
+serving the previous build, promote it by hand:
+
+```bash
+vercel promote <deployment-url>        # or Dashboard → Deployments → Promote to Production
+```
 
 In the Vercel project, create a **public** Blob store (Storage → Blob) and connect
 it to the project. Then set:
