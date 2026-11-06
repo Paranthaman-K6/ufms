@@ -1,0 +1,17 @@
+{
+  "name": "ufme-registry-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional MCP library-registry server for the Universal Frontend Master skill.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/run.mjs",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  }
+}

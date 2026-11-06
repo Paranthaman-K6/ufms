@@ -99,7 +99,7 @@ const testNoProhibitedFlags = test('no prohibited browser flags in launch paths'
   const fs = require('fs');
   const files = [
     'browser/browser.js', 'browser/engines/chromium.js', 'browser/engines/firefox.js',
-    '../../universal-frontend-master-source/scripts/check-native-browser.sh',
+    '../../skills/universal-frontend-master/scripts/check-native-browser.sh',
   ];
   const prohibited = ['--no-sandbox', '--disable-web-security', '--ignore-certificate-errors'];
   let found = false;
@@ -156,7 +156,7 @@ const testNetworkSchema = test('network event schema produces correct shapes', (
 
 // ---- Test 5: Quality-check script sanity (does not run the full gate) ----
 const testQualityGateExitCodes = test('quality-check script is present and runnable', async () => {
-  const qcPath = path.join(__dirname, '..', '..', 'universal-frontend-master-source', 'scripts', 'quality-check.py');
+  const qcPath = path.join(__dirname, '..', '..', 'skills/universal-frontend-master', 'scripts', 'quality-check.py');
   assertOk(fs.existsSync(qcPath), 'quality-check.py exists');
   assertOk(fs.statSync(qcPath).mode & 0o111, 'quality-check.py is executable');
   const { execFileSync } = require('child_process');

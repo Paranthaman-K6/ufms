@@ -39,7 +39,9 @@ Invoke `@universal-frontend-master` to start; it delegates according to the acti
 
 ## Scripts
 
-Run scripts from `universal-frontend-master-source/scripts/`.
+Run scripts from `scripts/` inside this skill directory. In a project checkout that is
+`skills/universal-frontend-master/scripts/`; when installed it is
+`~/.config/opencode/skills/universal-frontend-master/scripts/`.
 
 | Script | Purpose |
 |--------|---------|
@@ -48,6 +50,7 @@ Run scripts from `universal-frontend-master-source/scripts/`.
 | `backend-discovery.sh` | Locate backend contracts and source hints |
 | `enhance-backend-discovery.py` | Parse OpenAPI, Postman, GraphQL, AsyncAPI into contracts |
 | `search-libraries.py` | Search registry + npm for libraries with license checks |
+| `registry-remote.py` | Optional MCP registry client (`UFME_REGISTRY_URL`, `UFME_REGISTRY_KEY`) |
 | `discover-assets.py` | Inventory images, fonts, icons, video; hashes and duplicates |
 | `generate-prototype.py` | Build a static prototype from project artifacts |
 | `task-checkpoint.py` | Dependency-aware `TASKS.md` state with atomic writes |
@@ -63,6 +66,7 @@ Run scripts from `universal-frontend-master-source/scripts/`.
 | `ctx-pack.py` | Compose ≤1500-token per-agent briefs from project context |
 | `api-query.py` | Slice `BACKEND_CONTRACTS` by endpoint, field, or role |
 | `design-search.py` | Search design reference CSVs (patterns, palettes, type) |
+| `theme-showcase.py` | Render every curated theme (palette + type) as a page in `.ufme/theme-showcase.pdf` |
 | `execution-profiles.sh` | Read and apply execution profile settings |
 
 ## Profiles
@@ -77,7 +81,9 @@ Reference the actual brand assets recorded in `.ufme/DECISIONS.md`; propose and 
 
 ## Reference router
 
-For details beyond this file, read `universal-frontend-master-source/<path>`:
+For details beyond this file, read `<path>` inside this skill directory
+(project: `skills/universal-frontend-master/`; installed:
+`~/.config/opencode/skills/universal-frontend-master/`):
 
 | Topic | Path |
 |-------|------|

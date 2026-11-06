@@ -33,7 +33,7 @@ jobs:
       - name: Profile enforcement
         run: |
           set -euo pipefail
-          PROFILES=universal-frontend-master-source/scripts/execution-profiles.sh
+          PROFILES=skills/universal-frontend-master/scripts/execution-profiles.sh
           bash "$PROFILES" --enforce lite \
             --delegates ufme-builder
           bash "$PROFILES" --enforce standard \
@@ -62,7 +62,7 @@ jobs:
           test -f "$TMP/xdg/opencode/commands/ufme/audit.md"
           test -f "$TMP/xdg/opencode/commands/ufmw/seo-crawl.md"
           test -f "$TMP/xdg/opencode/commands/ufmw/init-frontend.md"
-          test -f "$TMP/project/universal-frontend-master-source/scripts/quality-check.py"
+          test -f "$TMP/project/skills/universal-frontend-master/scripts/quality-check.py"
           test -f "$TMP/project/.opencode/skills/ufmw-seo-protocol/SKILL.md"
           test -f "$TMP/project/.opencode/skills/init-frontend/SKILL.md"
           HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/xdg" INSTALL_DIR="$TMP/project" \
@@ -70,7 +70,7 @@ jobs:
           test ! -e "$TMP/xdg/opencode/agents/ufme-builder.md"
           test ! -e "$TMP/xdg/opencode/agents/ufmw-seo-protocol.md"
           test ! -e "$TMP/xdg/opencode/agents/init-frontend.md"
-          test ! -e "$TMP/project/universal-frontend-master-source"
+          test ! -e "$TMP/project/skills/universal-frontend-master"
           test ! -e "$TMP/project/.opencode/skills/ufmw-seo-protocol"
           test ! -e "$TMP/project/.opencode/skills/init-frontend"
           test -f "$TMP/project/.ufme/TASKS.md"
@@ -82,8 +82,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$UFME_EVIDENCE_DIR"
-          bash universal-frontend-master-source/scripts/check-native-browser.sh
-          python3 universal-frontend-master-source/scripts/generate-prototype.py
+          bash skills/universal-frontend-master/scripts/check-native-browser.sh
+          python3 skills/universal-frontend-master/scripts/generate-prototype.py
           python3 -m http.server 5173 --directory prototypes &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
@@ -92,7 +92,7 @@ jobs:
             sleep 1
           done
           npm run test:browser http://localhost:5173
-          node universal-frontend-master-source/scripts/audit-a11y.js \
+          node skills/universal-frontend-master/scripts/audit-a11y.js \
             http://localhost:5173
 
       - name: Cross-commit visual regression (base vs HEAD)
@@ -102,9 +102,9 @@ jobs:
           git worktree add --detach "$BASE_DIR" origin/main
           # Seed the base checkout with the same project memory (the prototype
           # generator reads .ufme/, which is gitignored).
-          python3 universal-frontend-master-source/scripts/seed-project-memory.py "$BASE_DIR"
-          python3 "$BASE_DIR/universal-frontend-master-source/scripts/generate-prototype.py"
-          python3 universal-frontend-master-source/scripts/generate-prototype.py
+          python3 skills/universal-frontend-master/scripts/seed-project-memory.py "$BASE_DIR"
+          python3 "$BASE_DIR/skills/universal-frontend-master/scripts/generate-prototype.py"
+          python3 skills/universal-frontend-master/scripts/generate-prototype.py
 
           python3 -m http.server 5174 --directory "$BASE_DIR/prototypes" &
           BASE_PID=$!
@@ -123,14 +123,14 @@ jobs:
           # screenshots from an earlier step (test:browser) cannot mix in.
           rm -rf "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
           mkdir -p "$UFME_EVIDENCE_DIR/baseline" "$UFME_EVIDENCE_DIR/screenshots"
-          node universal-frontend-master-source/browser/run.js \
+          node skills/universal-frontend-master/browser/run.js \
             http://localhost:5174 "$UFME_EVIDENCE_DIR/baseline" \
             "$UFME_EVIDENCE_DIR/browser-base.json" --screenshots-only
-          node universal-frontend-master-source/browser/run.js \
+          node skills/universal-frontend-master/browser/run.js \
             http://localhost:5173 "$UFME_EVIDENCE_DIR/screenshots" \
             "$UFME_EVIDENCE_DIR/browser-head.json" --screenshots-only
 
-          node universal-frontend-master-source/scripts/visual-diff.js \
+          node skills/universal-frontend-master/scripts/visual-diff.js \
             --baseline "$UFME_EVIDENCE_DIR/baseline" \
             --current "$UFME_EVIDENCE_DIR/screenshots" \
             --out "$UFME_EVIDENCE_DIR/visual-diff.json"
@@ -145,14 +145,14 @@ jobs:
             curl -fsS -o /dev/null http://localhost:5173 && break
             sleep 1
           done
-          bash universal-frontend-master-source/scripts/audit-perf.sh http://localhost:5173
+          bash skills/universal-frontend-master/scripts/audit-perf.sh http://localhost:5173
           UFME_SLOP_PATH=prototypes \
-            python3 universal-frontend-master-source/scripts/quality-check.py \
+            python3 skills/universal-frontend-master/scripts/quality-check.py \
               --only audit --require audit --target http://localhost:5173 \
               --report "$UFME_EVIDENCE_DIR/quality-report.json"
 
       - name: Build agents (check)
-        run: python3 universal-frontend-master-source/scripts/build-agents.py --check
+        run: python3 skills/universal-frontend-master/scripts/build-agents.py --check
 
       - name: Test project-memory seeding
         run: |
@@ -161,7 +161,7 @@ jobs:
           import tempfile
           from pathlib import Path
 
-          script = Path("universal-frontend-master-source/scripts/seed-project-memory.py").resolve()
+          script = Path("skills/universal-frontend-master/scripts/seed-project-memory.py").resolve()
           with tempfile.TemporaryDirectory(prefix="ufme-seed-test-") as temp:
               target = Path(temp)
               subprocess.run(["python3", str(script), str(target)], check=True)
@@ -179,10 +179,10 @@ jobs:
           PY
 
       - name: Seed project runtime memory for self-audit
-        run: python3 universal-frontend-master-source/scripts/seed-project-memory.py "$GITHUB_WORKSPACE"
+        run: python3 skills/universal-frontend-master/scripts/seed-project-memory.py "$GITHUB_WORKSPACE"
 
       - name: Self-improve
-        run: python3 universal-frontend-master-source/scripts/self-improve.py
+        run: python3 skills/universal-frontend-master/scripts/self-improve.py
 
       - name: Upload evidence (always)
         if: always()

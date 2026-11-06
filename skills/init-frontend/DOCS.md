@@ -164,7 +164,7 @@ Questions → .ufme/DESIGN_SYSTEM.md → Scaffold code → Tokens → Audit
 When run in an interactive terminal, `init-project.py` prompts you for each answer:
 
 ```bash
-python3 universal-frontend-master-source/scripts/init-project.py .
+python3 skills/universal-frontend-master/scripts/init-project.py .
 ```
 
 You'll be asked:
@@ -186,7 +186,7 @@ Each question is mandatory. Invalid choices re-prompt. Answers are saved to `.uf
 When there's no TTY (e.g. OpenCode agent context), pass answers via CLI flags:
 
 ```bash
-python3 universal-frontend-master-source/scripts/init-project.py . \
+python3 skills/universal-frontend-master/scripts/init-project.py . \
   --project-name my-saas-app \
   --type saas \
   --profile advanced \
@@ -212,7 +212,7 @@ python3 init-project.py --list-styles
 ### Step 2 — Scaffold (only after questions answered)
 
 ```bash
-python3 universal-frontend-master-source/scripts/init-frontend.sh my-saas-app saas
+python3 skills/universal-frontend-master/scripts/init-frontend.sh my-saas-app saas
 # or:
 ufmw init-frontend my-saas-app saas
 ```
@@ -571,8 +571,8 @@ The skill follows strict safety rules:
 ## Support
 
 - Skill definition: `skills/init-frontend/SKILL.md`
-- Agent: `skills/init-frontend/agents/init-frontend.md`
+- Agent: `agents/init-frontend.md`
 - Scripts: `skills/init-frontend/scripts/`
-- Commands: `skills/init-frontend/commands/ufmw/`
+- Commands: `commands/ufmw/`
 - Templates: `skills/init-frontend/templates/`
 - Installer: `install.sh` (supports `--self-update`, `--check-update`, `INSTALL_SCOPE`)

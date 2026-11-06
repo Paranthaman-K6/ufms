@@ -20,7 +20,7 @@ if [ -z "$CATEGORY" ]; then
 fi
 
 # Check if template exists locally
-TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/skills/init-frontend/templates"
+TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
 
 if [ -d "$TEMPLATES_DIR/$CATEGORY" ]; then
   log "Applying local template: $CATEGORY"

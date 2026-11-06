@@ -3,7 +3,7 @@
 #
 # Runs the real install.sh from the local checkout (no network) with an isolated
 # HOME/XDG_CONFIG_HOME, then asserts:
-#   * six agents, the skill and a file-based global config are installed
+#   * all 17 agents, the four skills and a file-based global config are installed
 #   * the global config preserves user keys and drops any legacy inline registry
 #   * project-local agents, source tree and seed memory exist
 #   * repeat installs merge instead of nesting directories
@@ -17,7 +17,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INSTALL="$ROOT/install.sh"
-AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor init-frontend)
+AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-frontend-design ufmw-orchestrator ufmw-designer ufmw-builder ufmw-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor init-frontend)
 SEO_AGENTS=(ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
 PASS=0
 FAIL=0
@@ -62,7 +62,7 @@ run_install() {
 if run_install; then pass "clean install exits 0"; else fail "clean install exits 0" "see $TMP/install.log"; fi
 
 GLOBAL_AGENTS="$XDG_CONFIG_HOME/opencode/agents"
-check "twelve agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 12 ]"
+check "seventeen agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 17 ]"
 for agent in "${AGENTS[@]}"; do
   check "global agent $agent" "[ -f '$GLOBAL_AGENTS/$agent.md' ]"
 done
@@ -70,6 +70,8 @@ for agent in "${SEO_AGENTS[@]}"; do
   check "global SEO agent $agent" "[ -f '$GLOBAL_AGENTS/$agent.md' ]"
 done
 check "global skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "global skill is self-contained" "[ -f '$XDG_CONFIG_HOME/opencode/skills/universal-frontend-master/scripts/detect-slop.py' ]"
+check "global frontend-design skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/ufmw-frontend-design/SKILL.md' ]"
 check "global SEO skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
 check "global SEO command installed" "[ -f '$XDG_CONFIG_HOME/opencode/commands/ufmw/seo-crawl.md' ]"
 check "global init-frontend skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/init-frontend/SKILL.md' ]"
@@ -77,8 +79,9 @@ check "global init-frontend command installed" "[ -f '$XDG_CONFIG_HOME/opencode/
 check "project skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/universal-frontend-master/SKILL.md' ]"
 check "project SEO skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
 check "project init-frontend skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/init-frontend/SKILL.md' ]"
-check "project source tree installed" "[ -f '$INSTALL_DIR/universal-frontend-master-source/scripts/quality-check.py' ]"
-check "twelve project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 12 ]"
+check "project source tree installed" "[ -f '$INSTALL_DIR/skills/universal-frontend-master/scripts/quality-check.py' ]"
+check "project frontend-design skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/ufmw-frontend-design/SKILL.md' ]"
+check "seventeen project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 17 ]"
 for agent in "${AGENTS[@]}"; do
   check "project agent $agent" "[ -f '$INSTALL_DIR/.opencode/agents/$agent.md' ]"
 done
@@ -110,11 +113,11 @@ check "existing project memory preserved" "[ \"\$(cat '$INSTALL_DIR/.ufme/TASKS.
 check "UFME_SKIP_NPM leaves package.json untouched" \
   "[ \"\$(sha256_of '$INSTALL_DIR/package.json')\" = '$BEFORE_PACKAGE' ]"
 check "repeat install does not nest the source tree" \
-  "[ ! -d '$INSTALL_DIR/universal-frontend-master-source/universal-frontend-master-source' ]"
+  "[ ! -d '$INSTALL_DIR/skills/universal-frontend-master/skills/universal-frontend-master' ]"
 check "repeat install does not nest the skill" \
   "[ ! -d '$INSTALL_DIR/.opencode/skills/universal-frontend-master/universal-frontend-master' ]"
 check "repeat install keeps one source tree" \
-  "[ \$(find '$INSTALL_DIR' -maxdepth 2 -type d -name 'universal-frontend-master-source' | wc -l) -eq 1 ]"
+  "[ \$(find '$INSTALL_DIR/skills' -maxdepth 1 -type d -name 'universal-frontend-master' | wc -l) -eq 1 ]"
 
 # ------------------------------------------------------------------
 # Full audit dependency set is installed with a real npm invocation

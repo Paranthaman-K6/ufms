@@ -35,7 +35,7 @@ if [ ! -f "$DESIGN_SYSTEM_FILE" ]; then
   echo "ERROR: Design questions not answered yet." >&2
   echo "" >&2
   echo "Run the design questionnaire first, then scaffold:" >&2
-  echo "  python3 universal-frontend-master-source/scripts/init-project.py $ROOT_DIR" >&2
+  echo "  python3 skills/universal-frontend-master/scripts/init-project.py $ROOT_DIR" >&2
   echo "  (or pass --palette/--font/--style/--profile/--project-name non-interactively)" >&2
   echo "" >&2
   echo "No code is scaffolded until all design questions are answered." >&2
@@ -61,7 +61,7 @@ log "Creating project: $PROJECT_NAME (type: $TYPE, profile: $PROFILE)"
 log "Design: palette=$PALETTE_NAME font=$FONT_NAME style=$STYLE_NAME"
 
 PROJECT_DIR="$ROOT_DIR/$PROJECT_NAME"
-TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/skills/init-frontend/templates"
+TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates"
 
 # ------------------------------------------------------------------
 # 2. Resolve color scheme from palette name

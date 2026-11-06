@@ -21,9 +21,9 @@ import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "universal-frontend-master-source/agents/auditor.md"
+SOURCE = ROOT / "agents/ufme-auditor.md"
 INSTALLED = ROOT / ".opencode/agents/ufme-auditor.md"
-SCRIPTS = ROOT / "universal-frontend-master-source/scripts"
+SCRIPTS = ROOT / "skills/universal-frontend-master/scripts"
 EVIDENCE = ROOT / ".ufme" / "evidence"
 
 results = []
@@ -86,7 +86,7 @@ def _():
 @test("every referenced script exists")
 def _():
     body = text()
-    refs = set(re.findall(r"universal-frontend-master-source/scripts/([\w.-]+)", body))
+    refs = set(re.findall(r"skills/universal-frontend-master/scripts/([\w.-]+)", body))
     assert refs, "no script references found"
     missing = sorted(ref for ref in refs if not (SCRIPTS / ref).is_file())
     assert not missing, f"missing scripts: {missing}"

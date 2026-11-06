@@ -1,108 +1,111 @@
-# Todo — UFMS Autonomous Error Resolution and Final Validation
+# Remaster todo
 
-Branch: `main` at `2b3bb366` (PR #5 merged).
-Status: `[ ]` TODO, `[~]` IN PROGRESS, `[x]` COMPLETE, `[!]` BLOCKED.
-Every defect needs measurable acceptance criteria and real execution evidence.
+Tickets are ordered by blocking edge. `[x]` done, `[~]` in progress, `[ ]` todo, `[!]` blocked.
+Each ticket is self-contained: a fresh session can pick it up from the spec in
+`docs/REMASTER_SPEC.md`.
 
-## Defect A — Agent execution and profile integration
-- [x] Primary agent delegates to orchestrator unconditionally (Lite/Standard don't allow orchestrator) — FIXED in source + installed agent
-- [x] Make delegation behavior consistent with every execution profile — FIXED
-- [x] Verify Lite completes tasks through permitted agents — profile schema verified via tests/profiles/run.py
-- [x] Verify Standard supports design, implementation, backend integration, independent auditing — profile schema verified
-- [x] Verify Advanced/Autonomous can use the full specialist workflow — profile schema verified
-- [x] Primary agent follows the selected profile — FIXED in universal-frontend-master.md
-- [x] Agent availability and concurrent delegation limits enforced in real execution — execution-profiles.sh --enforce
-- [x] No unauthorized/unavailable delegation — primary delegates only allowedAgents
-- [x] Context and task info reach correct specialists — ctx-pack.py per-agent briefs
-- [x] Validate with real profile enforcement tests — tests/profiles/run.py passes
+## T1 — Freeze target tree and path contract
+- [x] `docs/REMASTER_SPEC.md` written (decisions D1–D8, target tree, migration map)
+- [x] `docs/OBJECTIVE.md` with measurable success criteria
+- [x] `docs/FIXES.md` with evidence per defect
+- **Blocks:** T2
 
-## Defect B — Section screenshot capture
-- [x] Repair section screenshot functionality (silent swallow fixed, base64 bug fixed, theme added, selector in filename)
-- [x] Test valid selectors — tests/browser/run.js section capture
-- [x] Test missing selectors — tests/browser/run.js records FAIL for failed selectors
-- [x] Test multiple sections — tests/browser/run.js iterates all selectors
-- [x] Test different supported viewport sizes — tests/browser/run.js uses mobile + desktop
-- [x] Test image encoding and file integrity — PNG signature validation
-- [x] Test manifest accuracy — manifest.json includes selector/theme/viewport/dimensions
-- [x] Real browser execution — verified with Chromium 156.0.8078.79
-- [x] Failures reported accurately, not silently swallowed — FAIL entries with error messages
+## T2 — Move skills, agents, commands into the catalog layout
+- [x] `git mv universal-frontend-master-source skills/universal-frontend-master`
+- [x] `git mv ufmw_seo_protocol_skill skills/ufmw-seo-protocol`
+- [x] `git mv ufmw_frontend_design_skill skills/ufmw-frontend-design`
+- [x] Move every `*/agents/*.md` into `agents/` with final names (UFME five get `ufme-` prefix)
+- [x] Move every command source into `commands/` (`ufme/`, `ufmw/`, `profile/`, root)
+- [x] Remove now-empty `agents/`/`commands/` dirs from each skill
+- **Blocked by:** T1 · **Blocks:** T3, T4
 
-## Defect C — Chromium and Firefox execution
-- [x] Explicit Chromium binary selection works (CHROME_BIN env var set before launch)
-- [x] Firefox binary selection works (setBinary in check-native-browser.sh + launchFirefoxWithNetwork)
-- [x] Actual browser identity and version reported correctly (getSessionInfo + browserIdentity check)
-- [x] Browser fallback behaves consistently (chromium → firefox fallback in run.js)
-- [x] Browser setup uses same execution logic as actual test runner (check-native-browser uses same selenium-webdriver)
-- [x] Missing browsers and failed launches produce accurate diagnostic evidence (write_setup_evidence + prompt_user)
+## T3 — Repair path resolution
+- [x] Fix `parents[]` depth in `skills/*/scripts/*.py` and `*.sh`
+- [x] Fix script/doc references from `universal-frontend-master-source/...` to `skills/...`
+- [x] Confirm `detect-slop.py`, `quality-check.py`, `seed-project-memory.py`, `self-improve.py`,
+      `search-libraries.py`, `build-agents.py` resolve the repo root correctly from the new depth
+- **Blocked by:** T2 · **Blocks:** T5, T12
 
-## Defect D — Documentation and runtime consistency
-- [x] Node.js badge synced with engines (^22.23.4 || ^24.22.1 || >=26.12.1)
-- [x] Cross-platform claim changed to Arch Linux only (README)
-- [x] Installation instructions accurately represent Arch Linux environment (install.sh, docs/installation-arch-linux.md)
-- [x] detect-platform.sh updated to Arch Linux only
-- [x] compatibility.md updated to Arch Linux only
-- [x] ARCH_LINUX.md portability section updated
-- [x] 01-project-intake.md updated to Arch Linux required
-- [x] package.json description updated (removed "runs anywhere npm does")
-- [x] Checked for other cross-platform references
+## T4 — Rewrite install/uninstall for the new layout
+- [x] `install.sh` copies `agents/`, `commands/`, `skills/<name>/` (full, self-contained)
+- [x] Global install of a skill includes `scripts/`, `templates/`, `workflows/`, `profiles/`
+- [x] `uninstall.sh` removes the same paths, no strays
+- [x] `tests/install/run.sh` and `tests/uninstall/run.sh` assert the new paths
+- **Blocked by:** T2 · **Blocks:** T5, T12
 
-## Defect E — GitHub Actions and CI maintenance
-- [ ] Resolve outdated action runtime warnings using currently supported versions
-- [ ] Keep CI reliable and compatible with configured Node.js runtime
-- [ ] Preserve automated testing, security checks, browser audits, visual regression, performance validation, evidence retention
+## T5 — Generate the catalog and the `.opencode` mirror
+- [x] `scripts/catalog.py` generates `CATALOG.md` from `skills/*/SKILL.md`, `agents/*.md`,
+      `commands/**/*.md`; `--check` fails on drift
+- [x] `scripts/build-agents.py` validates `agents/` and mirrors to `.opencode/agents/`
+- [x] `.opencode/skills/<name>/SKILL.md` mirrored from source
+- [x] `CATALOG.md` lists every skill, agent, and command with trigger + file path
+- **Blocked by:** T3, T4 · **Blocks:** T11, T12
 
-## P3 — Complete system investigation (independent review)
-- [ ] Agent discovery and delegation
-- [ ] Execution profiles
-- [ ] Orchestration and task planning
-- [ ] Requirement understanding, research, design
-- [ ] Frontend engineering, backend integration, reuse
-- [ ] Browser automation, responsive screenshots, visual regression
-- [ ] Accessibility, performance, security, dependency management
-- [ ] Context packing and project memory
-- [ ] Installation, upgrades, removal
-- [ ] Error handling and recovery
-- [ ] Self-improvement
-- [ ] Documentation and developer experience
-- [ ] Identify additional bugs, incomplete features, conflicts, incorrect assumptions, false-positive tests, integration failures
+## T6 — Fix registry/design defects
+- [x] F7: `approve_package()` regex crash → lambda rewrite, test
+- [x] F8: inverted motion heading map → `{"animation": "motion"}`, test
+- [x] F4: quality gate always passes `--design`; `UFME_SLOP_SKIP_DESIGN=1` escape hatch, test
+- **Blocked by:** T1 · **Blocks:** T8, T12
 
-## P4 — Improve actual autonomous execution
-- [ ] Complete workflow initial request to final delivery
-- [ ] Agents understand responsibilities, delegate intelligently, share context
-- [ ] Avoid duplicated work, coordinate changes, independently verify
-- [ ] Measure token efficiency, unnecessary delegation, redundant execution
+## T7 — Seed the library registry from live GitHub metadata
+- [x] `registry-server/seed.json` with repo, stars, SPDX license, npm package, category, reason
+- [x] Includes the frontend references: shadcn/ui, radix, tailwind, headlessui, motion,
+      react-bits, r3f, drei, zustand, react-spring, TanStack query/table, zod, react-hook-form,
+      react-router, lucide, phosphor, tabler, recharts, chart.js, d3, lottie, GSAP, anime,
+      lenis, barba, unocss, open-props, daisyui, heroui, mantine, chakra, MUI, antd, next, vite,
+      astro, svelte, vue, nuxt, storybook, vitest, testing-library, axe-core, lighthouse,
+      playwright, puppeteer, fontsource, google/fonts, anthropics/skills, MCP TS SDK, ECC
+- [x] License column is the verified SPDX id; `NOASSERTION` is marked "verify"
+- **Blocked by:** T6 · **Blocks:** T9
 
-## P5 — Real validation (Arch Linux environment)
-- [x] Clean installation and repeat installation — tests/install/run.sh passes (21 PASS)
-- [x] Agent discovery — self-improve.py verifies source↔installed agent sync
-- [x] All execution profiles — tests/profiles/run.py passes (31 PASS)
-- [x] Actual specialist delegation — profile enforcement verified via execution-profiles.sh --enforce
-- [x] Context handoffs — ctx-pack.py per-agent briefs verified
-- [x] Browser testing — real Selenium run verified with Chromium 156.0.8078.79
-- [x] Section screenshot capture — verified with valid + missing selectors
-- [x] Accessibility audits — audit-a11y.js verified
-- [x] Lighthouse audits — audit-perf.sh verified (100/100/96 on local prototype)
-- [x] Visual comparison across different commits — tests/visual/cross-commit.js passes (4 PASS)
-- [x] Dependency security checks — npm audit clean (0 vulnerabilities)
-- [x] Installer and uninstaller tests — tests/install/run.sh + tests/uninstall/run.sh pass
-- [x] Complete CI validation — CI green on PR #5
-- [x] Add regression tests for every repaired defect — section screenshot tests added to tests/browser/run.js
+## T8 — Build the optional Vercel MCP registry server
+- [x] `registry-server/api/mcp.js`: stateless MCP JSON-RPC, `initialize`, `tools/list`,
+      `tools/call`, `ping`; 401/503 auth
+- [x] `registry-server/lib/store.js`: Vercel Blob, local-file fallback
+- [x] `registry-server/lib/registry.js`: validation, upsert, query
+- [x] `registry-server/test/run.mjs`: auth, list, upsert, get, remove, seed validity
+- [x] `vercel.json`, `package.json`, `.env.example`, `README.md`
+- **Blocked by:** T7 · **Blocks:** T10
 
-## P6 — Quality and completion criteria
-- [x] No known critical/high-severity defects — All defects A-E fixed and verified
-- [x] No contradictory execution-profile instructions — Primary agent delegates only allowedAgents per profile
-- [x] No silent screenshot failures — Section capture failures recorded as FAIL with error messages
-- [x] Correct actual browser selection — CHROME_BIN/FIREFOX_BIN respected, identity verified via getSessionInfo
-- [x] Accurate runtime documentation — All docs updated for Arch Linux only, Node.js requirements synced
-- [x] No unsupported dependency versions — npm audit clean (0 vulnerabilities)
-- [x] No false PASS results — All 198 tests pass with real execution evidence
-- [x] No failing required tests — 198 PASS / 0 FAIL
-- [x] No unexplained skipped validation — All skipped checks have documented reasons
-- [x] Successful complete CI on final delivered commit — CI green on PR #5
-- [x] Verified installation and removal behavior — install.sh and uninstall.sh tested locally
+## T9 — Build the registry client and wire it in
+- [x] `skills/universal-frontend-master/scripts/registry-remote.py` (list/get/search/upsert/remove/seed)
+- [x] `search-libraries.py` reads remote first, falls back silently to local
+- [x] `--select` upserts to remote when configured
+- [x] Unset env → exit 3, local behaviour unchanged
+- **Blocked by:** T8 · **Blocks:** T11
 
-## P7 — Final delivery
-- [x] Complete implementation, integration, independent review — all defects A-E fixed, P3-P6 validated
-- [x] Deliver via Git workflow, final commit passes CI — committing to main
-- [x] Update project documentation and task records — README, docs, todo.md updated
-- [x] Final report — see FINAL_REPORT.md (to be updated with new findings)
+## T10 — Documentation
+- [x] `README.md` describes the catalog layout, install scopes, registry server
+- [x] `AGENTS.md` for agents working on this repo
+- [x] `skills/*/SKILL.md` path wording matches the install contract
+- [x] `docs/installation-arch-linux.md` updated
+- **Blocked by:** T5, T9 · **Blocks:** T12
+
+## T11 — Full verification
+- [x] `npm test` green
+- [x] `python3 scripts/catalog.py --check` green
+- [x] `python3 scripts/build-agents.py --check` green
+- [x] `node registry-server/test/run.mjs` green
+- [x] Reference-site regression: linter rejects `/home/paranthaman/Project/test4`
+- [x] `self-improve.py` green
+- [x] No stale path strings remain
+- **Blocked by:** T3–T10 · **Blocks:** T12
+
+## T12 — End-to-end proof from a real install
+- [x] Install project-scope into a clean directory from the local checkout (`INSTALL_SCOPE=project`, `UFME_SKIP_NPM=1`)
+- [x] Installed agent, skill scripts, and seeded `.ufme/DESIGN_SYSTEM.md` exist
+- [x] Seeded design template fails closed: `detect-slop.py` exits 2 with `design-system-incomplete`
+- [x] Filled design system passes: `detect-slop.py` exits 0
+- [x] Uniform entrance motion on four components fails: exit 2 with `uniform-entrance-motion`
+- [x] `uninstall.sh --project-only` removes agents/skills/commands and keeps `.ufme/`
+- **Evidence:** `14 passed, 0 failed` from `/tmp/opencode/t12-e2e.sh` (reproducible; not committed)
+- **Blocked by:** T11
+
+## T13 — Theme showcase PDF for every project
+- [x] `data/palettes.csv` rows are complete themes (`bg`, `surface`, `text`, `muted`, `accent`, `accent_alt`, `font_pairing`)
+- [x] `theme-showcase.py` renders one page per theme — swatches with hex, type specimen, applied sample — with no dependencies (base-14 fonts)
+- [x] The project's choice from `.ufme/design-choices.json` is marked `YOUR PROJECT` and shown first
+- [x] Registry themes (`category: theme` entries with a `theme` object) are appended when `UFME_REGISTRY_URL`/`UFME_REGISTRY_KEY` are set; silent local fallback otherwise
+- [x] `init-project.py` generates `.ufme/theme-showcase.pdf` automatically; `/ufmw/theme` regenerates it
+- [x] `tests/theme/run.py` (7 pass) and the e2e install proof (17 pass) cover generation, project marking, `--only`, and registry merge
+- **Blocked by:** T11

@@ -1,6 +1,8 @@
 # Universal Frontend Master
 
-An OpenCode skill installed once per **user scope** so `@universal-frontend-master` and the full 6-agent set are available in **every project** on the machine. Cross-project data lives in `~/.config/ufme/`; project-local artifacts live in `.ufme/`.
+A catalog of OpenCode skills for frontend engineering. Install once per **user scope** and `@universal-frontend-master`, the `ufmw-*` skills, and every agent are available in **every project** on the machine. Cross-project data lives in `~/.config/ufme/`; project-local artifacts live in `.ufme/`.
+
+Every skill, agent, and command is listed in [CATALOG.md](CATALOG.md), generated from the tree.
 
 Turns a brief, existing repo, API docs, screenshot, or reference site into a complete, responsive, accessible, tested frontend — and keeps auditing it until the evidence passes.
 
@@ -31,14 +33,16 @@ It never invents endpoints, never forces a framework change without justificatio
 
 ## What you get
 
-- **6 agents** — `universal-frontend-master` (the only primary entry point), `ufme-orchestrator` (delegated orchestration subagent), and 4 specialist subagents, invokable with `@agent-name`.
+- **4 skills** — `universal-frontend-master`, `ufmw-frontend-design`, `ufmw-seo-protocol`, and `init-frontend`, each self-contained under `skills/<name>/`.
+- **17 agents** — three primaries (`universal-frontend-master`, `ufmw-frontend-design`, `init-frontend`) and their specialist subagents, all flat in `agents/` and invokable with `@agent-name`.
+- **One catalog** — `CATALOG.md` lists every skill, agent, and command; `scripts/catalog.py --check` fails when it drifts.
 - **4 execution profiles as sub-commands** — `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous`, with a conditional agent chain (skip backend when no backend exists, skip designer for single-page edits).
 - **Persistent memory** — `.ufme/` artifacts per project; shared cross-project data in `~/.config/ufme/`.
 - **Native browser testing** — Selenium WebDriver for Chromium and Firefox, headless by default, screenshots at mobile/tablet/laptop/desktop.
 - **Evidence-driven auditors** — axe-core accessibility, Lighthouse performance, pixelmatch visual diffs, and an anti-generic design linter; findings come from script JSON, not eyeballing.
 - **Real quality gate** — type check, lint, format, tests, build, browser tests, dependency audit, written to `.ufme/evidence/quality-report.json`.
 - **Self-improvement** — the skill audits its own docs, agents, scripts, and install on demand.
-- **Library and asset intelligence** — npm research with license checks, plus a shared user-level registry; local asset inventory with duplicate/broken detection.
+- **Library and asset intelligence** — npm research with license checks, plus a shared user-level registry; local asset inventory with duplicate/broken detection. An optional MCP server (in `registry-server/`) shares and updates that registry from any machine.
 - **Backend contract parsing** — OpenAPI/Swagger (JSON/YAML), Postman, GraphQL, AsyncAPI, WebSocket/SSE/auth hints.
 - **Safety by default** — no sudo, pacman, systemctl, containers, or Playwright; project-local dependencies only; browser sandbox preserved.
 
@@ -90,7 +94,7 @@ Run any time in any project:
 - `/profile/advanced` — all six roles for complex projects with full audits
 - `/profile/autonomous` — unattended runs with exhaustive verification and every specialist available
 
-Configs live in `universal-frontend-master-source/profiles/`.
+Configs live in `skills/universal-frontend-master/profiles/`.
 
 ## Steer commands
 
@@ -138,13 +142,15 @@ UFME_SOURCE_DIR="$PWD" UFME_SKIP_NPM=1 bash install.sh
 `UFME_SKIP_NPM=1` leaves the target `package.json` untouched (the tests use it). Repeat installs merge into existing directories instead of nesting them and never overwrite project memory.
 
 The installer:
-1. Installs agents, skill, commands, and `opencode.json` **globally** under `~/.config/opencode/` (user scope — available to every project).
+1. Installs every agent from `agents/`, every command from `commands/`, and every skill from `skills/<name>/` **in full** under `~/.config/opencode/` (user scope — available to every project).
 2. Stores cross-project shared data in `~/.config/ufme/` (library registry, evidence).
 3. Seeds project-local `.ufme/` memory templates into the target project (never overwrites existing).
-4. Copies `universal-frontend-master-source/` into the target project.
+4. Copies `agents/`, `commands/`, and each `skills/<name>/` tree into the target project, plus `.opencode/skills/<name>/SKILL.md` for the project override.
 5. Installs the project-local audit dependency set (`selenium-webdriver`, `@axe-core/webdriverjs`, `lighthouse`, `pngjs`, `pixelmatch`) when the target has a `package.json`.
 
-The installer also copies slash commands globally (`.opencode/commands/ufme/`) and project-locally so `/profile/lite`, `/profile/standard`, `/profile/advanced`, `/profile/autonomous` and `/ufme/*` are available in every project.
+Installed skills are self-contained: `~/.config/opencode/skills/universal-frontend-master/scripts/` holds the linters and gates, so they work outside a repo checkout.
+
+With `INSTALL_SCOPE=global` only, skill scripts resolve project artifacts (`.ufme/`, `node_modules/`) from the OpenCode config directory. Use the default `both` or `project` scope when running audits against a project.
 
 ### Uninstall
 
@@ -154,7 +160,7 @@ bash uninstall.sh --global-only                            # remove global agent
 bash uninstall.sh --project-only                            # remove project-local only
 ```
 
-`uninstall.sh` is idempotent and removes only UFME-managed paths. It preserves project memory (`.ufme/`), `opencode.json`, `package.json`, dependencies and every other user file.
+`uninstall.sh` is idempotent and removes only UFME-managed paths (the 17 agents, the four skills, `ufme/` and `ufmw/` commands). It preserves project memory (`.ufme/`), `opencode.json`, `package.json`, dependencies and every other user file.
 
 
 ### Run the skill in any project
@@ -177,7 +183,7 @@ Or with a specific profile:
 git clone https://github.com/Paranthaman-K6/ufms.git
 cd ufms
 npm install
-bash universal-frontend-master-source/scripts/check-native-browser.sh
+bash skills/universal-frontend-master/scripts/check-native-browser.sh
 npm test
 ```
 
@@ -195,27 +201,30 @@ npm test
 
 ```text
 .
-├── .opencode/
-│   ├── agents/                     # Installed OpenCode agent definitions (project copy)
-│   ├── commands/ufme/              # Steer commands (project copy)
-│   └── skills/universal-frontend-master/SKILL.md
-├── universal-frontend-master-source/
-│   ├── core/                       # MASTER_SKILL.md, architecture, orchestration, rules, safety
-│   ├── agents/                     # agent specifications
-│   ├── workflows/                  # numbered workflows
-│   ├── templates/                  # .ufme/ memory templates
-│   ├── scripts/                    # automation scripts (Bash + Python + Node)
-│   ├── profiles/                   # 4 execution profiles (lite, standard, advanced, autonomous)
-│   ├── integrations/mcp/           # Optional MCP capability discovery
-│   ├── docs/                       # Installation, usage, testing, troubleshooting
-│   └── examples/
-├── tests/
-│   ├── browser/                    # Selenium abstraction, engines, security, validation
-│   └── regression/                 # Regression suite + fixtures
-├── .ufme/                          # Per-project memory and evidence (seeded on install)
-├── install.sh                      # User-scope installer (all projects)
-├── opencode.json                   # Permission policy
-└── README.md
+├── CATALOG.md                      # generated: every skill, agent, command
+├── agents/                         # ALL agent definitions, flat, final names
+├── commands/                       # ALL slash commands: ufme/, ufmw/, profile/
+├── skills/
+│   ├── universal-frontend-master/  # entry skill (core, workflows, scripts, templates, profiles)
+│   ├── ufmw-frontend-design/       # reference-driven design skill
+│   ├── ufmw-seo-protocol/          # SEO engineering skill
+│   └── init-frontend/              # project initialization skill
+├── scripts/                        # repo tooling: build-agents.py, catalog.py
+├── registry-server/                # optional Vercel MCP library registry
+├── tests/                          # browser, regression, agents, quality, install, ...
+├── docs/                           # objective, remaster spec, fixes, install notes
+├── .opencode/                      # GENERATED mirror: agents/, commands/, skills/*/SKILL.md
+├── .ufme/                          # per-project memory and evidence (seeded on install)
+├── install.sh                      # scoped installer
+├── uninstall.sh                    # scoped, idempotent uninstaller
+└── opencode.json                   # permission policy
+```
+
+`.opencode/` is generated. Edit `agents/`, `commands/`, or `skills/`, then run:
+
+```bash
+python3 scripts/build-agents.py   # validate agents/ and mirror to .opencode/agents/
+python3 scripts/catalog.py        # regenerate CATALOG.md and mirror commands/skills
 ```
 
 ## Scripts
@@ -240,11 +249,14 @@ npm test
 | `audit-perf.sh` | Bash | Lighthouse performance audit → evidence JSON |
 | `detect-slop.py` | Python | Anti-generic design linter (templated look, uniform motion) |
 | `design-search.py` | Python | Search design reference CSVs (patterns, palettes, type) |
+| `theme-showcase.py` | Python | Render every curated theme (palette + type) as a page in `.ufme/theme-showcase.pdf` |
 | `api-query.py` | Python | Slice `BACKEND_CONTRACTS` by endpoint, field, or role |
 | `ctx-pack.py` | Python | Compose ≤1500-token per-agent briefs from project context |
 | `quality-check.py` | Python | Type check, lint, tests, build, browser, dependency audit |
 | `self-improve.py` | Python | Audit skill docs, agents, scripts, install; write JSON evidence |
-| `build-agents.py` | Python | Generate agent definition files from source specs |
+| `build-agents.py` | Python | Validate `agents/` and mirror to `.opencode/agents/` |
+| `catalog.py` | Python | Generate `CATALOG.md`; `--check` fails on drift |
+| `registry-remote.py` | Python | Optional MCP registry client (`UFME_REGISTRY_URL`, `UFME_REGISTRY_KEY`) |
 | `seed-project-memory.py` | Python | Seed missing `.ufme/` project files from templates without overwriting existing data |
 | `install.sh` | Bash | User-scope install (all projects), cross-project data in `~/.config/ufme/` |
 | `uninstall.sh` | Bash | Idempotent scoped uninstall: removes managed agents, skill, commands and source tree; preserves `.ufme/` memory, `opencode.json`, `package.json` |
@@ -257,13 +269,14 @@ Python handles parsing and JSON work without `jq` or extra packages; Bash stays 
 npm ci                      # pngjs + pixelmatch power visual diffs
 npm test                    # every unit/integration suite below
 npm run test:browser -- http://localhost:5173   # real Selenium run
-python3 universal-frontend-master-source/scripts/self-improve.py
-python3 universal-frontend-master-source/scripts/quality-check.py --target http://localhost:5173
+python3 skills/universal-frontend-master/scripts/self-improve.py
+python3 skills/universal-frontend-master/scripts/quality-check.py --target http://localhost:5173
 ```
 
-- `npm test` — browser abstraction, security flags, regression, visual diff, agent structure, quality gate, profiles, context packs, auditor contract, and clean install.
-- `test:*` — run one suite: `test:visual`, `test:visual-cross`, `test:agents`, `test:quality`, `test:profiles`, `test:context`, `test:auditor`, `test:install`, `test:uninstall`, `test:perf`.
+- `npm test` — browser abstraction, security flags, regression, visual diff, agent structure, quality gate, theme showcase, profiles, context packs, auditor contract, clean install, and the end-to-end install proof.
+- `test:*` — run one suite: `test:visual`, `test:visual-cross`, `test:agents`, `test:quality`, `test:theme`, `test:profiles`, `test:context`, `test:auditor`, `test:install`, `test:uninstall`, `test:perf`, `test:registry`, `test:e2e`.
 - `test:browser` — real browser launch, navigation, console/network capture, screenshots; BLOCKED (not silently skipped) when no browser is installed.
+- `registry-server/test/run.mjs` — verifies auth (503/401), MCP handshake, all four tools, and every seed row.
 - `self-improve.py` — checks every core doc, agent frontmatter, profile, workflow, script syntax and executable bit, browser abstraction file, and install; writes `.ufme/evidence/self-improve-summary.json`.
 - `quality-check.py` — runs type/lint/test/build/browser/axe/Lighthouse/slop/visual/dependency checks and writes `.ufme/evidence/quality-report.json`; thresholds are flags or `UFME_*` env vars; reports PASS, FAIL, SKIPPED, or BLOCKED with reasons. `--only audit` treats a11y, perf, slop and visual as **required**: a skipped required check makes the gate BLOCKED, and a check that exits 0 without fresh, valid evidence is FAIL (never PASS). Use `--require <ids|preset>` to apply the same rule to other checks.
 - Visual regression: `visual-diff.js` detects changed, missing-baseline, missing-current and size-mismatched screenshots. Ordinary runs never modify the baseline; a missing baseline yields `BASELINE_MISSING` (exit 4) instead of silently seeding one. `--create-baseline` creates one only when absent; `--update-baseline` explicitly replaces it. The quality gate reports BLOCKED when a required visual check has no baseline.
@@ -285,21 +298,44 @@ Evidence is written to `.ufme/evidence/` so a reviewer can inspect what actually
 | Browser sandbox | Preserved by default; `UFME_CHROME_FLAGS`/`UFME_FIREFOX_FLAGS` (e.g. CI `--no-sandbox`) are an explicit opt-in |
 | Missing system dependency | Reported with exact setup command; work marked BLOCKED |
 
-See `opencode.json` and `universal-frontend-master-source/core/SAFETY.md`.
+See `opencode.json` and `skills/universal-frontend-master/core/SAFETY.md`.
+
+## Optional shared registry
+
+The local registry (`~/.config/ufme/LIBRARY_REGISTRY.md` and `.ufme/LIBRARY_REGISTRY.md`) is the default. To share one registry across machines, deploy the stateless MCP server in `registry-server/`:
+
+```bash
+cd registry-server
+npm install
+npm test                       # auth, MCP handshake, tools, seed validity
+vercel deploy                  # set REGISTRY_API_KEY and BLOB_READ_WRITE_TOKEN
+```
+
+Then point the client at it:
+
+```bash
+export UFME_REGISTRY_URL="https://your-app.vercel.app/mcp"
+export UFME_REGISTRY_KEY="the same REGISTRY_API_KEY"
+python3 skills/universal-frontend-master/scripts/registry-remote.py --list motion
+```
+
+Requests without a server key return `503`; a wrong key returns `401`. With the env vars unset, `search-libraries.py` silently uses the local Markdown registry. See `registry-server/README.md`.
+
+Registry entries may also carry a `theme` object (`bg`, `surface`, `text`, `muted`, `accent`, `accent_alt`, `display`, `body`, optional `mono`). `theme-showcase.py` appends entries with category `theme` to the local catalog when the two env vars are set.
 
 ## Documentation
 
-- [Installation (incl. Arch Linux notes)](universal-frontend-master-source/docs/installation-arch-linux.md)
-- [Multi-agent usage](universal-frontend-master-source/docs/multi-agent-usage.md)
-- [Testing](universal-frontend-master-source/docs/testing.md)
-- [Compatibility](universal-frontend-master-source/docs/compatibility.md)
-- [Troubleshooting](universal-frontend-master-source/docs/troubleshooting.md)
-- [MCP integration](universal-frontend-master-source/docs/mcp-integration.md)
-- [System architecture](universal-frontend-master-source/core/SYSTEM_ARCHITECTURE.md)
+- [Installation (incl. Arch Linux notes)](skills/universal-frontend-master/docs/installation-arch-linux.md)
+- [Multi-agent usage](skills/universal-frontend-master/docs/multi-agent-usage.md)
+- [Testing](skills/universal-frontend-master/docs/testing.md)
+- [Compatibility](skills/universal-frontend-master/docs/compatibility.md)
+- [Troubleshooting](skills/universal-frontend-master/docs/troubleshooting.md)
+- [MCP integration](skills/universal-frontend-master/docs/mcp-integration.md)
+- [System architecture](skills/universal-frontend-master/core/SYSTEM_ARCHITECTURE.md)
 
 ## Contributing
 
-Keep changes inside the existing structure: source lives in `universal-frontend-master-source/`, installed copies live in `.opencode/`, runtime state lives in `.ufme/`, cross-project shared data in `~/.config/ufme/`. Before opening a pull request, run `npm test` and `python3 universal-frontend-master-source/scripts/self-improve.py`.
+Keep changes inside the existing structure: skills live in `skills/<name>/`, agents in `agents/`, commands in `commands/`, generated mirrors in `.opencode/`, runtime state in `.ufme/`, and cross-project shared data in `~/.config/ufme/`. Before opening a pull request, run `npm test`, `python3 scripts/catalog.py --check`, and `python3 scripts/build-agents.py --check`.
 
 ## License
 

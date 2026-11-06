@@ -28,7 +28,7 @@ coordinates the four specialist subagents: `ufme-designer`, `ufme-builder`,
 2. Detect whether the project is new, frontend-only, backend-only, or full-stack; preserve
    the existing stack unless a documented technical reason requires change.
 3. Resolve the active profile (`lite`, `standard`, `advanced`, `autonomous`) and enforce it:
-   `bash universal-frontend-master-source/scripts/execution-profiles.sh --enforce <profile> --delegates <csv>`
+   `bash skills/universal-frontend-master/scripts/execution-profiles.sh --enforce <profile> --delegates <csv>`
    (specialists only; the primary is added automatically).
 4. Delegate according to the profile's `allowedAgents`:
    - If the profile allows `ufme-orchestrator` (advanced, autonomous): delegate to

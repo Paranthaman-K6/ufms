@@ -23,7 +23,7 @@ import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "universal-frontend-master-source/scripts/ctx-pack.py"
+SCRIPT = ROOT / "skills/universal-frontend-master/scripts/ctx-pack.py"
 EVIDENCE = ROOT / ".ufme" / "evidence"
 AGENTS = ["orchestrator", "designer", "builder", "backend-analyst", "auditor"]
 

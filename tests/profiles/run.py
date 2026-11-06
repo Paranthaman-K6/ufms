@@ -18,9 +18,9 @@ import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "universal-frontend-master-source/scripts/execution-profiles.sh"
-PROFILES = ROOT / "universal-frontend-master-source/profiles"
-AGENTS_DIR = ROOT / "universal-frontend-master-source/agents"
+SCRIPT = ROOT / "skills/universal-frontend-master/scripts/execution-profiles.sh"
+PROFILES = ROOT / "skills/universal-frontend-master/profiles"
+AGENTS_DIR = ROOT / "agents"
 PRIMARY = "universal-frontend-master"
 SPECIALISTS = (
     "ufme-orchestrator",
@@ -142,9 +142,7 @@ def _():
 @test("autonomous concurrency matches the real delegate role definitions")
 def _():
     data = load("autonomous")
-    defined = {p.stem for p in AGENTS_DIR.glob("*.md")}
-    defined = {f"ufme-{n}" if n != "universal-frontend-master" else n for n in defined}
-    real_delegates = defined - {PRIMARY}
+    real_delegates = {p.stem for p in AGENTS_DIR.glob("ufme-*.md")}
     assert data["maxConcurrentDelegates"] == len(real_delegates), (
         f"advertised {data['maxConcurrentDelegates']} concurrent delegates but "
         f"{len(real_delegates)} delegate definitions exist: {sorted(real_delegates)}")

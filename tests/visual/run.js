@@ -28,8 +28,8 @@ const { execFileSync } = require('child_process');
 const { PNG } = require('pngjs');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(ROOT, 'universal-frontend-master-source', 'scripts', 'visual-diff.js');
-const SCREENSHOT = path.join(ROOT, 'universal-frontend-master-source', 'browser', 'screenshot.js');
+const SCRIPT = path.join(ROOT, 'skills/universal-frontend-master', 'scripts', 'visual-diff.js');
+const SCREENSHOT = path.join(ROOT, 'skills/universal-frontend-master', 'browser', 'screenshot.js');
 const EVIDENCE = path.join(ROOT, '.ufme', 'evidence');
 
 let passed = 0;

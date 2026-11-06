@@ -19,7 +19,7 @@
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPT="$REPO/universal-frontend-master-source/scripts/audit-perf.sh"
+SCRIPT="$REPO/skills/universal-frontend-master/scripts/audit-perf.sh"
 EVIDENCE="$REPO/.ufme/evidence"
 mkdir -p "$EVIDENCE"
 
@@ -46,8 +46,8 @@ record() {
 create_sandbox() {
   local with_lh="$1" with_browser="$2" npx_mode="$3"
   SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/ufme-perf.XXXXXX")"
-  mkdir -p "$SANDBOX/universal-frontend-master-source/scripts" "$SANDBOX/bin"
-  cp "$SCRIPT" "$SANDBOX/universal-frontend-master-source/scripts/audit-perf.sh"
+  mkdir -p "$SANDBOX/skills/universal-frontend-master/scripts" "$SANDBOX/bin"
+  cp "$SCRIPT" "$SANDBOX/skills/universal-frontend-master/scripts/audit-perf.sh"
 
   if [ "$with_lh" = "yes" ]; then
     mkdir -p "$SANDBOX/node_modules/lighthouse"
@@ -114,7 +114,7 @@ run_case() {
   local rc
   PATH="$SANDBOX/bin" UFME_EVIDENCE_DIR="$SANDBOX/.ufme/evidence" \
     FAKE_LH_MODE="$npx_mode" \
-    bash "$SANDBOX/universal-frontend-master-source/scripts/audit-perf.sh" "${args[@]}" \
+    bash "$SANDBOX/skills/universal-frontend-master/scripts/audit-perf.sh" "${args[@]}" \
     >"$SANDBOX/stdout.log" 2>"$SANDBOX/stderr.log"
   rc=$?
 

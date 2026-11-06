@@ -23,8 +23,21 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-QUALITY = ROOT / "universal-frontend-master-source/scripts/quality-check.py"
+QUALITY = ROOT / "skills/universal-frontend-master/scripts/quality-check.py"
 EVIDENCE = ROOT / ".ufme" / "evidence"
+FILLED_DESIGN = (
+    "# Design System\n\n## Design direction\n"
+    "- Tone: editorial, print-inspired\n"
+    "- Type pairing: Bricolage Grotesque for display, Source Serif for text\n"
+    "- Palette rationale: ink and paper neutrals from the printed portfolio\n"
+    "- Layout concept: filmstrip of work above a running index\n"
+    "- Motion hierarchy: hero mask reveal, list stagger, hover only on interactive rows\n"
+    "\n### Typography\nDisplay: Bricolage Grotesque. Text: Source Serif.\n"
+    "\n### Color\nInk #14130f, paper #f4efe6, accent rust #a3431f.\n"
+    "\n## Components\nWork card, index row, contact block; hover and focus states defined.\n"
+    "\n## Animation guidance\nHero mask reveal; list stagger; no section-wide fade.\n"
+)
+
 
 results = []
 
@@ -275,9 +288,120 @@ def _():
             '<body><img src="a.png" alt="dot" width="2" height="2"></body></html>',
             encoding="utf-8",
         )
+        (source / ".ufme").mkdir()
+        (source / ".ufme" / "DESIGN_SYSTEM.md").write_text(FILLED_DESIGN, encoding="utf-8")
         p, data, _ = gate(tmp, "slop", {"UFME_SLOP_PATH": str(source)})
         assert p.returncode == 0, p.stdout + p.stderr
         assert_report(data, "PASS")
+
+
+SLOP = ROOT / "skills/universal-frontend-master/scripts/detect-slop.py"
+
+
+def run_slop(source, design=None):
+    cmd = [sys.executable, str(SLOP), "--path", str(source)]
+    if design:
+        cmd += ["--design", str(design)]
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+
+def write_design(path, filled=True):
+    if not filled:
+        # The seeded template: every required section present but empty.
+        body = (
+            "# Design System\n\n## Design direction\n\n## Tokens\n"
+            "### Typography\n### Color\n\n## Components\n## Animation guidance\n"
+        )
+    else:
+        body = (
+            "# Design System\n\n## Design direction\n"
+            "- Tone: editorial, print-inspired\n"
+            "- Type pairing: Bricolage Grotesque for display, Source Serif for text\n"
+            "- Palette rationale: ink and paper neutrals from the printed portfolio\n"
+            "- Layout concept: filmstrip of work above a running index\n"
+            "- Motion hierarchy: hero mask reveal, list stagger, hover only on interactive rows\n"
+            "\n### Typography\nDisplay: Bricolage Grotesque. Text: Source Serif.\n"
+            "\n### Color\nInk #14130f, paper #f4efe6, accent rust #a3431f.\n"
+            "\n## Components\nWork card, index row, contact block; hover and focus states defined.\n"
+            "\n## Animation guidance\nHero mask reveal; list stagger; no section-wide fade.\n"
+        )
+    path.write_text(body, encoding="utf-8")
+
+
+@test("design slop scans component files and flags uniform motion")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        source.mkdir()
+        (source / "style.css").write_text(
+            "html { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', "
+            "Roboto, 'Helvetica Neue', Arial, sans-serif; }\n"
+            ":focus-visible { outline: 2px solid #000; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        for name in ("Hero", "About", "Work", "Contact"):
+            (source / f"{name}.tsx").write_text(
+                f"export const {name} = () => <motion.section variants={{slideUp}} "
+                '<img src={pic} alt={title} width={320} height={400} /></motion.section>;\n',
+                encoding="utf-8",
+            )
+        design = tmp / "DESIGN_SYSTEM.md"
+        write_design(design, filled=False)
+        p = run_slop(source, design)
+        out = p.stdout + p.stderr
+        assert p.returncode == 2, out
+        assert "uniform-entrance-motion" in out, out
+        assert "font-stack-inter-or-arial-only" in out, out
+        assert "design-system-incomplete" in out, out
+        assert "img-missing" not in out, "JSX expression props are not missing attributes"
+
+
+@test("design slop passes a distinctive component tree and filled design system")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        source.mkdir()
+        (source / "style.css").write_text(
+            "html { font-family: 'Bricolage Grotesque', Georgia, serif; }\n"
+            ":focus-visible { outline: 2px solid #a3431f; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        for name, variant in (
+            ("Hero", "heroReveal"), ("About", "sectionReveal"),
+            ("Work", "listStagger"), ("Contact", "supportingFade"),
+        ):
+            (source / f"{name}.tsx").write_text(
+                f"export const {name} = () => <motion.section variants={{{variant}}} "
+                '<img src={pic} alt={title} width={320} height={400} /></motion.section>;\n',
+                encoding="utf-8",
+            )
+        design = tmp / "DESIGN_SYSTEM.md"
+        write_design(design)
+        p = run_slop(source, design)
+        out = p.stdout + p.stderr
+        assert p.returncode == 0, out
+        assert "0 design finding(s)" in out, out
+
+
+@test("quality gate fails an empty design system")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        (source / ".ufme").mkdir(parents=True)
+        (source / "style.css").write_text(
+            ":focus-visible { outline: 2px solid #000; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        write_design(source / ".ufme" / "DESIGN_SYSTEM.md", filled=False)
+        p, data, _ = gate(tmp, "slop", {"UFME_SLOP_PATH": str(source)})
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
 
 
 @test("design slop threshold is configurable")
@@ -290,6 +414,8 @@ def _():
             '<!doctype html><html><body><a href="#">x</a></body></html>',
             encoding="utf-8",
         )
+        (source / ".ufme").mkdir()
+        (source / ".ufme" / "DESIGN_SYSTEM.md").write_text(FILLED_DESIGN, encoding="utf-8")
         evidence = tmp / "evidence"
         env = os.environ.copy()
         env["UFME_EVIDENCE_DIR"] = str(evidence)
@@ -519,3 +645,105 @@ def _():
         assert "did not respond" in data["checks"][0]["detail"], data["checks"][0]
 
 
+
+
+@test("a ## Motion heading satisfies the animation section")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        source.mkdir()
+        (source / "style.css").write_text(
+            "html { font-family: 'Bricolage Grotesque', Georgia, serif; }\n"
+            ":focus-visible { outline: 2px solid #000; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        design = tmp / "DESIGN_SYSTEM.md"
+        write_design(design)
+        design.write_text(
+            design.read_text(encoding="utf-8").replace("## Animation guidance", "## Motion"),
+            encoding="utf-8",
+        )
+        p = run_slop(source, design)
+        out = p.stdout + p.stderr
+        assert p.returncode == 0, out
+        assert "missing 'animation' section" not in out, out
+
+
+@test("approve rewrites the status cell without a regex crash")
+def _():
+    import importlib.util
+
+    path = ROOT / "skills/universal-frontend-master/scripts/search-libraries.py"
+    spec = importlib.util.spec_from_file_location("search_libraries", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        registry = tmp / "LIBRARY_REGISTRY.md"
+        registry.write_text(
+            "# Library Research Registry\n\n"
+            "| Name | Category | Site | License | Commercial | Install | Reason | Status |\n"
+            "|---|---|---|---|---|---|---|---|\n"
+            "| zod | forms | https://zod.dev | MIT | yes | npm i zod | schemas | candidate |\n",
+            encoding="utf-8",
+        )
+        module.REGISTRY_OUT = str(registry)
+        module.DECISIONS = str(tmp / "DECISIONS.md")
+        module.fetch_pkg_metadata = lambda pkg: None
+
+        assert module.approve_package("zod") is True
+        text = registry.read_text(encoding="utf-8")
+        assert "| schemas | approved |" in text, text
+        assert "candidate" not in text, text
+
+
+@test("quality gate fails when the design system file is missing")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        source.mkdir()
+        (source / "style.css").write_text(
+            ":focus-visible { outline: 2px solid #000; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        p, data, _ = gate(tmp, "slop", {"UFME_SLOP_PATH": str(source)})
+        assert p.returncode == 1, p.stdout + p.stderr
+        assert_report(data, "FAIL")
+        findings = (tmp / "evidence" / "slop-results.json").read_text(encoding="utf-8")
+        assert "cannot read design system" in findings, findings
+
+
+@test("UFME_SLOP_SKIP_DESIGN=1 skips the design-system check")
+def _():
+    with tempfile.TemporaryDirectory() as raw:
+        tmp = Path(raw)
+        source = tmp / "source"
+        source.mkdir()
+        (source / "style.css").write_text(
+            ":focus-visible { outline: 2px solid #000; }\n"
+            "@media (prefers-reduced-motion: reduce) { * { animation: none; } }\n",
+            encoding="utf-8",
+        )
+        p, data, _ = gate(tmp, "slop", {
+            "UFME_SLOP_PATH": str(source),
+            "UFME_SLOP_SKIP_DESIGN": "1",
+        })
+        assert p.returncode == 0, p.stdout + p.stderr
+        assert_report(data, "PASS")
+
+
+if __name__ == "__main__":
+    failed = [r for r in results if r["status"] == "FAIL"]
+    EVIDENCE.mkdir(parents=True, exist_ok=True)
+    (EVIDENCE / "quality-test.json").write_text(
+        json.dumps({"checks": len(results), "failed": len(failed), "results": results}, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"\n{len(results) - len(failed)} passed, {len(failed)} failed")
+    sys.exit(1 if failed else 0)

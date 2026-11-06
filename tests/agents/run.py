@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """tests/agents/run.py — agent structure, sync and discovery tests.
 
-Verifies the six-agent contract without invoking a model:
-  * exactly one primary agent (universal-frontend-master)
-  * ufme-orchestrator is a subagent
-  * source agents validate and match installed copies
-  * every agent reference resolves to a real agent
-  * OpenCode discovers all six agents (skipped when opencode is absent)
-  * docs no longer describe two primary agents or "11 specialists"
+Verifies the agent contract without invoking a model:
+  * every agent in `agents/` is valid and named after its file stem
+  * exactly four primaries: universal-frontend-master, ufmw-frontend-design,
+    ufmw-seo-protocol, init-frontend; every other agent is a subagent
+  * `.opencode/agents/` is an exact mirror of `agents/`
+  * every `@agent-name` reference resolves to a real agent
+  * OpenCode discovers the agents (skipped when opencode is absent)
+  * docs no longer describe the old six-agent layout
 
 Usage: python3 tests/agents/run.py
 Exit: 0 all pass (skips allowed), 1 failure.
@@ -22,25 +23,34 @@ import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "universal-frontend-master-source" / "agents"
+SOURCE = ROOT / "agents"
 INSTALLED = ROOT / ".opencode" / "agents"
 EVIDENCE = ROOT / ".ufme" / "evidence"
 
-EXPECTED_MODES = {
-    "universal-frontend-master": "primary",
-    "ufme-orchestrator": "subagent",
-    "ufme-designer": "subagent",
-    "ufme-builder": "subagent",
-    "ufme-backend-analyst": "subagent",
-    "ufme-auditor": "subagent",
+EXPECTED_AGENTS = {
+    "universal-frontend-master",
+    "init-frontend",
+    "ufme-orchestrator",
+    "ufme-designer",
+    "ufme-builder",
+    "ufme-backend-analyst",
+    "ufme-auditor",
+    "ufmw-frontend-design",
+    "ufmw-orchestrator",
+    "ufmw-designer",
+    "ufmw-builder",
+    "ufmw-auditor",
+    "ufmw-seo-protocol",
+    "ufmw-seo-technical",
+    "ufmw-seo-content",
+    "ufmw-seo-analyst",
+    "ufmw-seo-auditor",
 }
-SOURCE_TO_INSTALLED = {
-    "universal-frontend-master": "universal-frontend-master",
-    "orchestrator": "ufme-orchestrator",
-    "designer": "ufme-designer",
-    "builder": "ufme-builder",
-    "backend-analyst": "ufme-backend-analyst",
-    "auditor": "ufme-auditor",
+PRIMARIES = {
+    "universal-frontend-master",
+    "ufmw-frontend-design",
+    "ufmw-seo-protocol",
+    "init-frontend",
 }
 
 results = []
@@ -85,57 +95,60 @@ def parse_frontmatter(path):
     return fields, text.split("---", 2)[2]
 
 
-@test("source agents exist")
+def agents():
+    return {path.stem: path for path in sorted(SOURCE.glob("*.md"))}
+
+
+@test("the agent set matches the catalog")
 def _():
-    missing = [n for n in SOURCE_TO_INSTALLED if not (SOURCE / f"{n}.md").is_file()]
-    assert not missing, f"missing source agents: {missing}"
+    found = set(agents())
+    assert found == EXPECTED_AGENTS, {
+        "missing": sorted(EXPECTED_AGENTS - found),
+        "unexpected": sorted(found - EXPECTED_AGENTS),
+    }
 
 
-@test("exactly one primary agent")
+@test("every agent name matches its file stem")
 def _():
-    primaries = []
-    for source_name in SOURCE_TO_INSTALLED:
-        fields, _ = parse_frontmatter(SOURCE / f"{source_name}.md")
-        if fields.get("mode") == "primary":
-            primaries.append(fields.get("name"))
-    assert primaries == ["universal-frontend-master"], primaries
+    for stem, path in agents().items():
+        fields, _ = parse_frontmatter(path)
+        assert fields.get("name") == stem, f"{path.name}: name is {fields.get('name')!r}"
 
 
-@test("orchestrator is a subagent")
+@test("four primaries, every other agent a subagent")
 def _():
-    fields, _ = parse_frontmatter(SOURCE / "orchestrator.md")
-    assert fields.get("mode") == "subagent", fields.get("mode")
+    for stem, path in agents().items():
+        fields, _ = parse_frontmatter(path)
+        expected = "primary" if stem in PRIMARIES else "subagent"
+        assert fields.get("mode") == expected, f"{stem}: mode is {fields.get('mode')!r}"
 
 
 @test("frontmatter valid for every agent")
 def _():
-    for source_name in SOURCE_TO_INSTALLED:
-        fields, _ = parse_frontmatter(SOURCE / f"{source_name}.md")
-        assert fields.get("name"), f"{source_name}: missing name"
-        assert fields.get("description"), f"{source_name}: missing description"
-        assert fields.get("mode") in {"primary", "subagent"}, fields.get("mode")
+    for stem, path in agents().items():
+        fields, _ = parse_frontmatter(path)
+        assert fields.get("description"), f"{stem}: missing description"
         perms = fields.get("permission")
-        assert isinstance(perms, dict), f"{source_name}: missing permission block"
+        assert isinstance(perms, dict), f"{stem}: missing permission block"
         for key, value in perms.items():
-            assert key in {"read", "edit", "bash", "task"}, f"{source_name}: bad permission {key}"
-            assert value in {"allow", "deny", "ask"}, f"{source_name}: bad value {value}"
+            assert key in {"read", "edit", "bash", "task"}, f"{stem}: bad permission {key}"
+            assert value in {"allow", "deny", "ask"}, f"{stem}: bad value {value}"
 
 
 @test("source and installed agents are in sync")
 def _():
-    for source_name, installed_name in SOURCE_TO_INSTALLED.items():
-        source_file = SOURCE / f"{source_name}.md"
-        installed_file = INSTALLED / f"{installed_name}.md"
+    for stem, source_file in agents().items():
+        installed_file = INSTALLED / f"{stem}.md"
         assert installed_file.is_file(), f"missing installed agent {installed_file}"
-        assert source_file.read_text(encoding="utf-8") == installed_file.read_text(
-            encoding="utf-8"
-        ), f"{installed_name} drifted from source"
+        assert source_file.read_bytes() == installed_file.read_bytes(), f"{stem} drifted"
+    installed = {p.stem for p in INSTALLED.glob("*.md")}
+    assert installed == set(agents()), f"obsolete installed agents: {sorted(installed - set(agents()))}"
 
 
-@test("build-agents.py --check passes")
+@test("scripts/build-agents.py --check passes")
 def _():
     p = subprocess.run(
-        [sys.executable, str(ROOT / "universal-frontend-master-source/scripts/build-agents.py"), "--check"],
+        [sys.executable, str(ROOT / "scripts/build-agents.py"), "--check"],
         capture_output=True, text=True, timeout=120,
     )
     assert p.returncode == 0, (p.stdout + p.stderr).strip()
@@ -143,39 +156,44 @@ def _():
 
 @test("agent references resolve")
 def _():
-    known = set(EXPECTED_MODES) | set(SOURCE_TO_INSTALLED)
-    pattern = re.compile(r"@?(ufme-[a-z][a-z0-9-]*|universal-frontend-master)\b")
-    for source_name in SOURCE_TO_INSTALLED:
-        _, body = parse_frontmatter(SOURCE / f"{source_name}.md")
+    known = set(agents())
+    pattern = re.compile(r"@([a-z][a-z0-9-]*)\b")
+    for stem, path in agents().items():
+        _, body = parse_frontmatter(path)
         for ref in sorted(set(pattern.findall(body))):
-            assert ref in known, f"{source_name}: unknown agent reference {ref}"
+            assert ref in known, f"{stem}: unknown agent reference @{ref}"
 
 
-@test("docs describe one primary and five subagents")
+@test("docs no longer describe the six-agent layout")
 def _():
     docs = [
         ROOT / "README.md",
-        ROOT / "universal-frontend-master-source/core/SYSTEM_ARCHITECTURE.md",
+        ROOT / "skills/universal-frontend-master/core/SYSTEM_ARCHITECTURE.md",
     ]
     for doc in docs:
         text = doc.read_text(encoding="utf-8")
+        assert "6-agent" not in text, f"{doc.name}: stale six-agent count"
+        assert "six agents" not in text.lower(), f"{doc.name}: stale six-agent count"
         assert "11 specialist agents" not in text, f"{doc.name}: stale agent count"
         assert "ufme-orchestrator (primary" not in text, f"{doc.name}: stale orchestrator role"
 
 
-@test("OpenCode discovers all six agents")
+@test("OpenCode discovers the agents")
 def _():
     if shutil.which("opencode") is None:
         raise AssertionError("SKIP: opencode not installed")
     p = subprocess.run(
         ["opencode", "debug", "agents"], capture_output=True, text=True, timeout=90
     )
+    output = p.stderr + p.stdout
     if p.returncode != 0:
-        raise AssertionError(f"opencode debug agents failed: {(p.stderr or p.stdout)[:200]}")
+        if "ServiceUnavailable" in output or "did not finish activating" in output:
+            raise AssertionError(f"SKIP: opencode agent service unavailable: {output[:160]}")
+        raise AssertionError(f"opencode debug agents failed: {output[:200]}")
     start = p.stdout.find("[")
     data = json.loads(p.stdout[start:]) if start >= 0 else []
     ids = {agent.get("id") for agent in data}
-    missing = set(EXPECTED_MODES) - ids
+    missing = EXPECTED_AGENTS - ids
     assert not missing, f"not discovered: {sorted(missing)}"
 
 

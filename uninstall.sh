@@ -14,7 +14,8 @@
 # running it twice still exits 0.
 set -uo pipefail
 
-AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor init-frontend)
+AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-frontend-design ufmw-orchestrator ufmw-designer ufmw-builder ufmw-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor init-frontend)
+SKILLS=(universal-frontend-master ufmw-seo-protocol ufmw-frontend-design init-frontend)
 TARGET="${INSTALL_DIR:-$PWD}"
 OPENCODE_USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 
@@ -50,12 +51,12 @@ if [ "$SCOPE" != "global" ]; then
   for agent in "${AGENTS[@]}"; do
     remove_path "$TARGET/.opencode/agents/$agent.md"
   done
-  remove_path "$TARGET/.opencode/skills/universal-frontend-master"
-  remove_path "$TARGET/.opencode/skills/ufmw-seo-protocol"
-  remove_path "$TARGET/.opencode/skills/init-frontend"
+  for skill in "${SKILLS[@]}"; do
+    remove_path "$TARGET/.opencode/skills/$skill"
+    remove_path "$TARGET/skills/$skill"
+  done
   remove_path "$TARGET/.opencode/commands/ufme"
   remove_path "$TARGET/.opencode/commands/ufmw"
-  remove_path "$TARGET/universal-frontend-master-source"
 fi
 
 if [ "$SCOPE" != "project" ]; then
@@ -63,9 +64,9 @@ if [ "$SCOPE" != "project" ]; then
   for agent in "${AGENTS[@]}"; do
     remove_path "$OPENCODE_USER_CONFIG/agents/$agent.md"
   done
-  remove_path "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
-  remove_path "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
-  remove_path "$OPENCODE_USER_CONFIG/skills/init-frontend"
+  for skill in "${SKILLS[@]}"; do
+    remove_path "$OPENCODE_USER_CONFIG/skills/$skill"
+  done
   remove_path "$OPENCODE_USER_CONFIG/commands/ufme"
   remove_path "$OPENCODE_USER_CONFIG/commands/ufmw"
 fi

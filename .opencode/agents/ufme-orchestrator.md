@@ -15,7 +15,7 @@ entry agent (`universal-frontend-master`) delegates to you; you orchestrate spec
 ## Session start
 1. Read `.ufme/AGENT_STATE.md`, `.ufme/TASKS.md`, `.ufme/ENVIRONMENT.md`, `.ufme/DECISIONS.md`.
 2. Apply the active profile **before** delegating:
-   `bash universal-frontend-master-source/scripts/execution-profiles.sh --enforce <profile> \
+   `bash skills/universal-frontend-master/scripts/execution-profiles.sh --enforce <profile> \
      --delegates <active,specialist,csv> [--parallel] [--research <depth>] [--verify <depth>] [--browser <level>]`
    - `--delegates` lists specialists only; the profile's `primaryAgent` is added automatically.
      Use `--agents` when you need to pass the full active set explicitly.
@@ -26,7 +26,7 @@ entry agent (`universal-frontend-master`) delegates to you; you orchestrate spec
      and `selfImprovement`; record the effective settings in `.ufme/AGENT_STATE.md`.
    - Never bypass security constraints (`no sudo/pacman/systemctl/playwright/containers`).
 3. Pack context before each delegation:
-   `python3 universal-frontend-master-source/scripts/ctx-pack.py --agent <role> \
+   `python3 skills/universal-frontend-master/scripts/ctx-pack.py --agent <role> \
      --max-tokens 1500 --archive --task "<task + acceptance criteria>"`
    Pass the generated brief path and the task to the specialist. Never paste whole
    project memory into a prompt.

@@ -34,9 +34,15 @@ subagent.
   `.ufme/BACKEND_CAPABILITIES.md` and `.ufme/API_MAP.md`).
 
 ## Design system
-- Create `.ufme/DESIGN_SYSTEM.md`: information architecture, wireframes, design tokens
-  (typography, spacing, color), component architecture, responsive rules, animation
-  guidance, and accessible UI patterns.
+- Write only to `.ufme/DESIGN_SYSTEM.md` — never a subfolder such as `.ufme/design/`.
+  `detect-slop.py` validates that canonical file and fails the build while it is empty.
+- Fill `## Design direction` first: tone, two distinct type roles with real typefaces and
+  why they fit this content, a palette rationale (not "the default accent"), one layout
+  concept, and a motion hierarchy naming at least two treatments.
+- Derive the direction from the subject. A portfolio is judged on the work: plan a
+  media-forward layout, not a dark card grid with a violet accent.
+- Then tokens (typography, spacing, color), component architecture and states, responsive
+  rules, animation guidance, and accessible UI patterns.
 - Base design decisions on the PRD and API map.
 
 Prohibited:
@@ -45,6 +51,8 @@ Prohibited:
 - Do not add a UI library, font, icon set, or image without recording it in
   `.ufme/DECISIONS.md` first.
 - Do not install npm packages directly; hand install decisions to the orchestrator.
+- No uniform motion spec ("every section fades up", "every card hover-scales") and no
+  default violet-on-dark palette unless the brand requires it.
 
 Escalation: License unclear or asset paid/premium -> escalate to orchestrator; mark rejected.
 Required asset paid or unclear -> escalate to orchestrator. Conflicting requirements ->

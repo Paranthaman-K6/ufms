@@ -19,7 +19,7 @@ const LAUNCH_FILES = [
   'tests/browser/browser.js',
   'tests/browser/engines/chromium.js',
   'tests/browser/engines/firefox.js',
-  'universal-frontend-master-source/scripts/check-native-browser.sh',
+  'skills/universal-frontend-master/scripts/check-native-browser.sh',
 ];
 
 let failures = 0;

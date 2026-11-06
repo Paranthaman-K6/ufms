@@ -23,6 +23,14 @@ subagent.
 ## Implementation
 - Build pages, reusable components, navigation, forms, state, loading/error/empty states,
   responsive layouts, animations, and PWA readiness where justified.
+- Implement the motion hierarchy from `.ufme/DESIGN_SYSTEM.md`. One shared entrance variant
+  on four or more sections is rejected by `detect-slop.py`; vary hero, section, list, and
+  interaction motion.
+- No control without behaviour: a play button must play (or be removed), a link must lead
+  somewhere. Check every interactive element.
+- Keep the primary content legible at rest. No permanent scrim over portfolio work; reveal
+  overlays on hover/focus only.
+- Verify the grid lays out as declared: no single wrapper element standing in for a column.
 - Implement validation, error handling, retries where appropriate, and network-failure
   states throughout the UI.
 - Never invent personal data, metrics, or achievements; use only verified user-brief data.

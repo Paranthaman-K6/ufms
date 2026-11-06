@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && node tests/visual/cross-commit.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/perf/run.sh && bash tests/install/run.sh && bash tests/uninstall/run.sh",
+    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && node tests/visual/cross-commit.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/theme/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/perf/run.sh && node registry-server/test/run.mjs && python3 scripts/build-agents.py --check && python3 scripts/catalog.py --check && bash tests/install/run.sh && bash tests/uninstall/run.sh && bash tests/e2e/run.sh",
     "test:validate": "node tests/browser/validate.js",
     "test:security": "node tests/browser/security.js",
     "test:regression": "node tests/regression/run.js",
@@ -21,7 +21,13 @@
     "test:install": "bash tests/install/run.sh",
     "test:uninstall": "bash tests/uninstall/run.sh",
     "test:perf": "bash tests/perf/run.sh",
-    "test:browser": "bash universal-frontend-master-source/scripts/browser-test.sh"
+    "test:browser": "bash skills/universal-frontend-master/scripts/browser-test.sh",
+    "test:registry": "node registry-server/test/run.mjs",
+    "catalog": "python3 scripts/catalog.py",
+    "catalog:check": "python3 scripts/catalog.py --check",
+    "agents:build": "python3 scripts/build-agents.py",
+    "test:e2e": "bash tests/e2e/run.sh",
+    "test:theme": "python3 tests/theme/run.py"
   },
   "keywords": [
     "opencode",

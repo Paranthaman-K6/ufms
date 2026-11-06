@@ -23,7 +23,7 @@ const { spawnSync } = require('child_process');
 const { PNG } = require('pngjs');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(ROOT, 'universal-frontend-master-source', 'scripts', 'visual-diff.js');
+const SCRIPT = path.join(ROOT, 'skills/universal-frontend-master', 'scripts', 'visual-diff.js');
 const EVIDENCE = path.join(ROOT, '.ufme', 'evidence');
 
 function git(cwd, args) {
