@@ -1,0 +1,37 @@
+{
+  "name": "basic",
+  "description": "Tokens, component library, responsive base, a11y, perf budget, CI.",
+  "primaryAgent": "init-frontend",
+  "templateCategories": [
+    "landing", "portfolio", "blog", "ecommerce", "dashboard", "admin",
+    "saas", "docs", "restaurant", "realestate", "event", "nonprofit", "resume"
+  ],
+  "defaultTemplate": "landing",
+  "accessibility": "WCAG 2.2 AA",
+  "performance": {
+    "lcp": "2.5s",
+    "inp": "200ms",
+    "cls": "0.1",
+    "inputBudget": "1.5MB",
+    "jsBudget": "300KB",
+    "cssBudget": "100KB",
+    "lcpImageBudget": "200KB"
+  },
+  "antiAISlop": [
+    "noInterByDefault",
+    "noPurpleBlueGradients",
+    "noHero3Cards",
+    "noGlassmorphism",
+    "noSub24pxTargets",
+    "noRemovedFocusOutlines",
+    "wordsFirst",
+    "constraintsBeforeOptions"
+  ],
+  "securityConstraints": {
+    "noSudo": true,
+    "noPacman": true,
+    "noSystemctl": true,
+    "noPlaywright": true,
+    "noContainers": true
+  }
+}
