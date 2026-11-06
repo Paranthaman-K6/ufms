@@ -58,16 +58,21 @@ jobs:
             bash install.sh
           test -f "$TMP/xdg/opencode/agents/ufme-builder.md"
           test -f "$TMP/xdg/opencode/agents/ufmw-seo-protocol.md"
+          test -f "$TMP/xdg/opencode/agents/init-frontend.md"
           test -f "$TMP/xdg/opencode/commands/ufme/audit.md"
           test -f "$TMP/xdg/opencode/commands/ufmw/seo-crawl.md"
+          test -f "$TMP/xdg/opencode/commands/ufmw/init-frontend.md"
           test -f "$TMP/project/universal-frontend-master-source/scripts/quality-check.py"
           test -f "$TMP/project/.opencode/skills/ufmw-seo-protocol/SKILL.md"
+          test -f "$TMP/project/.opencode/skills/init-frontend/SKILL.md"
           HOME="$TMP/home" XDG_CONFIG_HOME="$TMP/xdg" INSTALL_DIR="$TMP/project" \
             bash uninstall.sh
           test ! -e "$TMP/xdg/opencode/agents/ufme-builder.md"
           test ! -e "$TMP/xdg/opencode/agents/ufmw-seo-protocol.md"
+          test ! -e "$TMP/xdg/opencode/agents/init-frontend.md"
           test ! -e "$TMP/project/universal-frontend-master-source"
           test ! -e "$TMP/project/.opencode/skills/ufmw-seo-protocol"
+          test ! -e "$TMP/project/.opencode/skills/init-frontend"
           test -f "$TMP/project/.ufme/TASKS.md"
 
       - name: Dependency security

@@ -17,7 +17,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INSTALL="$ROOT/install.sh"
-AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
+AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor init-frontend)
 SEO_AGENTS=(ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
 PASS=0
 FAIL=0
@@ -62,7 +62,7 @@ run_install() {
 if run_install; then pass "clean install exits 0"; else fail "clean install exits 0" "see $TMP/install.log"; fi
 
 GLOBAL_AGENTS="$XDG_CONFIG_HOME/opencode/agents"
-check "eleven agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 11 ]"
+check "twelve agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 12 ]"
 for agent in "${AGENTS[@]}"; do
   check "global agent $agent" "[ -f '$GLOBAL_AGENTS/$agent.md' ]"
 done
@@ -72,10 +72,13 @@ done
 check "global skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/universal-frontend-master/SKILL.md' ]"
 check "global SEO skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
 check "global SEO command installed" "[ -f '$XDG_CONFIG_HOME/opencode/commands/ufmw/seo-crawl.md' ]"
+check "global init-frontend skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/init-frontend/SKILL.md' ]"
+check "global init-frontend command installed" "[ -f '$XDG_CONFIG_HOME/opencode/commands/ufmw/init-frontend.md' ]"
 check "project skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/universal-frontend-master/SKILL.md' ]"
 check "project SEO skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
+check "project init-frontend skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/init-frontend/SKILL.md' ]"
 check "project source tree installed" "[ -f '$INSTALL_DIR/universal-frontend-master-source/scripts/quality-check.py' ]"
-check "eleven project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 11 ]"
+check "twelve project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 12 ]"
 for agent in "${AGENTS[@]}"; do
   check "project agent $agent" "[ -f '$INSTALL_DIR/.opencode/agents/$agent.md' ]"
 done
