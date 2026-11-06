@@ -4,7 +4,7 @@
 import crypto from "node:crypto";
 import { createKey, createSession, revokeKey, safeEqual, verifySession } from "../lib/keys.js";
 import { clientIp, intFromEnv, rateLimit } from "../lib/limits.js";
-import { readKeys, writeKeys } from "../lib/store.js";
+import { readKeys, storageMode, writeKeys } from "../lib/store.js";
 
 const SESSION_COOKIE = "ufme_admin";
 const CSRF_COOKIE = "ufme_csrf";
@@ -112,7 +112,7 @@ ${error ? `<p class="error">${esc(error)}</p>` : ""}
   );
 }
 
-function dashboard(keys, csrf, newKey = "") {
+function dashboard(keys, csrf, newKey = "", notice = "") {
   const rows = keys.length
     ? keys
         .map(
@@ -135,6 +135,7 @@ function dashboard(keys, csrf, newKey = "") {
     "UFME registry admin",
     `<h1>UFME registry admin</h1>
 <p class="muted">${keys.length} active key${keys.length === 1 ? "" : "s"} · MCP endpoint <code>/mcp</code></p>
+${notice ? `<p class="error">${esc(notice)}</p>` : ""}
 ${newKey ? `<div class="key"><strong>New key — copy it now, it is not shown again.</strong><code>${esc(newKey)}</code></div>` : ""}
 <div class="card">
 <h2>Create a key</h2>
@@ -236,6 +237,19 @@ export default async function handler(req, res) {
 
   if (body.action === "create") {
     const current = (await readKeys()).keys || [];
+    if (process.env.VERCEL && storageMode() === "local") {
+      sendHtml(
+        res,
+        503,
+        dashboard(
+          current,
+          csrfCookie,
+          "",
+          "Connect a Blob store before creating keys; without it they are lost when the instance recycles.",
+        ),
+      );
+      return;
+    }
     const created = createKey(current, body.label);
     await writeKeys(created.keys);
     sendHtml(res, 200, dashboard(created.keys, csrfCookie, created.key));

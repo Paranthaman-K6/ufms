@@ -47,8 +47,10 @@ curl -s "https://your-app.vercel.app/health?deep=1"
 | Bootstrap key or at least one stored key | `200` | `ok` |
 | Neither configured | `503` | `unconfigured` |
 | `?deep=1` and the registry cannot be read | `503` | `degraded` |
+| On Vercel without Blob storage | `503` | `degraded` |
 
-The response never contains key material.
+The response never contains key material. `storage` is `blob` when a Blob store
+is configured and `local` otherwise.
 
 ## Admin dashboard
 
@@ -78,8 +80,9 @@ Exceeding a limit returns `429` with `retry-after`; an oversized body returns
 `413`; a non-JSON content type on `/mcp` returns `415`.
 
 The limiter is an in-memory fixed window per lambda instance, so it resets on
-cold start and does not aggregate across instances. For distributed protection
-add Vercel Firewall or Upstash. See `lib/limits.js`.
+cold start and does not aggregate across instances. The free Hobby plan includes
+3 WAF custom rules and 10 IP blocks at the edge — use one rule on `/mcp` and one
+on `/admin` for distributed blocking. See `lib/limits.js`.
 
 ## Tools
 
@@ -100,15 +103,40 @@ Entries with `category: "theme"` may carry a `theme` object (`bg`, `surface`,
 
 ## Storage
 
-- With `BLOB_READ_WRITE_TOKEN`: `ufme/library-registry.json` and
-  `ufme/admin-keys.json` in Vercel Blob (`access: public`,
-  `allowOverwrite: true`, `addRandomSuffix: false`).
-- Without it: `.data/library-registry.json` and `.data/admin-keys.json` next to
-  this directory. Fine locally; ephemeral on Vercel, so set the token in
-  production.
+- With a Blob store: `ufme/library-registry.json` and `ufme/admin-keys.json`
+  (`access: public`, `allowOverwrite: true`, `addRandomSuffix: false`).
+  `BLOB_READ_WRITE_TOKEN` works, and so does a store connected in the Vercel
+  dashboard: the SDK then uses OIDC and `BLOB_STORE_ID`, with no long-lived token.
+- Without one: `.data/library-registry.json` and `.data/admin-keys.json` next to
+  this directory. Fine locally; ephemeral on Vercel.
+
+On Vercel without a Blob store, `/health` reports `degraded` and `/admin` refuses
+to create keys, because they would disappear when the instance recycles.
 
 On first read, a missing registry falls back to `seed.json`; a missing key store
 falls back to no keys.
+
+## Free (Hobby) plan
+
+Everything here fits the Hobby plan:
+
+| Resource | Hobby allowance | What this server uses |
+|----------|-----------------|-----------------------|
+| Blob storage | 1 GB / month | two small JSON files |
+| Blob simple ops (reads) | 10,000 / month | ~2 per `/mcp` call |
+| Blob advanced ops (writes) | 2,000 / month | 1 per upsert/remove/key change |
+| Blob transfer | 10 GB / month | negligible |
+| Function invocations | 1,000,000 / month | one per request |
+| Function duration | 300s max | capped at 30s in `vercel.json` |
+| WAF | 3 custom rules, 10 IP blocks | one rule each for `/mcp` and `/admin` |
+| Deployments | 100 / day | manual or on push |
+
+Hobby is for non-commercial, personal use. If this registry serves a business,
+move it to Pro. Exceeding a Hobby allowance pauses that resource until the
+30-day window resets; there is no surprise bill.
+
+The in-memory limiter in `lib/limits.js` is the free first line of defence; add
+the WAF rules for edge-level blocking.
 
 ## Deploy
 
@@ -118,14 +146,17 @@ npm test
 vercel deploy
 ```
 
-Set in the Vercel project:
+In the Vercel project, create a **public** Blob store (Storage → Blob) and connect
+it to the project. Then set:
 
 ```bash
 vercel env add REGISTRY_API_KEY production        # optional bootstrap key
 vercel env add REGISTRY_ADMIN_PASSWORD production
 vercel env add REGISTRY_ADMIN_SECRET production   # optional, defaults to the password
-vercel env add BLOB_READ_WRITE_TOKEN production
 ```
+
+Connecting the store is enough for the SDK (OIDC). Add `BLOB_READ_WRITE_TOKEN`
+only if you run the code outside Vercel or prefer a static token.
 
 ## Client
 

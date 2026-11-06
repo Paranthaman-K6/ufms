@@ -357,8 +357,32 @@ await test("health reports ok and entry count when deep", async () => {
   assert.equal(res.statusCode, 200);
   const body = JSON.parse(res.body);
   assert.equal(body.status, "ok");
+  assert.equal(body.storage, "local");
   assert.equal(body.entries, (await tool("registry_list", {})).data.length);
   assert.equal(res.headers["x-robots-tag"], "noindex");
+});
+
+await test("health reports degraded on Vercel without Blob", async () => {
+  process.env.VERCEL = "1";
+  const res = await call(healthHandler, {});
+  delete process.env.VERCEL;
+  assert.equal(res.statusCode, 503);
+  const body = JSON.parse(res.body);
+  assert.equal(body.status, "degraded");
+  assert.equal(body.storage, "local");
+});
+
+await test("admin refuses to create ephemeral keys on Vercel", async () => {
+  const { csrf, cookie } = await login();
+  process.env.VERCEL = "1";
+  const res = await call(adminHandler, {
+    method: "POST",
+    headers: { cookie },
+    body: { action: "create", label: "ephemeral", _csrf: csrf },
+  });
+  delete process.env.VERCEL;
+  assert.equal(res.statusCode, 503);
+  assert.match(res.body, /lost when the instance recycles/);
 });
 
 await test("health returns 503 when nothing is configured", async () => {

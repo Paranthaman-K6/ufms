@@ -118,8 +118,14 @@ Tools:
 
 Storage: one JSON array at `ufme/library-registry.json` and `{keys: []}` at
 `ufme/admin-keys.json` in Vercel Blob (`access: public`, `allowOverwrite: true`,
-`addRandomSuffix: false`). No Blob token → local `.data/library-registry.json` and
-`.data/admin-keys.json` for development and tests.
+`addRandomSuffix: false`). A connected store authenticates with OIDC and
+`BLOB_STORE_ID`; `BLOB_READ_WRITE_TOKEN` is optional. No Blob store → local
+`.data/library-registry.json` and `.data/admin-keys.json` for development and
+tests; on Vercel that is ephemeral, so `/health` reports `degraded` and `/admin`
+refuses to create keys.
+
+Plan: the server fits the free Hobby plan (1 GB Blob, 10k reads, 2k writes,
+300s functions, 3 WAF rules). Hobby is non-commercial use only.
 
 Client: `skills/universal-frontend-master/scripts/registry-remote.py`, env
 `UFME_REGISTRY_URL` + `UFME_REGISTRY_KEY`. Entries with `category: theme` may carry a

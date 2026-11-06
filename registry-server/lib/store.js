@@ -18,6 +18,16 @@ function blobToken() {
   return process.env.BLOB_READ_WRITE_TOKEN || "";
 }
 
+// A connected Blob store exposes BLOB_STORE_ID and the SDK authenticates with
+// OIDC, so a long-lived token is optional on Vercel.
+function blobEnabled() {
+  return Boolean(blobToken() || process.env.BLOB_STORE_ID);
+}
+
+export function storageMode() {
+  return blobEnabled() ? "blob" : "local";
+}
+
 export async function readSeed() {
   return JSON.parse(await fs.readFile(SEED_FILE, "utf8"));
 }
@@ -29,7 +39,7 @@ function fallbackValue(fallback) {
 async function readBlobJson(blobPath, fallback) {
   const { head } = await import("@vercel/blob");
   try {
-    const meta = await head(blobPath, { token: blobToken() });
+    const meta = await head(blobPath, blobToken() ? { token: blobToken() } : {});
     const response = await fetch(meta.url, { cache: "no-store" });
     if (!response.ok) throw new Error(`blob read failed: HTTP ${response.status}`);
     return await response.json();
@@ -52,15 +62,16 @@ async function readLocalJson(file, fallback) {
 // Blob ifMatch/ETag when multiple writers are expected.
 async function writeJson(blobPath, file, value) {
   const body = JSON.stringify(value, null, 2) + "\n";
-  if (blobToken()) {
+  if (blobEnabled()) {
     const { put } = await import("@vercel/blob");
-    await put(blobPath, body, {
+    const options = {
       access: "public",
       allowOverwrite: true,
       addRandomSuffix: false,
       contentType: "application/json",
-      token: blobToken(),
-    });
+    };
+    if (blobToken()) options.token = blobToken();
+    await put(blobPath, body, options);
     return;
   }
   await fs.mkdir(path.dirname(file), { recursive: true });
@@ -68,7 +79,7 @@ async function writeJson(blobPath, file, value) {
 }
 
 export async function readRegistry() {
-  if (blobToken()) return readBlobJson(BLOB_PATH, readSeed);
+  if (blobEnabled()) return readBlobJson(BLOB_PATH, readSeed);
   return readLocalJson(LOCAL_FILE, readSeed);
 }
 
@@ -78,7 +89,7 @@ export async function writeRegistry(entries) {
 
 export async function readKeys() {
   const empty = () => ({ keys: [] });
-  if (blobToken()) return readBlobJson(KEYS_BLOB_PATH, empty);
+  if (blobEnabled()) return readBlobJson(KEYS_BLOB_PATH, empty);
   return readLocalJson(KEYS_LOCAL_FILE, empty);
 }
 

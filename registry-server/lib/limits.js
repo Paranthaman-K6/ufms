@@ -1,8 +1,8 @@
 // In-memory fixed-window rate limiting and request-size helpers.
 
 // shortcut: counts live in one lambda instance and reset on cold start. On
-// Vercel each instance counts separately; pair with Vercel Firewall or Upstash
-// when distributed protection is needed.
+// Vercel each instance counts separately; Hobby allows 3 WAF custom rules and
+// 10 IP blocks at the edge, which is the free way to block distributed abuse.
 const windows = new Map();
 const MAX_TRACKED = 5000;
 

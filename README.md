@@ -355,6 +355,11 @@ Requests without a configured key return `503`; a wrong key returns `401`. With
 the env vars unset, `search-libraries.py` silently uses the local Markdown
 registry. See `registry-server/README.md`.
 
+The whole server fits the free Vercel Hobby plan: connect a public Blob store
+(the SDK uses OIDC, so no token is required), then set
+`REGISTRY_ADMIN_PASSWORD`. Hobby includes 1 GB Blob storage, 10k reads, 2k writes
+and 3 WAF rules per month. Hobby is for non-commercial use.
+
 Registry entries may also carry a `theme` object (`bg`, `surface`, `text`, `muted`, `accent`, `accent_alt`, `display`, `body`, optional `mono`). `theme-showcase.py` appends entries with category `theme` to the local catalog when the two env vars are set.
 
 ## Documentation

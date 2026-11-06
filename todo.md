@@ -126,5 +126,7 @@ Each ticket is self-contained: a fresh session can pick it up from the spec in
 - [x] `/admin` is a password dashboard (`REGISTRY_ADMIN_PASSWORD`): HMAC session in an HttpOnly SameSite=Strict cookie, double-submit CSRF token, create/revoke keys, one-time plaintext display, SHA-256 hashed storage
 - [x] Keys created in the dashboard authenticate `/mcp`; `REGISTRY_API_KEY` stays valid as a bootstrap key; revoking a stored key returns `401`
 - [x] `vercel.json`, `.env.example`, `registry-server/README.md`, root README and `docs/REMASTER_SPEC.md` document endpoints, env vars, limits and the per-instance limitation
-- [x] `registry-server/test/run.mjs` grows from 14 to 26 passing checks (health 200/503/deep, 415/413/429, admin CSRF/login/rate limit/create/revoke)
+- [x] Works on the free Hobby plan: a connected Blob store uses OIDC (no `BLOB_READ_WRITE_TOKEN` required); `/health` reports `storage` and `degraded`, and `/admin` refuses ephemeral keys on Vercel without a store
+- [x] Hobby limits documented (1 GB Blob, 10k reads, 2k writes, 300s functions, 3 WAF rules, non-commercial use)
+- [x] `registry-server/test/run.mjs` grows from 14 to 28 passing checks (health 200/503/deep/degraded, 415/413/429, admin CSRF/login/rate limit/create/revoke)
 - **Blocked by:** T11
