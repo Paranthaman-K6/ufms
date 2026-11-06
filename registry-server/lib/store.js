@@ -36,6 +36,17 @@ function fallbackValue(fallback) {
   return typeof fallback === "function" ? fallback() : fallback;
 }
 
+// The SDK wraps the API 404 in a generic error whose message starts with
+// "BlobNotFoundError", so the class name alone misses it.
+export function isBlobNotFound(error) {
+  return (
+    error?.name === "BlobNotFoundError" ||
+    error?.status === 404 ||
+    error?.statusCode === 404 ||
+    /BlobNotFoundError|does not exist/i.test(String(error?.message || ""))
+  );
+}
+
 async function readBlobJson(blobPath, fallback) {
   const { head } = await import("@vercel/blob");
   try {
@@ -44,7 +55,7 @@ async function readBlobJson(blobPath, fallback) {
     if (!response.ok) throw new Error(`blob read failed: HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
-    if (error?.name === "BlobNotFoundError") return fallbackValue(fallback);
+    if (isBlobNotFound(error)) return fallbackValue(fallback);
     throw error;
   }
 }

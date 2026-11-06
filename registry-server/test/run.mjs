@@ -398,6 +398,14 @@ await test("health returns 503 when nothing is configured", async () => {
   assert.equal(JSON.parse(res.body).status, "unconfigured");
 });
 
+await test("blob 404 is treated as an empty store", async () => {
+  const { isBlobNotFound } = await import("../lib/store.js");
+  assert.equal(isBlobNotFound({ message: "BlobNotFoundError: Vercel Blob: The requested blob does not exist" }), true);
+  assert.equal(isBlobNotFound({ name: "BlobNotFoundError" }), true);
+  assert.equal(isBlobNotFound({ status: 404 }), true);
+  assert.equal(isBlobNotFound(new Error("blob read failed: HTTP 500")), false);
+});
+
 fs.rmSync(TMP, { recursive: true, force: true });
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
