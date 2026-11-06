@@ -17,7 +17,8 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INSTALL="$ROOT/install.sh"
-AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor)
+AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
+SEO_AGENTS=(ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
 PASS=0
 FAIL=0
 RESULTS=()
@@ -61,14 +62,23 @@ run_install() {
 if run_install; then pass "clean install exits 0"; else fail "clean install exits 0" "see $TMP/install.log"; fi
 
 GLOBAL_AGENTS="$XDG_CONFIG_HOME/opencode/agents"
-check "six agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 6 ]"
+check "eleven agents installed globally" "[ \$(find '$GLOBAL_AGENTS' -maxdepth 1 -name '*.md' | wc -l) -eq 11 ]"
 for agent in "${AGENTS[@]}"; do
   check "global agent $agent" "[ -f '$GLOBAL_AGENTS/$agent.md' ]"
 done
+for agent in "${SEO_AGENTS[@]}"; do
+  check "global SEO agent $agent" "[ -f '$GLOBAL_AGENTS/$agent.md' ]"
+done
 check "global skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "global SEO skill installed" "[ -f '$XDG_CONFIG_HOME/opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
+check "global SEO command installed" "[ -f '$XDG_CONFIG_HOME/opencode/commands/ufmw/seo-crawl.md' ]"
 check "project skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "project SEO skill installed" "[ -f '$INSTALL_DIR/.opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
 check "project source tree installed" "[ -f '$INSTALL_DIR/universal-frontend-master-source/scripts/quality-check.py' ]"
-check "project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 6 ]"
+check "eleven project agents installed" "[ \$(find '$INSTALL_DIR/.opencode/agents' -maxdepth 1 -name '*.md' | wc -l) -eq 11 ]"
+for agent in "${AGENTS[@]}"; do
+  check "project agent $agent" "[ -f '$INSTALL_DIR/.opencode/agents/$agent.md' ]"
+done
 check "project opencode.json installed" "[ -f '$INSTALL_DIR/opencode.json' ]"
 check "project memory seeded" "[ -f '$INSTALL_DIR/.ufme/TASKS.md' ] && [ -f '$INSTALL_DIR/.ufme/ENVIRONMENT.md' ]"
 check "library registry seeded" "[ -f '$UFME_USER_CONFIG/LIBRARY_REGISTRY.md' ]"
