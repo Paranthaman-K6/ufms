@@ -23,7 +23,7 @@ const path = require('path');
 const { Builder, By, until } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..', '..');
 const URL = process.argv[2];
 const OUT_DIR = process.argv[3] || path.join(ROOT, '.ufme', 'evidence');
 

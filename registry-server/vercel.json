@@ -3,7 +3,7 @@
   "rewrites": [
     { "source": "/mcp", "destination": "/api/mcp" },
     { "source": "/health", "destination": "/api/health" },
-    { "source": "/admin", "destination": "/api/admin" }
+    { "source": "/", "destination": "/api/admin" }
   ],
   "functions": {
     "api/mcp.js": {

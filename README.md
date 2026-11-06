@@ -347,7 +347,7 @@ Then point the client at it:
 
 ```bash
 export UFME_REGISTRY_URL="https://your-app.vercel.app/mcp"
-export UFME_REGISTRY_KEY="a key from /admin"
+export UFME_REGISTRY_KEY="a key from the dashboard at /"
 python3 skills/universal-frontend-master/scripts/registry-remote.py --list motion
 ```
 

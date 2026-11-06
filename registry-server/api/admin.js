@@ -1,4 +1,4 @@
-// GET/POST /admin — password-protected dashboard for registry API keys.
+// GET/POST / — password-protected dashboard for registry API keys.
 // Keys are stored hashed and shown once, right after creation.
 
 import crypto from "node:crypto";
@@ -8,7 +8,7 @@ import { readKeys, storageMode, writeKeys } from "../lib/store.js";
 
 const SESSION_COOKIE = "ufme_admin";
 const CSRF_COOKIE = "ufme_csrf";
-const COOKIE_PATH = "/admin";
+const COOKIE_PATH = "/";
 const SESSION_MAX_AGE = 12 * 60 * 60;
 
 const STYLE = `
@@ -103,7 +103,7 @@ function loginPage(csrf, error = "") {
     `<h1>UFME registry admin</h1>
 <p class="muted">Sign in to create and revoke registry API keys.</p>
 ${error ? `<p class="error">${esc(error)}</p>` : ""}
-<div class="card"><form method="post" action="/admin">
+<div class="card"><form method="post" action="/">
 <input type="hidden" name="_csrf" value="${esc(csrf)}">
 <input type="hidden" name="action" value="login">
 <label>Password<input type="password" name="password" autocomplete="current-password" required autofocus></label>
@@ -120,7 +120,7 @@ function dashboard(keys, csrf, newKey = "", notice = "") {
 <td>${esc(key.label)}</td>
 <td><code>${esc(key.prefix)}…</code></td>
 <td>${esc(key.createdAt)}</td>
-<td><form method="post" action="/admin">
+<td><form method="post" action="/">
 <input type="hidden" name="_csrf" value="${esc(csrf)}">
 <input type="hidden" name="action" value="revoke">
 <input type="hidden" name="id" value="${esc(key.id)}">
@@ -139,7 +139,7 @@ ${notice ? `<p class="error">${esc(notice)}</p>` : ""}
 ${newKey ? `<div class="key"><strong>New key — copy it now, it is not shown again.</strong><code>${esc(newKey)}</code></div>` : ""}
 <div class="card">
 <h2>Create a key</h2>
-<form method="post" action="/admin">
+<form method="post" action="/">
 <input type="hidden" name="_csrf" value="${esc(csrf)}">
 <input type="hidden" name="action" value="create">
 <div class="row"><label>Label<input name="label" maxlength="60" placeholder="laptop" required></label><button type="submit">Create key</button></div>
@@ -150,7 +150,7 @@ ${newKey ? `<div class="key"><strong>New key — copy it now, it is not shown ag
 <table><thead><tr><th>Label</th><th>Prefix</th><th>Created</th><th></th></tr></thead><tbody>${rows}</tbody></table>
 </div>
 <div class="row">
-<form method="post" action="/admin">
+<form method="post" action="/">
 <input type="hidden" name="_csrf" value="${esc(csrf)}">
 <input type="hidden" name="action" value="logout">
 <button type="submit">Sign out</button>
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
       `${SESSION_COOKIE}=${createSession()}; Path=${COOKIE_PATH}; HttpOnly; SameSite=Strict; Max-Age=${SESSION_MAX_AGE}${secureFlag(req)}`,
     );
     res.statusCode = 303;
-    res.setHeader("location", "/admin");
+    res.setHeader("location", "/");
     res.end();
     return;
   }
@@ -230,7 +230,7 @@ export default async function handler(req, res) {
       `${SESSION_COOKIE}=; Path=${COOKIE_PATH}; HttpOnly; SameSite=Strict; Max-Age=0${secureFlag(req)}`,
     );
     res.statusCode = 303;
-    res.setHeader("location", "/admin");
+    res.setHeader("location", "/");
     res.end();
     return;
   }

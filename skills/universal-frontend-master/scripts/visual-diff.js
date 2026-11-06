@@ -43,7 +43,7 @@ try {
   process.exit(3);
 }
 
-const ROOT = path.resolve(__dirname, '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..', '..');
 const DEFAULT_OUT = path.join(ROOT, '.ufme', 'evidence', 'visual-diff.json');
 
 function parseArgs(argv) {

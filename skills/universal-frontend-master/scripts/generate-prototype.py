@@ -12,7 +12,7 @@ import sys
 import time
 from typing import List, Tuple, Optional
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 UFME_DIR = os.path.join(ROOT_DIR, ".ufme")
 OUT_DIR = os.path.join(ROOT_DIR, "prototypes")
 

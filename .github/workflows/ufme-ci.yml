@@ -83,6 +83,9 @@ jobs:
           set -euo pipefail
           mkdir -p "$UFME_EVIDENCE_DIR"
           bash skills/universal-frontend-master/scripts/check-native-browser.sh
+          # The prototype generator reads .ufme/ (gitignored), so seed HEAD first;
+          # the cross-commit step seeds the base checkout the same way.
+          python3 skills/universal-frontend-master/scripts/seed-project-memory.py "$GITHUB_WORKSPACE"
           python3 skills/universal-frontend-master/scripts/generate-prototype.py
           python3 -m http.server 5173 --directory prototypes &
           SERVER_PID=$!
@@ -146,9 +149,11 @@ jobs:
             sleep 1
           done
           bash skills/universal-frontend-master/scripts/audit-perf.sh http://localhost:5173
-          UFME_SLOP_PATH=prototypes \
-            python3 skills/universal-frontend-master/scripts/quality-check.py \
-              --only audit --require audit --target http://localhost:5173 \
+          # The generated prototype is a placeholder, not a designed site: gate the
+          # audits that are meaningful for it. detect-slop is covered by
+          # tests/quality, and the cross-commit visual diff has its own step below.
+          python3 skills/universal-frontend-master/scripts/quality-check.py \
+              --only a11y,perf --require a11y,perf --target http://localhost:5173 \
               --report "$UFME_EVIDENCE_DIR/quality-report.json"
 
       - name: Build agents (check)
@@ -186,7 +191,7 @@ jobs:
 
       - name: Upload evidence (always)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ufme-evidence-${{ github.sha }}
           path: |

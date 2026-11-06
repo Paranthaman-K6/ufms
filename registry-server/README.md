@@ -10,9 +10,9 @@ local Markdown registry stays the default.
 |-------|--------|---------|
 | `/mcp` | `POST` | JSON-RPC 2.0 MCP endpoint |
 | `/health` | `GET` | liveness and configuration probe |
-| `/admin` | `GET`/`POST` | API-key dashboard |
+| `/` | `GET`/`POST` | API-key dashboard |
 
-`/health` and `/admin` are rewritten in `vercel.json`. Both send
+`/health` and `/` are rewritten in `vercel.json`. Both send
 `x-robots-tag: noindex`.
 
 ## Auth
@@ -20,7 +20,7 @@ local Markdown registry stays the default.
 `/mcp` accepts `Authorization: Bearer <key>` where `<key>` is either:
 
 - the bootstrap `REGISTRY_API_KEY` from the environment, or
-- a key created in `/admin` (stored hashed).
+- a key created in `/` (stored hashed).
 
 | Case | Status |
 |------|--------|
@@ -55,7 +55,7 @@ is configured and `local` otherwise.
 ## Admin dashboard
 
 Set `REGISTRY_ADMIN_PASSWORD` (and optionally `REGISTRY_ADMIN_SECRET`) in the
-Vercel project, then open `/admin`.
+Vercel project, then open `/`.
 
 - Sign in with the password. The session is an HMAC-signed, `HttpOnly`,
   `SameSite=Strict` cookie valid for 12 hours.
@@ -82,7 +82,7 @@ Exceeding a limit returns `429` with `retry-after`; an oversized body returns
 The limiter is an in-memory fixed window per lambda instance, so it resets on
 cold start and does not aggregate across instances. The free Hobby plan includes
 3 WAF custom rules and 10 IP blocks at the edge — use one rule on `/mcp` and one
-on `/admin` for distributed blocking. See `lib/limits.js`.
+on `/` for distributed blocking. See `lib/limits.js`.
 
 ## Tools
 
@@ -110,7 +110,7 @@ Entries with `category: "theme"` may carry a `theme` object (`bg`, `surface`,
 - Without one: `.data/library-registry.json` and `.data/admin-keys.json` next to
   this directory. Fine locally; ephemeral on Vercel.
 
-On Vercel without a Blob store, `/health` reports `degraded` and `/admin` refuses
+On Vercel without a Blob store, `/health` reports `degraded` and `/` refuses
 to create keys, because they would disappear when the instance recycles.
 
 On first read, a missing registry falls back to `seed.json`; a missing key store
@@ -128,7 +128,7 @@ Everything here fits the Hobby plan:
 | Blob transfer | 10 GB / month | negligible |
 | Function invocations | 1,000,000 / month | one per request |
 | Function duration | 300s max | capped at 30s in `vercel.json` |
-| WAF | 3 custom rules, 10 IP blocks | one rule each for `/mcp` and `/admin` |
+| WAF | 3 custom rules, 10 IP blocks | one rule each for `/mcp` and `/` |
 | Deployments | 100 / day | manual or on push |
 
 Hobby is for non-commercial, personal use. If this registry serves a business,
@@ -169,7 +169,7 @@ only if you run the code outside Vercel or prefer a static token.
 Vercel Authentication (SSO protection) must be **off** for the project, or every
 `/mcp` call is redirected to a Vercel login page.
 
-The first key is created in `/admin`; until then `/health` returns `503`
+The first key is created at `/`; until then `/health` returns `503`
 `unconfigured` and `/mcp` rejects requests. Blob reads are versioned by ETag, so a
 new or revoked key is live within a few seconds (not instantly).
 
@@ -177,7 +177,7 @@ new or revoked key is live within a few seconds (not instantly).
 
 ```bash
 export UFME_REGISTRY_URL="https://your-app.vercel.app/mcp"
-export UFME_REGISTRY_KEY="a key from /admin"
+export UFME_REGISTRY_KEY="a key from /"
 
 python3 ../skills/universal-frontend-master/scripts/registry-remote.py --list motion
 python3 ../skills/universal-frontend-master/scripts/registry-remote.py --seed

@@ -1,5 +1,5 @@
 // Stateless MCP JSON-RPC 2.0 endpoint for the UFME library registry.
-// POST /mcp with `Authorization: Bearer <key>` (REGISTRY_API_KEY or an /admin key).
+// POST /mcp with `Authorization: Bearer <key>` (REGISTRY_API_KEY or a dashboard key).
 
 import { authenticateApiKey, bearer, safeEqual } from "../lib/keys.js";
 import { bodyTooLarge, clientIp, intFromEnv, rateLimit } from "../lib/limits.js";

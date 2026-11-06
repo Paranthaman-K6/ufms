@@ -94,7 +94,7 @@ Transport: MCP JSON-RPC 2.0 over HTTP `POST /mcp`, stateless, JSON responses
 (`enableJsonResponse` semantics). One endpoint.
 
 Auth: `Authorization: Bearer <key>`. The key is either `REGISTRY_API_KEY` or one
-created in `/admin` (stored hashed). No bootstrap key and no stored keys → `503`.
+created at `/` (stored hashed). No bootstrap key and no stored keys → `503`.
 Wrong key → `401`. Constant-time compare.
 
 Bot protection: per-IP fixed-window rate limits on `/mcp` and admin login,
@@ -103,7 +103,7 @@ type → `415`; `x-robots-tag: noindex` on every response. Limits are in-memory
 per instance; distributed protection is out of scope.
 
 Ops endpoints: `GET /health` → `200` when configured, `503` when not;
-`?deep=1` adds the registry entry count. `GET/POST /admin` is a password
+`?deep=1` adds the registry entry count. `GET/POST /` is a password
 (`REGISTRY_ADMIN_PASSWORD`) dashboard with an HMAC-signed HttpOnly
 SameSite=Strict session, CSRF token, one-time key display, and revoke.
 
@@ -121,7 +121,7 @@ Storage: one JSON array at `ufme/library-registry.json` and `{keys: []}` at
 `addRandomSuffix: false`). A connected store authenticates with OIDC and
 `BLOB_STORE_ID`; `BLOB_READ_WRITE_TOKEN` is optional. No Blob store → local
 `.data/library-registry.json` and `.data/admin-keys.json` for development and
-tests; on Vercel that is ephemeral, so `/health` reports `degraded` and `/admin`
+tests; on Vercel that is ephemeral, so `/health` reports `degraded` and `/`
 refuses to create keys.
 
 Plan: the server fits the free Hobby plan (1 GB Blob, 10k reads, 2k writes,

@@ -27,7 +27,7 @@ const { Builder } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const firefox = require('selenium-webdriver/firefox');
 
-const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const ROOT_DIR = path.resolve(__dirname, '..', '..', '..');
 const EVIDENCE_DIR = path.join(ROOT_DIR, '.ufme', 'evidence');
 
 // Snapshot script definitions (W3C execute-script body semantics: statements
