@@ -16,14 +16,16 @@
 #   UFME_SKIP_NPM=1                                      # skip the project-local npm install step
 #
 # Global install (user scope — available to all projects):
-#   ~/.config/opencode/agents/*.md              # agent definitions
-#   ~/.config/opencode/skills/*/SKILL.md        # skill definition
+#   ~/.config/opencode/agents/*.md              # agent definitions (incl. ufmw-seo-*.md)
+#   ~/.config/opencode/skills/*/SKILL.md        # skill definition (incl. ufmw-seo-protocol)
 #   ~/.config/opencode/commands/*               # slash commands (/profile/*, /lite, /standard, ...)
+#   ~/.config/opencode/commands/ufmw/seo-*.md   # SEO slash commands
 #   ~/.config/opencode/opencode.json            # agent + command registry, default agent
 #   ~/.config/ufme/                             # cross-project shared data (library registry, state)
 #
 # Project-local install (target project only — never overwrites existing):
 #   .opencode/skills/universal-frontend-master/  # skill copy (project override)
+#   .opencode/skills/ufmw-seo-protocol/           # SEO skill copy (project override)
 #   .opencode/agents/*.md                         # agent copy (project override)
 #   universal-frontend-master-source/             # source tree (includes browser runner)
 #   .ufme/                                        # per-project memory templates (seeded only)
@@ -114,13 +116,24 @@ log "Installing agents globally to $OPENCODE_USER_CONFIG/agents ..."
 mkdir -p "$OPENCODE_USER_CONFIG/agents"
 cp -R "$SRC/.opencode/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
 
+log "Installing SEO agents globally to $OPENCODE_USER_CONFIG/agents ..."
+cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
+
 log "Installing skill globally to $OPENCODE_USER_CONFIG/skills/universal-frontend-master ..."
 mkdir -p "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
 cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$OPENCODE_USER_CONFIG/skills/universal-frontend-master/"
 
+log "Installing SEO skill globally to $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol ..."
+mkdir -p "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
+cp -R "$SRC/ufmw_seo_protocol_skill/." "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol/"
+
 log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
 mkdir -p "$OPENCODE_USER_CONFIG/commands"
 cp -R "$SRC/.opencode/commands/." "$OPENCODE_USER_CONFIG/commands/" 2>/dev/null || true
+
+log "Installing SEO slash commands globally to $OPENCODE_USER_CONFIG/commands/ufmw ..."
+mkdir -p "$OPENCODE_USER_CONFIG/commands/ufmw"
+cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$OPENCODE_USER_CONFIG/commands/ufmw/"
 
 log "Installing global opencode.json (default agent, commands, permissions) ..."
 GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
@@ -201,6 +214,13 @@ cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
 cp -R "$SRC/.opencode/commands/." "$TARGET/.opencode/commands/" 2>/dev/null || true
 cp -R "$SRC/universal-frontend-master-source/." "$TARGET/universal-frontend-master-source/"
 
+# SEO skill — project-local (seed only, never overwrite)
+cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+mkdir -p "$TARGET/.opencode/commands/ufmw"
+cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$TARGET/.opencode/commands/ufmw/" 2>/dev/null || true
+mkdir -p "$TARGET/.opencode/skills/ufmw-seo-protocol"
+cp -R "$SRC/ufmw_seo_protocol_skill/." "$TARGET/.opencode/skills/ufmw-seo-protocol/"
+
 # Browser runner check — bundled browser automation lives in the source tree.
 if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
   log "Browser runner installed: universal-frontend-master-source/browser/run.js"
@@ -246,6 +266,7 @@ fi
 AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
 log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
 log "Installed skill globally: $OPENCODE_USER_CONFIG/skills/universal-frontend-master"
+log "Installed SEO skill globally: $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
 log "Installed source tree: $TARGET/universal-frontend-master-source"
 log "Cross-project data: $UFME_USER_CONFIG (library registry shared across projects)"
 log "Project-local seed: $TARGET/.ufme/"

@@ -9,11 +9,12 @@
 # Usage:
 #   INSTALL_DIR=/path/to/project bash uninstall.sh [--project-only|--global-only]
 #
-# Without a flag both scopes are removed. The command is idempotent: running it
-# twice still exits 0.
+# Without a flag both scopes are removed. Removes the frontend and SEO agents,
+# skills, and slash commands this installer places. The command is idempotent:
+# running it twice still exits 0.
 set -uo pipefail
 
-AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor)
+AGENTS=(universal-frontend-master ufme-orchestrator ufme-designer ufme-builder ufme-backend-analyst ufme-auditor ufmw-seo-protocol ufmw-seo-technical ufmw-seo-content ufmw-seo-analyst ufmw-seo-auditor)
 TARGET="${INSTALL_DIR:-$PWD}"
 OPENCODE_USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 
@@ -50,7 +51,9 @@ if [ "$SCOPE" != "global" ]; then
     remove_path "$TARGET/.opencode/agents/$agent.md"
   done
   remove_path "$TARGET/.opencode/skills/universal-frontend-master"
+  remove_path "$TARGET/.opencode/skills/ufmw-seo-protocol"
   remove_path "$TARGET/.opencode/commands/ufme"
+  remove_path "$TARGET/.opencode/commands/ufmw"
   remove_path "$TARGET/universal-frontend-master-source"
 fi
 
@@ -60,7 +63,9 @@ if [ "$SCOPE" != "project" ]; then
     remove_path "$OPENCODE_USER_CONFIG/agents/$agent.md"
   done
   remove_path "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
+  remove_path "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
   remove_path "$OPENCODE_USER_CONFIG/commands/ufme"
+  remove_path "$OPENCODE_USER_CONFIG/commands/ufmw"
 fi
 
 log "Kept: .ufme/ memory, opencode.json, package.json, and all other files."
