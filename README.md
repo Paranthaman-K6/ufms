@@ -328,24 +328,32 @@ See `opencode.json` and `skills/universal-frontend-master/core/SAFETY.md`.
 
 ## Optional shared registry
 
-The local registry (`~/.config/ufme/LIBRARY_REGISTRY.md` and `.ufme/LIBRARY_REGISTRY.md`) is the default. To share one registry across machines, deploy the stateless MCP server in `registry-server/`:
+The local registry (`~/.config/ufme/LIBRARY_REGISTRY.md` and `.ufme/LIBRARY_REGISTRY.md`) is the default. To share one registry across machines, deploy the MCP server in `registry-server/`:
 
 ```bash
 cd registry-server
 npm install
-npm test                       # auth, MCP handshake, tools, seed validity
-vercel deploy                  # set REGISTRY_API_KEY and BLOB_READ_WRITE_TOKEN
+npm test                       # auth, health, MCP tools, admin, seed validity
+vercel deploy                  # set REGISTRY_ADMIN_PASSWORD, REGISTRY_API_KEY and BLOB_READ_WRITE_TOKEN
 ```
+
+Open `/admin` to sign in with `REGISTRY_ADMIN_PASSWORD` and create or revoke API
+keys; each key is shown once and stored hashed. `GET /health` reports whether the
+server is configured (`503` when no key exists), and `?deep=1` adds the entry
+count. `/mcp` and admin login are rate limited per IP, with a body-size cap and a
+JSON content-type check.
 
 Then point the client at it:
 
 ```bash
 export UFME_REGISTRY_URL="https://your-app.vercel.app/mcp"
-export UFME_REGISTRY_KEY="the same REGISTRY_API_KEY"
+export UFME_REGISTRY_KEY="a key from /admin"
 python3 skills/universal-frontend-master/scripts/registry-remote.py --list motion
 ```
 
-Requests without a server key return `503`; a wrong key returns `401`. With the env vars unset, `search-libraries.py` silently uses the local Markdown registry. See `registry-server/README.md`.
+Requests without a configured key return `503`; a wrong key returns `401`. With
+the env vars unset, `search-libraries.py` silently uses the local Markdown
+registry. See `registry-server/README.md`.
 
 Registry entries may also carry a `theme` object (`bg`, `surface`, `text`, `muted`, `accent`, `accent_alt`, `display`, `body`, optional `mono`). `theme-showcase.py` appends entries with category `theme` to the local catalog when the two env vars are set.
 

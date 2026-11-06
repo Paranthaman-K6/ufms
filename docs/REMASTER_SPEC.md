@@ -59,8 +59,8 @@ MySkill/
 │   └── catalog.py                 # generate + check CATALOG.md
 ├── tests/                         # unchanged suites, paths updated
 ├── registry-server/               # optional Vercel MCP registry
-│   ├── api/mcp.js
-│   ├── lib/{store,registry}.js
+│   ├── api/{mcp,health,admin}.js
+│   ├── lib/{store,registry,keys,limits}.js
 │   ├── seed.json
 │   ├── test/run.mjs
 │   ├── package.json  vercel.json  README.md  .env.example
@@ -93,8 +93,19 @@ MySkill/
 Transport: MCP JSON-RPC 2.0 over HTTP `POST /mcp`, stateless, JSON responses
 (`enableJsonResponse` semantics). One endpoint.
 
-Auth: `Authorization: Bearer $REGISTRY_API_KEY`. Missing server key → `503`. Wrong key → `401`.
-Constant-time compare.
+Auth: `Authorization: Bearer <key>`. The key is either `REGISTRY_API_KEY` or one
+created in `/admin` (stored hashed). No bootstrap key and no stored keys → `503`.
+Wrong key → `401`. Constant-time compare.
+
+Bot protection: per-IP fixed-window rate limits on `/mcp` and admin login,
+`429` + `retry-after` when exceeded; JSON body cap → `413`; non-JSON content
+type → `415`; `x-robots-tag: noindex` on every response. Limits are in-memory
+per instance; distributed protection is out of scope.
+
+Ops endpoints: `GET /health` → `200` when configured, `503` when not;
+`?deep=1` adds the registry entry count. `GET/POST /admin` is a password
+(`REGISTRY_ADMIN_PASSWORD`) dashboard with an HMAC-signed HttpOnly
+SameSite=Strict session, CSRF token, one-time key display, and revoke.
 
 Tools:
 
@@ -105,9 +116,10 @@ Tools:
 | `registry_upsert` | `name, category, site, license, commercial, install, reason, status?` | create or merge |
 | `registry_remove` | `name` | delete |
 
-Storage: one JSON array at `ufme/library-registry.json` in Vercel Blob
-(`access: public`, `allowOverwrite: true`, `addRandomSuffix: false`). No Blob token → local
-`.data/library-registry.json` for development and tests.
+Storage: one JSON array at `ufme/library-registry.json` and `{keys: []}` at
+`ufme/admin-keys.json` in Vercel Blob (`access: public`, `allowOverwrite: true`,
+`addRandomSuffix: false`). No Blob token → local `.data/library-registry.json` and
+`.data/admin-keys.json` for development and tests.
 
 Client: `skills/universal-frontend-master/scripts/registry-remote.py`, env
 `UFME_REGISTRY_URL` + `UFME_REGISTRY_KEY`. Entries with `category: theme` may carry a

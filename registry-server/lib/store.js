@@ -1,4 +1,5 @@
-// Storage for the library registry: Vercel Blob when a token exists, a local file otherwise.
+// Storage for the library registry and admin keys: Vercel Blob when a token
+// exists, a local file otherwise.
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -9,6 +10,9 @@ const SEED_FILE = path.join(HERE, "..", "seed.json");
 const BLOB_PATH = process.env.UFME_REGISTRY_BLOB || "ufme/library-registry.json";
 const LOCAL_FILE =
   process.env.UFME_REGISTRY_FILE || path.join(HERE, "..", ".data", "library-registry.json");
+const KEYS_BLOB_PATH = process.env.UFME_KEYS_BLOB || "ufme/admin-keys.json";
+const KEYS_LOCAL_FILE =
+  process.env.UFME_KEYS_FILE || path.join(HERE, "..", ".data", "admin-keys.json");
 
 function blobToken() {
   return process.env.BLOB_READ_WRITE_TOKEN || "";
@@ -18,36 +22,39 @@ export async function readSeed() {
   return JSON.parse(await fs.readFile(SEED_FILE, "utf8"));
 }
 
-async function readBlob() {
+function fallbackValue(fallback) {
+  return typeof fallback === "function" ? fallback() : fallback;
+}
+
+async function readBlobJson(blobPath, fallback) {
   const { head } = await import("@vercel/blob");
   try {
-    const meta = await head(BLOB_PATH, { token: blobToken() });
+    const meta = await head(blobPath, { token: blobToken() });
     const response = await fetch(meta.url, { cache: "no-store" });
     if (!response.ok) throw new Error(`blob read failed: HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
-    if (error?.name === "BlobNotFoundError") return readSeed();
+    if (error?.name === "BlobNotFoundError") return fallbackValue(fallback);
     throw error;
   }
 }
 
-export async function readRegistry() {
-  if (blobToken()) return readBlob();
+async function readLocalJson(file, fallback) {
   try {
-    return JSON.parse(await fs.readFile(LOCAL_FILE, "utf8"));
+    return JSON.parse(await fs.readFile(file, "utf8"));
   } catch (error) {
-    if (error.code === "ENOENT") return readSeed();
+    if (error.code === "ENOENT") return fallbackValue(fallback);
     throw error;
   }
 }
 
-// shortcut: last write wins; two concurrent upserts can drop one. Upgrade to
+// shortcut: last write wins; two concurrent writes can drop one. Upgrade to
 // Blob ifMatch/ETag when multiple writers are expected.
-export async function writeRegistry(entries) {
-  const body = JSON.stringify(entries, null, 2) + "\n";
+async function writeJson(blobPath, file, value) {
+  const body = JSON.stringify(value, null, 2) + "\n";
   if (blobToken()) {
     const { put } = await import("@vercel/blob");
-    await put(BLOB_PATH, body, {
+    await put(blobPath, body, {
       access: "public",
       allowOverwrite: true,
       addRandomSuffix: false,
@@ -56,8 +63,27 @@ export async function writeRegistry(entries) {
     });
     return;
   }
-  await fs.mkdir(path.dirname(LOCAL_FILE), { recursive: true });
-  await fs.writeFile(LOCAL_FILE, body, "utf8");
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, body, "utf8");
 }
 
-export { LOCAL_FILE, BLOB_PATH };
+export async function readRegistry() {
+  if (blobToken()) return readBlobJson(BLOB_PATH, readSeed);
+  return readLocalJson(LOCAL_FILE, readSeed);
+}
+
+export async function writeRegistry(entries) {
+  await writeJson(BLOB_PATH, LOCAL_FILE, entries);
+}
+
+export async function readKeys() {
+  const empty = () => ({ keys: [] });
+  if (blobToken()) return readBlobJson(KEYS_BLOB_PATH, empty);
+  return readLocalJson(KEYS_LOCAL_FILE, empty);
+}
+
+export async function writeKeys(keys) {
+  await writeJson(KEYS_BLOB_PATH, KEYS_LOCAL_FILE, { keys });
+}
+
+export { LOCAL_FILE, BLOB_PATH, KEYS_LOCAL_FILE, KEYS_BLOB_PATH };

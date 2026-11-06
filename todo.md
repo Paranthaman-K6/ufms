@@ -118,3 +118,13 @@ Each ticket is self-contained: a fresh session can pick it up from the spec in
 - [x] Scripted installs: `INSTALL_SCOPE`, `UFME_SKILLS`, `UFME_SKIP_AGENTS|COMMANDS|MEMORY|NPM`, `UFME_NONINTERACTIVE`; a non-interactive run with no scope installs everything
 - [x] `tests/install/run.sh` covers env selection, skip flags, an unknown skill (exit 1), and the TUI via a pty (`script`) — 91 pass
 - **Blocked by:** T11
+
+## T15 — Registry health, bot protection and admin dashboard
+- [x] `GET /health` returns `200` when configured, `503` when not, and `?deep=1` adds the entry count; no key material in the response
+- [x] Per-IP fixed-window rate limits on `/mcp` (`UFME_MCP_RATE_MAX`, default 60/min) and admin login (`UFME_LOGIN_RATE_MAX`, default 10/min) return `429` + `retry-after`
+- [x] JSON body cap (`UFME_MAX_BODY_BYTES`, default 256 KiB) returns `413`; non-JSON content type on `/mcp` returns `415`; all responses send `x-robots-tag: noindex`
+- [x] `/admin` is a password dashboard (`REGISTRY_ADMIN_PASSWORD`): HMAC session in an HttpOnly SameSite=Strict cookie, double-submit CSRF token, create/revoke keys, one-time plaintext display, SHA-256 hashed storage
+- [x] Keys created in the dashboard authenticate `/mcp`; `REGISTRY_API_KEY` stays valid as a bootstrap key; revoking a stored key returns `401`
+- [x] `vercel.json`, `.env.example`, `registry-server/README.md`, root README and `docs/REMASTER_SPEC.md` document endpoints, env vars, limits and the per-instance limitation
+- [x] `registry-server/test/run.mjs` grows from 14 to 26 passing checks (health 200/503/deep, 415/413/429, admin CSRF/login/rate limit/create/revoke)
+- **Blocked by:** T11

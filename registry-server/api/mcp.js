@@ -1,9 +1,10 @@
 // Stateless MCP JSON-RPC 2.0 endpoint for the UFME library registry.
-// POST /mcp with `Authorization: Bearer $REGISTRY_API_KEY`.
+// POST /mcp with `Authorization: Bearer <key>` (REGISTRY_API_KEY or an /admin key).
 
-import crypto from "node:crypto";
+import { authenticateApiKey, bearer, safeEqual } from "../lib/keys.js";
+import { bodyTooLarge, clientIp, intFromEnv, rateLimit } from "../lib/limits.js";
 import { query, remove, upsert, validateEntry } from "../lib/registry.js";
-import { readRegistry, writeRegistry } from "../lib/store.js";
+import { readKeys, readRegistry, writeRegistry } from "../lib/store.js";
 
 const SERVER_INFO = { name: "ufme-library-registry", version: "1.0.0" };
 const PROTOCOL_VERSION = "2024-11-05";
@@ -73,13 +74,6 @@ function send(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function authorized(header, expected) {
-  const provided = String(header || "").replace(/^Bearer\s+/i, "");
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
 async function callTool(name, args) {
   if (name === "registry_list") {
     return query(await readRegistry(), args || {});
@@ -143,6 +137,9 @@ async function handle(message) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("x-robots-tag", "noindex");
+  res.setHeader("x-content-type-options", "nosniff");
+
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     res.setHeader("access-control-allow-origin", "*");
@@ -156,13 +153,33 @@ export default async function handler(req, res) {
     return;
   }
 
-  const expected = process.env.REGISTRY_API_KEY || "";
-  if (!expected) {
-    send(res, 503, { error: "REGISTRY_API_KEY is not configured" });
+  const limit = rateLimit("mcp", clientIp(req), intFromEnv("UFME_MCP_RATE_MAX", 60));
+  if (!limit.ok) {
+    res.setHeader("retry-after", String(limit.retryAfter));
+    send(res, 429, { error: "too many requests" });
     return;
   }
-  if (!authorized(req.headers.authorization, expected)) {
-    send(res, 401, { error: "unauthorized" });
+
+  const expected = process.env.REGISTRY_API_KEY || "";
+  if (!expected || !safeEqual(bearer(req.headers.authorization), expected)) {
+    const keys = (await readKeys().catch(() => ({ keys: [] }))).keys || [];
+    if (!expected && keys.length === 0) {
+      send(res, 503, { error: "REGISTRY_API_KEY is not configured" });
+      return;
+    }
+    if (!authenticateApiKey(req.headers.authorization, keys)) {
+      send(res, 401, { error: "unauthorized" });
+      return;
+    }
+  }
+
+  const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
+  if (contentType && !contentType.includes("application/json")) {
+    send(res, 415, { error: "content-type must be application/json" });
+    return;
+  }
+  if (bodyTooLarge(req.body, intFromEnv("UFME_MAX_BODY_BYTES", 262144))) {
+    send(res, 413, { error: "request body too large" });
     return;
   }
 
