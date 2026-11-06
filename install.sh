@@ -14,23 +14,29 @@
 #   UFME_TARBALL_SHA256=<sha256>                         # verify tarball checksum, abort on mismatch
 #   UFME_SOURCE_DIR=/path/to/checkout                     # install from a local checkout (offline/CI)
 #   UFME_SKIP_NPM=1                                      # skip the project-local npm install step
+#   INSTALL_SCOPE=project|global|both                      # install scope (non-interactive)
+#
+# Install scopes:
+#   project  — only the current project folder ($TARGET/.opencode/, $TARGET/universal-frontend-master-source/, $TARGET/.ufme/)
+#   global   — only OpenCode user config ($HOME/.config/opencode/, $HOME/.config/ufme/)
+#   both     — global + project (default when run interactively without INSTALL_SCOPE)
 #
 # Global install (user scope — available to all projects):
-#   ~/.config/opencode/agents/*.md              # agent definitions (incl. ufmw-seo-*.md)
-#   ~/.config/opencode/skills/*/SKILL.md        # skill definition (incl. ufmw-seo-protocol)
-#   ~/.config/opencode/commands/*               # slash commands (/profile/*, /lite, /standard, ...)
-#   ~/.config/opencode/commands/ufmw/seo-*.md   # SEO slash commands
-#   ~/.config/opencode/opencode.json            # agent + command registry, default agent
-#   ~/.config/ufme/                             # cross-project shared data (library registry, state)
+#   $HOME/.config/opencode/agents/*.md              # agent definitions (incl. ufmw-seo-*.md)
+#   $HOME/.config/opencode/skills/*/SKILL.md        # skill definition (incl. ufmw-seo-protocol)
+#   $HOME/.config/opencode/commands/*               # slash commands (/profile/*, /lite, /standard, ...)
+#   $HOME/.config/opencode/commands/ufmw/seo-*.md   # SEO slash commands
+#   $HOME/.config/opencode/opencode.json            # agent + command registry, default agent
+#   $HOME/.config/ufme/                             # cross-project shared data (library registry, state)
 #
 # Project-local install (target project only — never overwrites existing):
-#   .opencode/skills/universal-frontend-master/  # skill copy (project override)
-#   .opencode/skills/ufmw-seo-protocol/           # SEO skill copy (project override)
-#   .opencode/agents/*.md                         # agent copy (project override)
-#   universal-frontend-master-source/             # source tree (includes browser runner)
-#   .ufme/                                        # per-project memory templates (seeded only)
-#   opencode.json                                 # permission policy (merged)
-#   package.json (dev dep)                        # full audit dependency set, if npm + package.json exist
+#   $TARGET/.opencode/skills/universal-frontend-master/  # skill copy (project override)
+#   $TARGET/.opencode/skills/ufmw-seo-protocol/           # SEO skill copy (project override)
+#   $TARGET/.opencode/agents/*.md                         # agent copy (project override)
+#   $TARGET/universal-frontend-master-source/             # source tree (includes browser runner)
+#   $TARGET/.ufme/                                        # per-project memory templates (seeded only)
+#   $TARGET/opencode.json                                 # permission policy (merged)
+#   $TARGET/package.json (dev dep)                        # full audit dependency set, if npm + package.json exist
 set -euo pipefail
 
 REPO="Paranthaman-K6/ufms"
@@ -160,6 +166,74 @@ if [ "$CHECK_UPDATE" -eq 1 ]; then
   exit 0
 fi
 
+# ------------------------------------------------------------------
+# Install scope selection
+# ------------------------------------------------------------------
+# Non-interactive: honor INSTALL_SCOPE env var, default to "both".
+# Interactive: prompt the user unless INSTALL_SCOPE is set.
+INSTALL_SCOPE="${INSTALL_SCOPE:-}"
+DO_GLOBAL=0
+DO_PROJECT=0
+
+pick_scope() {
+  if [ -n "$INSTALL_SCOPE" ]; then
+    case "$INSTALL_SCOPE" in
+      project|global|both) ;;
+      *)
+        log "ERROR: invalid INSTALL_SCOPE='$INSTALL_SCOPE' (use project, global, or both)"
+        exit 1
+        ;;
+    esac
+    return
+  fi
+
+  # Non-interactive (CI, piped input, no TTY): default to both.
+  if [ ! -t 0 ]; then
+    INSTALL_SCOPE="both"
+    log "Non-interactive install detected — defaulting to scope: both"
+    return
+  fi
+
+  echo
+  echo "============================================================"
+  echo "  UFMW Install Scope"
+  echo "============================================================"
+  echo "  Project folder ($TARGET):"
+  echo "    .opencode/agents/*, .opencode/skills/, .opencode/commands/"
+  echo "    universal-frontend-master-source/, .ufme/, opencode.json"
+  echo "    npm dev dependencies (if package.json exists)"
+  echo ""
+  echo "  OpenCode config / home:"
+  echo "    $HOME/.config/opencode/agents/*, skills/, commands/"
+  echo "    $HOME/.config/opencode/opencode.json"
+  echo "    $HOME/.config/ufme/ (shared library registry, evidence)"
+  echo ""
+  echo "  1) Project folder only"
+  echo "  2) OpenCode config / home only (global)"
+  echo "  3) Both (recommended — agents available in every project)"
+  echo "  4) Cancel"
+  echo "============================================================"
+  echo -n "Choose scope [1-4]: "
+  read -r choice || true
+  case "$choice" in
+    1) INSTALL_SCOPE="project" ;;
+    2) INSTALL_SCOPE="global" ;;
+    3) INSTALL_SCOPE="both" ;;
+    4|"") log "Install cancelled by user."; exit 0 ;;
+    *) log "Invalid choice — install cancelled."; exit 1 ;;
+  esac
+}
+
+pick_scope
+
+case "$INSTALL_SCOPE" in
+  project) DO_PROJECT=1 ;;
+  global)  DO_GLOBAL=1 ;;
+  both)    DO_GLOBAL=1; DO_PROJECT=1 ;;
+esac
+
+log "Install scope: $INSTALL_SCOPE (global=$DO_GLOBAL project=$DO_PROJECT)"
+
 log "Installing Universal Frontend Master skill"
 log "Target project: $TARGET"
 log "Global config dir: $OPENCODE_USER_CONFIG"
@@ -215,40 +289,41 @@ fi
 # ------------------------------------------------------------------
 # 2. Global install — user scope (all projects)
 # ------------------------------------------------------------------
-log "Installing agents globally to $OPENCODE_USER_CONFIG/agents ..."
-mkdir -p "$OPENCODE_USER_CONFIG/agents"
-cp -R "$SRC/.opencode/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
+if [ "$DO_GLOBAL" -eq 1 ]; then
+  log "Installing agents globally to $OPENCODE_USER_CONFIG/agents ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/agents"
+  cp -R "$SRC/.opencode/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
 
-log "Installing SEO agents globally to $OPENCODE_USER_CONFIG/agents ..."
-cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
+  log "Installing SEO agents globally to $OPENCODE_USER_CONFIG/agents ..."
+  cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$OPENCODE_USER_CONFIG/agents/" 2>/dev/null || true
 
-log "Installing skill globally to $OPENCODE_USER_CONFIG/skills/universal-frontend-master ..."
-mkdir -p "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
-cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$OPENCODE_USER_CONFIG/skills/universal-frontend-master/"
+  log "Installing skill globally to $OPENCODE_USER_CONFIG/skills/universal-frontend-master ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/skills/universal-frontend-master"
+  cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$OPENCODE_USER_CONFIG/skills/universal-frontend-master/"
 
-log "Installing SEO skill globally to $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol ..."
-mkdir -p "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
-cp -R "$SRC/ufmw_seo_protocol_skill/." "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol/"
+  log "Installing SEO skill globally to $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
+  cp -R "$SRC/ufmw_seo_protocol_skill/." "$OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol/"
 
-log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
-mkdir -p "$OPENCODE_USER_CONFIG/commands"
-cp -R "$SRC/.opencode/commands/." "$OPENCODE_USER_CONFIG/commands/" 2>/dev/null || true
+  log "Installing slash commands globally to $OPENCODE_USER_CONFIG/commands ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/commands"
+  cp -R "$SRC/.opencode/commands/." "$OPENCODE_USER_CONFIG/commands/" 2>/dev/null || true
 
-log "Installing SEO slash commands globally to $OPENCODE_USER_CONFIG/commands/ufmw ..."
-mkdir -p "$OPENCODE_USER_CONFIG/commands/ufmw"
-cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$OPENCODE_USER_CONFIG/commands/ufmw/"
+  log "Installing SEO slash commands globally to $OPENCODE_USER_CONFIG/commands/ufmw ..."
+  mkdir -p "$OPENCODE_USER_CONFIG/commands/ufmw"
+  cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$OPENCODE_USER_CONFIG/commands/ufmw/"
 
-log "Installing global opencode.json (default agent, commands, permissions) ..."
-GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
+  log "Installing global opencode.json (default agent, commands, permissions) ..."
+  GLOBAL_CONFIG="$OPENCODE_USER_CONFIG/opencode.json"
 
-# Preserve any existing user settings, but ensure our agents/commands/default_agent are present.
-if [ -f "$GLOBAL_CONFIG" ]; then
-  cp "$GLOBAL_CONFIG" "$GLOBAL_CONFIG.bak.$(date +%s)"
-fi
+  # Preserve any existing user settings, but ensure our agents/commands/default_agent are present.
+  if [ -f "$GLOBAL_CONFIG" ]; then
+    cp "$GLOBAL_CONFIG" "$GLOBAL_CONFIG.bak.$(date +%s)"
+  fi
 
-# Build the global opencode.json from the archive's version as the base, preserve
-# existing user keys, and keep file-based agent discovery (no inline agent registry).
-python3 - "$GLOBAL_CONFIG" "$SRC/opencode.json" <<'PYEOF'
+  # Build the global opencode.json from the archive's version as the base, preserve
+  # existing user keys, and keep file-based agent discovery (no inline agent registry).
+  python3 - "$GLOBAL_CONFIG" "$SRC/opencode.json" <<'PYEOF'
 import json, sys, os
 
 global_path = sys.argv[1]
@@ -292,87 +367,112 @@ with open(global_path, "w") as f:
 print(f"Wrote global opencode.json to {global_path}")
 PYEOF
 
-# ------------------------------------------------------------------
-# 3. Cross-project shared data directory (never overwrite existing)
-# ------------------------------------------------------------------
-log "Setting up cross-project shared data at $UFME_USER_CONFIG ..."
-mkdir -p "$UFME_USER_CONFIG/evidence"
+  # ------------------------------------------------------------------
+  # 3. Cross-project shared data directory (never overwrite existing)
+  # ------------------------------------------------------------------
+  log "Setting up cross-project shared data at $UFME_USER_CONFIG ..."
+  mkdir -p "$UFME_USER_CONFIG/evidence"
 
-# Library registry — shared catalog available to every project
-if [ ! -f "$UFME_USER_CONFIG/LIBRARY_REGISTRY.md" ]; then
-  cp "$SRC/universal-frontend-master-source/templates/LIBRARY_REGISTRY.md" "$UFME_USER_CONFIG/LIBRARY_REGISTRY.md"
+  # Library registry — shared catalog available to every project
+  if [ ! -f "$UFME_USER_CONFIG/LIBRARY_REGISTRY.md" ]; then
+    cp "$SRC/universal-frontend-master-source/templates/LIBRARY_REGISTRY.md" "$UFME_USER_CONFIG/LIBRARY_REGISTRY.md"
+  fi
+else
+  log "Skipping global install (scope: $INSTALL_SCOPE)"
 fi
 
 # ------------------------------------------------------------------
 # 4. Project-local install (target project — seed only, never overwrite)
 # ------------------------------------------------------------------
-log "Installing project-local files into $TARGET ..."
-mkdir -p "$TARGET/.opencode/skills/universal-frontend-master" \
-         "$TARGET/.opencode/agents" "$TARGET/.opencode/commands" "$TARGET/.ufme" \
-         "$TARGET/universal-frontend-master-source"
+if [ "$DO_PROJECT" -eq 1 ]; then
+  log "Installing project-local files into $TARGET ..."
+  mkdir -p "$TARGET/.opencode/skills/universal-frontend-master" \
+           "$TARGET/.opencode/agents" "$TARGET/.opencode/commands" "$TARGET/.ufme" \
+           "$TARGET/universal-frontend-master-source"
 
-# Repeat installs merge into the existing directories instead of nesting them.
-cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$TARGET/.opencode/skills/universal-frontend-master/"
-cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
-cp -R "$SRC/.opencode/commands/." "$TARGET/.opencode/commands/" 2>/dev/null || true
-cp -R "$SRC/universal-frontend-master-source/." "$TARGET/universal-frontend-master-source/"
+  # Repeat installs merge into the existing directories instead of nesting them.
+  cp -R "$SRC/.opencode/skills/universal-frontend-master/." "$TARGET/.opencode/skills/universal-frontend-master/"
+  cp -R "$SRC/.opencode/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+  cp -R "$SRC/.opencode/commands/." "$TARGET/.opencode/commands/" 2>/dev/null || true
+  cp -R "$SRC/universal-frontend-master-source/." "$TARGET/universal-frontend-master-source/"
 
-# SEO skill — project-local (seed only, never overwrite)
-cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
-mkdir -p "$TARGET/.opencode/commands/ufmw"
-cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$TARGET/.opencode/commands/ufmw/" 2>/dev/null || true
-mkdir -p "$TARGET/.opencode/skills/ufmw-seo-protocol"
-cp -R "$SRC/ufmw_seo_protocol_skill/." "$TARGET/.opencode/skills/ufmw-seo-protocol/"
+  # SEO skill — project-local (seed only, never overwrite)
+  cp -R "$SRC/ufmw_seo_protocol_skill/agents/." "$TARGET/.opencode/agents/" 2>/dev/null || true
+  mkdir -p "$TARGET/.opencode/commands/ufmw"
+  cp -R "$SRC/ufmw_seo_protocol_skill/commands/ufmw/." "$TARGET/.opencode/commands/ufmw/" 2>/dev/null || true
+  mkdir -p "$TARGET/.opencode/skills/ufmw-seo-protocol"
+  cp -R "$SRC/ufmw_seo_protocol_skill/." "$TARGET/.opencode/skills/ufmw-seo-protocol/"
 
-# Browser runner check — bundled browser automation lives in the source tree.
-if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
-  log "Browser runner installed: universal-frontend-master-source/browser/run.js"
+  # Browser runner check — bundled browser automation lives in the source tree.
+  if [ -f "$TARGET/universal-frontend-master-source/browser/run.js" ]; then
+    log "Browser runner installed: universal-frontend-master-source/browser/run.js"
+  else
+    log "WARNING: universal-frontend-master-source/browser/run.js is missing."
+    log "  Browser-driven validation (Selenium) will be unavailable."
+    log "  Reinstall, or copy the browser/ directory from the repository manually."
+  fi
+
+  # Seed per-project memory from bundled templates (never overwrite existing).
+  python3 "$SRC/universal-frontend-master-source/scripts/seed-project-memory.py" "$TARGET"
+
+  # Point project opencode.json at global user config (project merges on top).
+  if [ ! -f "$TARGET/opencode.json" ]; then
+    cp "$SRC/opencode.json" "$TARGET/opencode.json"
+  fi
 else
-  log "WARNING: universal-frontend-master-source/browser/run.js is missing."
-  log "  Browser-driven validation (Selenium) will be unavailable."
-  log "  Reinstall, or copy the browser/ directory from the repository manually."
-fi
-
-# Seed per-project memory from bundled templates (never overwrite existing).
-python3 "$SRC/universal-frontend-master-source/scripts/seed-project-memory.py" "$TARGET"
-
-# Point project opencode.json at global user config (project merges on top).
-if [ ! -f "$TARGET/opencode.json" ]; then
-  cp "$SRC/opencode.json" "$TARGET/opencode.json"
+  log "Skipping project-local install (scope: $INSTALL_SCOPE)"
 fi
 
 # ------------------------------------------------------------------
 # 5. Project-local npm dependencies (full audit set, best-effort)
 # ------------------------------------------------------------------
-if [ -f "$TARGET/package.json" ] && [ -z "${UFME_SKIP_NPM:-}" ]; then
-  if command -v npm >/dev/null 2>&1; then
-    log "Installing project-local dev dependencies: $NPM_HINT ..."
-    if (cd "$TARGET" && npm install -D "${NPM_DEPS[@]}" --loglevel=error >"$TMP/npm.log" 2>&1); then
-      log "Audit dependencies installed: ${NPM_DEPS[*]}"
+if [ "$DO_PROJECT" -eq 1 ]; then
+  if [ -f "$TARGET/package.json" ] && [ -z "${UFME_SKIP_NPM:-}" ]; then
+    if command -v npm >/dev/null 2>&1; then
+      log "Installing project-local dev dependencies: $NPM_HINT ..."
+      if (cd "$TARGET" && npm install -D "${NPM_DEPS[@]}" --loglevel=error >"$TMP/npm.log" 2>&1); then
+        log "Audit dependencies installed: ${NPM_DEPS[*]}"
+      else
+        log "WARNING: npm install failed. Install the browser/audit dependencies manually:"
+        log "  cd \"$TARGET\" && $NPM_HINT"
+        log "(npm output kept at $TMP — note it is removed when this installer exits; rerun to see the error.)"
+      fi
     else
-      log "WARNING: npm install failed. Install the browser/audit dependencies manually:"
+      log "npm not found. Install the browser/audit dependencies manually:"
       log "  cd \"$TARGET\" && $NPM_HINT"
-      log "(npm output kept at $TMP — note it is removed when this installer exits; rerun to see the error.)"
     fi
   else
-    log "npm not found. Install the browser/audit dependencies manually:"
-    log "  cd \"$TARGET\" && $NPM_HINT"
+    log "No package.json in $TARGET (or UFME_SKIP_NPM set). To enable browser and audit validation, run in your project:"
+    log "  $NPM_HINT"
   fi
 else
-  log "No package.json in $TARGET (or UFME_SKIP_NPM set). To enable browser and audit validation, run in your project:"
-  log "  $NPM_HINT"
+  log "Skipping project-local npm dependencies (scope: $INSTALL_SCOPE)"
 fi
 
 # ------------------------------------------------------------------
 # 6. Summary
 # ------------------------------------------------------------------
-AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
-log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
-log "Installed skill globally: $OPENCODE_USER_CONFIG/skills/universal-frontend-master"
-log "Installed SEO skill globally: $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
-log "Installed source tree: $TARGET/universal-frontend-master-source"
-log "Cross-project data: $UFME_USER_CONFIG (library registry shared across projects)"
-log "Project-local seed: $TARGET/.ufme/"
+if [ "$DO_GLOBAL" -eq 1 ]; then
+  AGENT_COUNT=$(ls "$OPENCODE_USER_CONFIG/agents"/*.md 2>/dev/null | wc -l)
+  log "Installed agents globally: $AGENT_COUNT (user scope — available to all projects)"
+  log "Installed skill globally: $OPENCODE_USER_CONFIG/skills/universal-frontend-master"
+  log "Installed SEO skill globally: $OPENCODE_USER_CONFIG/skills/ufmw-seo-protocol"
+fi
+if [ "$DO_PROJECT" -eq 1 ]; then
+  log "Installed source tree: $TARGET/universal-frontend-master-source"
+  log "Project-local seed: $TARGET/.ufme/"
+fi
+if [ "$DO_GLOBAL" -eq 1 ]; then
+  log "Cross-project data: $UFME_USER_CONFIG (library registry shared across projects)"
+fi
 log ""
-log "Done. Start OpenCode in any project and invoke: @universal-frontend-master"
-log "Run profiles: /profile/lite | /profile/standard | /profile/advanced | /profile/autonomous"
+if [ "$DO_GLOBAL" -eq 1 ] && [ "$DO_PROJECT" -eq 1 ]; then
+  log "Done. Start OpenCode in any project and invoke: @universal-frontend-master"
+  log "Run profiles: /profile/lite | /profile/standard | /profile/advanced | /profile/autonomous"
+elif [ "$DO_PROJECT" -eq 1 ]; then
+  log "Done. Project-local install complete in $TARGET"
+  log "Start OpenCode in this project and invoke: @universal-frontend-master"
+else
+  log "Done. Global install complete in $OPENCODE_USER_CONFIG"
+  log "Start OpenCode in any project and invoke: @universal-frontend-master"
+fi
