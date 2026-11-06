@@ -141,7 +141,9 @@ the WAF rules for edge-level blocking.
 ## Deploy
 
 This folder is a monorepo package: set the Vercel project's **Root Directory** to
-`registry-server`, then push to `main` or run `vercel deploy` from here.
+`registry-server`, then push to `main` or run `vercel deploy` from here. The
+runtime is pinned to Node 22 in `package.json` (`engines`); `nodejs26.x` still
+emits the Vercel `DEP0169` `url.parse` warning on every request.
 
 Live deployment (Hobby): <https://ufms-registry-server-mrparanthamans-projects.vercel.app>
 
