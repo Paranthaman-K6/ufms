@@ -41,7 +41,9 @@ Invoke `@ufmw-frontend-design` to start; it delegates according to the active pr
 
 ## Scripts
 
-Run scripts from `skills/ufmw-frontend-design/scripts/`.
+This skill has no `scripts/` of its own; it runs the main skill's helpers. In a
+checkout that is `skills/universal-frontend-master/scripts/`; after a global
+install it is `~/.config/opencode/skills/universal-frontend-master/scripts/`.
 
 | Script | Purpose |
 |--------|---------|

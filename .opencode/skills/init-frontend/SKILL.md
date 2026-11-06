@@ -98,8 +98,8 @@ Reference URLs provided are researched via `ask-matt` subagent before design dec
 1. Read `.ufme/AGENT_STATE.md`, `.ufme/TASKS.md`, `.ufme/ENVIRONMENT.md`.
 2. Ask ALL design questions via chat (background, animation, references, interactivity, content, typography, color).
 3. Research reference URLs (if provided) via `ask-matt`.
-4. Run `scripts/init-project.py` to record answers in `.ufme/DESIGN_SYSTEM.md` and `.ufme/design-choices.json`.
-5. Run `scripts/init-frontend.sh <project-name> [type]` to scaffold (only after questions answered).
+4. Run `skills/universal-frontend-master/scripts/init-project.py` to record answers in `.ufme/DESIGN_SYSTEM.md` and `.ufme/design-choices.json`.
+5. Run `scripts/init-frontend.sh <project-name> [type]` (this skill) to scaffold (only after questions answered).
 6. Initialize design tokens (`ufmw init-frontend tokens`).
 7. Configure CI with perf budget and a11y gates.
 8. Run `ufmw init-frontend audit` to verify WCAG 2.2 AA + performance budgets.

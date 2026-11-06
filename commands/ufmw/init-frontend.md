@@ -5,7 +5,7 @@ description: Scaffold new frontend project with design system
 
 Scaffold a new frontend project with a design system — structure, tokens, component library, responsive base, accessibility foundations, performance budget, and CI.
 
-**Mandatory:** Run `scripts/init-project.py` first to answer all design questions. The scaffold script refuses to run unless `.ufme/DESIGN_SYSTEM.md` exists.
+**Mandatory:** Run `skills/universal-frontend-master/scripts/init-project.py` first to answer all design questions. The scaffold script refuses to run unless `.ufme/DESIGN_SYSTEM.md` exists.
 
 Usage:
   ufmw init-frontend <project-name> [type]
