@@ -182,8 +182,11 @@ def _():
 def _():
     if shutil.which("opencode") is None:
         raise AssertionError("SKIP: opencode not installed")
+    # --standalone runs a private server: the shared background service can be
+    # busy or reloading config, and then returns a truncated JSON body.
     p = subprocess.run(
-        ["opencode", "debug", "agents"], capture_output=True, text=True, timeout=90
+        ["opencode", "debug", "agents", "--standalone"],
+        capture_output=True, text=True, timeout=120,
     )
     output = p.stderr + p.stdout
     if p.returncode != 0:
@@ -191,7 +194,15 @@ def _():
             raise AssertionError(f"SKIP: opencode agent service unavailable: {output[:160]}")
         raise AssertionError(f"opencode debug agents failed: {output[:200]}")
     start = p.stdout.find("[")
-    data = json.loads(p.stdout[start:]) if start >= 0 else []
+    if start < 0:
+        raise AssertionError(f"opencode debug agents returned no JSON: {output[:200]}")
+    try:
+        data, _ = json.JSONDecoder().raw_decode(p.stdout[start:])
+    except json.JSONDecodeError as exc:
+        raise AssertionError(
+            f"opencode debug agents returned invalid JSON: {exc}; "
+            f"near {p.stdout[max(0, exc.pos - 80):exc.pos + 80]!r}"
+        ) from exc
     ids = {agent.get("id") for agent in data}
     missing = EXPECTED_AGENTS - ids
     assert not missing, f"not discovered: {sorted(missing)}"
