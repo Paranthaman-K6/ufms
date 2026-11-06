@@ -337,17 +337,8 @@ def main():
     import json
     choices_path.write_text(json.dumps(choices, indent=2), encoding="utf-8")
 
-    print(f"\n=== Design questions answered — .ufme/DESIGN_SYSTEM.md saved ===")
-    print(f"  Palette:   {chosen_palette.get('name', '')}")
-    print(f"  Font:      {chosen_font.get('name', '')}")
-    print(f"  Style:     {chosen_style.get('name', '')}")
-    print(f"  Profile:   {profile}")
-    print(f"  Project:   {project_name} (type: {args.type})")
-    if refs:
-        print(f"  Refs:      {', '.join(refs)}")
-    print("\nNo code has been scaffolded yet. Run the scaffold step next:")
-    print(f"  python3 universal-frontend-master-source/scripts/init-frontend.sh {project_name} {args.type}")
-    print(f"  (or: ufmw init-frontend {project_name} {args.type})")
+    print("\nDesign questions answered — .ufme/DESIGN_SYSTEM.md saved.")
+    print("You can now scaffold your project using @universal-frontend-master.")
     return 0
 
 
