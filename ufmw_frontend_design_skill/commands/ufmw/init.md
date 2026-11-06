@@ -5,15 +5,21 @@ description: Initialize UFMW reference-driven design project
 
 Initialize the current project for reference-driven website engineering.
 
-Runs `scripts/init-project.py` interactively, which asks design-preference
-questions and records the answers in `.ufme/`:
+**Mandatory:** run `scripts/init-project.py` and require answers to every
+design question. Do not skip or defer the questionnaire.
 
-## Questions asked
+## Runs
 
-- **Color palette** — choose from the curated palette list (or skip)
-- **Font pairing** — choose heading + body font combination (or skip)
-- **Visual style** — choose a design style (minimal, brutalism, glass, etc.) (or skip)
-- **Reference websites** — paste reference URLs for design inspiration (blank line to finish)
+```
+python3 universal-frontend-master-source/scripts/init-project.py [target-dir]
+```
+
+## Questions asked (all required)
+
+- **Color palette** — must choose one from the curated palette list
+- **Font pairing** — must choose one heading + body font combination
+- **Visual style** — must choose one design style (minimal, brutalism, glass, etc.)
+- **Reference websites** — paste reference URLs for design inspiration (blank line to finish; optional)
 
 ## Creates
 
@@ -24,6 +30,3 @@ questions and records the answers in `.ufme/`:
 
 Usage:
   ufmw init
-
-Or directly:
-  python3 universal-frontend-master-source/scripts/init-project.py [target-dir]
