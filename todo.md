@@ -128,5 +128,7 @@ Each ticket is self-contained: a fresh session can pick it up from the spec in
 - [x] `vercel.json`, `.env.example`, `registry-server/README.md`, root README and `docs/REMASTER_SPEC.md` document endpoints, env vars, limits and the per-instance limitation
 - [x] Works on the free Hobby plan: a connected Blob store uses OIDC (no `BLOB_READ_WRITE_TOKEN` required); `/health` reports `storage` and `degraded`, and `/admin` refuses ephemeral keys on Vercel without a store
 - [x] Hobby limits documented (1 GB Blob, 10k reads, 2k writes, 300s functions, 3 WAF rules, non-commercial use)
-- [x] `registry-server/test/run.mjs` grows from 14 to 28 passing checks (health 200/503/deep/degraded, 415/413/429, admin CSRF/login/rate limit/create/revoke)
+- [x] `registry-server/test/run.mjs` grows from 14 to 29 passing checks (health 200/503/deep/degraded, 415/413/429, admin CSRF/login/rate limit/create/revoke, missing Blob)
+- [x] Deployed on Hobby at <https://ufms-registry-server-mrparanthamans-projects.vercel.app>: root directory `registry-server`, SSO protection off, public Blob store connected, `/health` 200 and `/admin` login verified end to end
+- [x] Fixed two first-run bugs found by the live deploy: a missing Blob is treated as an empty store, and reads are versioned by ETag so new or revoked keys go live in seconds instead of a month
 - **Blocked by:** T11

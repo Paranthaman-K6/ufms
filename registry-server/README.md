@@ -140,11 +140,10 @@ the WAF rules for edge-level blocking.
 
 ## Deploy
 
-```bash
-npm install
-npm test
-vercel deploy
-```
+This folder is a monorepo package: set the Vercel project's **Root Directory** to
+`registry-server`, then push to `main` or run `vercel deploy` from here.
+
+Live deployment (Hobby): <https://ufms-registry-server-mrparanthamans-projects.vercel.app>
 
 In the Vercel project, create a **public** Blob store (Storage → Blob) and connect
 it to the project. Then set:
@@ -157,6 +156,13 @@ vercel env add REGISTRY_ADMIN_SECRET production   # optional, defaults to the pa
 
 Connecting the store is enough for the SDK (OIDC). Add `BLOB_READ_WRITE_TOKEN`
 only if you run the code outside Vercel or prefer a static token.
+
+Vercel Authentication (SSO protection) must be **off** for the project, or every
+`/mcp` call is redirected to a Vercel login page.
+
+The first key is created in `/admin`; until then `/health` returns `503`
+`unconfigured` and `/mcp` rejects requests. Blob reads are versioned by ETag, so a
+new or revoked key is live within a few seconds (not instantly).
 
 ## Client
 
