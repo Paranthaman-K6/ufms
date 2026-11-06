@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # init-frontend.sh — Scaffold a new frontend project with a design system.
 #
+# REQUIRES: design questions answered first (init-project.py run, .ufme/DESIGN_SYSTEM.md exists).
+# No code is scaffolded until the user has answered all design questions.
+#
 # Usage:
 #   init-frontend.sh <project-name> [type]
 #
 #   project-name  Name of the project directory to create
 #   type          Template category (default: landing)
-#
-# Creates project structure with design tokens, component library,
-# responsive base, accessibility foundations, performance budgets, and CI.
 #
 set -euo pipefail
 
@@ -23,12 +23,104 @@ if [ -z "$PROJECT_NAME" ]; then
   exit 2
 fi
 
-PROJECT_DIR="$(pwd)/$PROJECT_NAME"
+# ------------------------------------------------------------------
+# 0. Guard: design questions MUST be answered before any code is written.
+# ------------------------------------------------------------------
+ROOT_DIR="$(pwd)"
+UFME_DIR="$ROOT_DIR/.ufme"
+CHOICES_FILE="$UFME_DIR/design-choices.json"
+DESIGN_SYSTEM_FILE="$UFME_DIR/DESIGN_SYSTEM.md"
+
+if [ ! -f "$DESIGN_SYSTEM_FILE" ]; then
+  echo "ERROR: Design questions not answered yet." >&2
+  echo "" >&2
+  echo "Run the design questionnaire first, then scaffold:" >&2
+  echo "  python3 universal-frontend-master-source/scripts/init-project.py $ROOT_DIR" >&2
+  echo "  (or pass --palette/--font/--style/--profile/--project-name non-interactively)" >&2
+  echo "" >&2
+  echo "No code is scaffolded until all design questions are answered." >&2
+  exit 3
+fi
+
+if [ ! -f "$CHOICES_FILE" ]; then
+  echo "ERROR: Design choices not recorded ($CHOICES_FILE missing)." >&2
+  echo "Re-run init-project.py to answer the design questions." >&2
+  exit 3
+fi
+
+# ------------------------------------------------------------------
+# 1. Read design choices (palette, font, style, profile, refs)
+# ------------------------------------------------------------------
+PALETTE_NAME=$(python3 -c "import json;print(json.load(open('$CHOICES_FILE')).get('palette',''))" 2>/dev/null || echo "")
+FONT_NAME=$(python3 -c "import json;print(json.load(open('$CHOICES_FILE')).get('font',''))" 2>/dev/null || echo "")
+STYLE_NAME=$(python3 -c "import json;print(json.load(open('$CHOICES_FILE')).get('style',''))" 2>/dev/null || echo "")
+PROFILE=$(python3 -c "import json;print(json.load(open('$CHOICES_FILE')).get('profile','basic'))" 2>/dev/null || echo "basic")
+
+log "Creating project: $PROJECT_NAME (type: $TYPE, profile: $PROFILE)"
+log "Design: palette=$PALETTE_NAME font=$FONT_NAME style=$STYLE_NAME"
+
+PROJECT_DIR="$ROOT_DIR/$PROJECT_NAME"
 TEMPLATES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/skills/init-frontend/templates"
 
-log "Creating project: $PROJECT_NAME (type: $TYPE)"
+# ------------------------------------------------------------------
+# 2. Resolve color scheme from palette name
+# ------------------------------------------------------------------
+resolve_colors() {
+  local name="$1"
+  name_lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
+  case "$name_lower" in
+    *stripe*gradient*blue*|*stripe*)
+      echo '#0f172a #f8fafc #64748b #0f172a #334155 #0ea5e9 #e2e8f0 #0ea5e9 #166534 #ca8a04 #dc2626'
+      ;;
+    *github*dim*dark*|*github*)
+      echo '#0d1117 #161b22 #c9d1d9 #0d1117 #21262d #58a6ff #30363d #58a6ff #3fb950 #d29922 #f85149'
+      ;;
+    *notion*warm*paper*|*notion*)
+      echo '#fafaf9 #f3f4f6 #37352f #37352f #787774 #a16207 #e7e8ea #a16207 #166534 #ca8a04 #dc2626'
+      ;;
+    *tailwind*slate*classic*|*tailwind*slate*)
+      echo '#0f172a #f8fafc #64748b #0f172a #334155 #6366f1 #e2e8f0 #6366f1 #166534 #ca8a04 #dc2626'
+      ;;
+    *monochrome*red*signal*|*monochrome*red*)
+      echo '#ffffff #f8fafc #0f172a #0f172a #334155 #dc2626 #e2e8f0 #dc2626 #166534 #ca8a04 #dc2626'
+      ;;
+    *forest*sustainability*|*forest*)
+      echo '#fefce0 #f3f4f6 #166534 #166534 #374151 #15803d #e5e7eb #15803d #166534 #ca8a04 #dc2626'
+      ;;
+    *cyberpunk*neon*purple*|*cyberpunk*)
+      echo '#050507 #0f0a17 #a78bfa #050507 #1e1b4b #d8b4fe #1f2937 #d8b4fe #166534 #ca8a04 #dc2626'
+      ;;
+    *apple*light*minimal*|*apple*)
+      echo '#ffffff #f5f5f7 #1d1d1f #1d1d1f #86868b #0066cc #d2d2d7 #0066cc #166534 #ca8a04 #dc2626'
+      ;;
+    *midnight*ocean*|*midnight*)
+      echo '#0f172a #1e293b #94a3b8 #0f172a #334155 #22d3ee #334155 #22d3ee #166534 #ca8a04 #dc2626'
+      ;;
+    *sunrise*warm*light*|*sunrise*)
+      echo '#fff7ed #fef3c7 #f59e0b #f59e0b #b45309 #f97316 #fed7aa #f97316 #166534 #ca8a04 #dc2626'
+      ;;
+    *gunmetal*concrete*|*gunmetal*)
+      echo '#e5e7eb #d1d5db #374151 #374151 #6b7280 #ef4444 #9ca3af #ef4444 #166534 #ca8a04 #dc2626'
+      ;;
+    *inter*stripe*analog*|*inter*stripe*)
+      echo '#f5f0e8 #fefce0 #37352f #37352f #787774 #a16207 #e7e8ea #a16207 #166534 #ca8a04 #dc2626'
+      ;;
+    *telegram*blue*pop*|*telegram*)
+      echo '#f0f0f0 #e8e8e8 #000000 #000000 #4d4d4d #0088cc #cccccc #0088cc #166534 #ca8a04 #dc2626'
+      ;;
+    *)
+      # Default fallback: clean light theme
+      echo '#0f172a #f8fafc #64748b #0f172a #334155 #0ea5e9 #e2e8f0 #0ea5e9 #166534 #ca8a04 #dc2626'
+      ;;
+  esac
+}
 
-# Create project directory structure
+COLORS="$(resolve_colors "$PALETTE_NAME")"
+read -r COLOR_BG COLOR_SURFACE COLOR_TEXT COLOR_TEXT_MUTED COLOR_PRIMARY COLOR_PRIMARY_HOOK COLOR_ACCENT COLOR_BORDER COLOR_FOCUS_RING COLOR_SUCCESS COLOR_WARNING COLOR_ERROR <<< "$COLORS"
+
+# ------------------------------------------------------------------
+# 2. Create project directory structure
+# ------------------------------------------------------------------
 mkdir -p "$PROJECT_DIR"/{src/{components,tokens,pages,styles,assets,utils},public,tests/{a11y,perf,responsive},.github/workflows}
 
 # Copy template files if they exist
@@ -39,26 +131,28 @@ else
   log "No template files for '$TYPE' — creating base structure"
 fi
 
-# Design tokens
+# ------------------------------------------------------------------
+# 3. Design tokens (from answered palette/font/style)
+# ------------------------------------------------------------------
 mkdir -p "$PROJECT_DIR/src/tokens"
-cat > "$PROJECT_DIR/src/tokens/colors.css" <<'CSS'
+cat > "$PROJECT_DIR/src/tokens/colors.css" <<CSS
 :root {
-  --color-bg: #ffffff;
-  --color-surface: #f8fafc;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-primary: #0f172a;
-  --color-primary-hover: #334155;
-  --color-accent: #0ea5e9;
-  --color-border: #e2e8f0;
-  --color-focus-ring: #0ea5e9;
-  --color-success: #166534;
-  --color-warning: #ca8a04;
-  --color-error: #dc2626;
+  --color-bg: $COLOR_BG;
+  --color-surface: $COLOR_SURFACE;
+  --color-text: $COLOR_TEXT;
+  --color-text-muted: $COLOR_TEXT_MUTED;
+  --color-primary: $COLOR_PRIMARY;
+  --color-primary-hover: $COLOR_PRIMARY_HOOK;
+  --color-accent: $COLOR_ACCENT;
+  --color-border: $COLOR_BORDER;
+  --color-focus-ring: $COLOR_FOCUS_RING;
+  --color-success: $COLOR_SUCCESS;
+  --color-warning: $COLOR_WARNING;
+  --color-error: $COLOR_ERROR;
 }
 CSS
 
-cat > "$PROJECT_DIR/src/tokens/typography.css" <<'CSS'
+cat > "$PROJECT_DIR/src/tokens/typography.css" <<CSS
 :root {
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -79,7 +173,7 @@ cat > "$PROJECT_DIR/src/tokens/typography.css" <<'CSS'
 }
 CSS
 
-cat > "$PROJECT_DIR/src/tokens/spacing.css" <<'CSS'
+cat > "$PROJECT_DIR/src/tokens/spacing.css" <<CSS
 :root {
   --space-0: 0;
   --space-1: 0.25rem;
@@ -97,8 +191,10 @@ cat > "$PROJECT_DIR/src/tokens/spacing.css" <<'CSS'
 }
 CSS
 
-# Responsive base
-cat > "$PROJECT_DIR/src/styles/base.css" <<'CSS'
+# ------------------------------------------------------------------
+# 4. Responsive base
+# ------------------------------------------------------------------
+cat > "$PROJECT_DIR/src/styles/base.css" <<CSS
 /* Reset */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -164,7 +260,9 @@ button, a, [role="button"], input, select, textarea {
 }
 CSS
 
-# Package.json
+# ------------------------------------------------------------------
+# 5. Package.json
+# ------------------------------------------------------------------
 cat > "$PROJECT_DIR/package.json" <<JSON
 {
   "name": "$PROJECT_NAME",
@@ -188,7 +286,9 @@ cat > "$PROJECT_DIR/package.json" <<JSON
 }
 JSON
 
-# Performance budget
+# ------------------------------------------------------------------
+# 6. Performance budget
+# ------------------------------------------------------------------
 cat > "$PROJECT_DIR/perf-budget.json" <<'JSON'
 [
   { "path": "/*", "timings": [ { "metric": "largest-contentful-paint", "budget": 2500 } ] },
@@ -200,8 +300,10 @@ cat > "$PROJECT_DIR/perf-budget.json" <<'JSON'
 ]
 JSON
 
-# CI workflow
-cat > "$PROJECT_DIR/.github/workflows/ci.yml" <<'YAML'
+# ------------------------------------------------------------------
+# 7. CI workflow
+# ------------------------------------------------------------------
+cat > "$PROJECT_DIR/.github/workflows/ci.yml" <<YAML
 name: CI
 on: [push, pull_request]
 jobs:
@@ -218,11 +320,15 @@ jobs:
       - run: npm run test:perf
 YAML
 
-# README
+# ------------------------------------------------------------------
+# 8. README
+# ------------------------------------------------------------------
 cat > "$PROJECT_DIR/README.md" <<MD
 # $PROJECT_NAME
 
-Frontend project initialized with \`init-frontend\` (type: $TYPE).
+Frontend project initialized with \`init-frontend\` (type: $TYPE, profile: $PROFILE).
+
+Design: palette=$PALETTE_NAME font=$FONT_NAME style=$STYLE_NAME
 
 ## Design System
 
@@ -248,6 +354,7 @@ WCAG 2.2 AA — semantic HTML, focus-visible rings, real labels, contrast ratios
 MD
 
 log "Project created at $PROJECT_DIR"
+log "Design questions answered before any code was written."
 log "Next steps:"
 log "  1. cd $PROJECT_NAME"
 log "  2. npm install"

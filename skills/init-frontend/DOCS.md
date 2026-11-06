@@ -10,17 +10,18 @@ Initialize frontend projects with a design system — not just scaffolding. Sets
 2. [Prerequisites](#prerequisites)
 3. [Installation](#installation)
 4. [Quick Start](#quick-start)
-5. [Commands Reference](#commands-reference)
-6. [Templates](#templates)
-7. [Profiles (basic vs advanced)](#profiles-basic-vs-advanced)
-8. [Design System & Anti-AI-Slop Rules](#design-system--anti-ai-slop-rules)
-9. [Accessibility (WCAG 2.2 AA)](#accessibility-wcag-22-aa)
-10. [Performance Budgets](#performance-budgets)
-11. [Project Structure After Init](#project-structure-after-init)
-12. [CI Integration](#ci-integration)
-13. [Examples](#examples)
-14. [Troubleshooting](#troubleshooting)
-15. [Security & Safety](#security--safety)
+5. [Questions First — Mandatory Design Questionnaire](#questions-first--mandatory-design-questionnaire)
+6. [Commands Reference](#commands-reference)
+7. [Templates](#templates)
+8. [Profiles (basic vs advanced)](#profiles-basic-vs-advanced)
+9. [Design System & Anti-AI-Slop Rules](#design-system--anti-ai-slop-rules)
+10. [Accessibility (WCAG 2.2 AA)](#accessibility-wcag-22-aa)
+11. [Performance Budgets](#performance-budgets)
+12. [Project Structure After Init](#project-structure-after-init)
+13. [CI Integration](#ci-integration)
+14. [Examples](#examples)
+15. [Troubleshooting](#troubleshooting)
+16. [Security & Safety](#security--safety)
 
 ---
 
@@ -135,6 +136,74 @@ npm run dev
 ```bash
 ufmw init-frontend audit
 ```
+
+---
+
+## Questions First — Mandatory Design Questionnaire
+
+**No code is written until every design question is answered.** The scaffold script (`init-frontend.sh`) checks for `.ufme/DESIGN_SYSTEM.md` and refuses to run if design questions haven't been answered.
+
+### The Rule
+
+```
+Questions → .ufme/DESIGN_SYSTEM.md → Scaffold code → Tokens → Audit
+     ↑                                                      │
+     └──────────────────────────────────────────────────────┘
+           Code only after all answers recorded
+```
+
+### Interactive Mode (terminal with TTY)
+
+When run in an interactive terminal, `init-project.py` prompts you for each answer:
+
+```bash
+python3 universal-frontend-master-source/scripts/init-project.py .
+```
+
+You'll be asked:
+1. **Project name** (required)
+2. **Template type** (default: `landing`)
+3. **Profile** (`basic` or `advanced`, default: `basic`)
+4. **Color palette** (required — choose from 13 options)
+5. **Font pairing** (required — choose from 14 options)
+6. **Visual style** (required — choose from 14 options)
+7. **Reference URLs** (optional — paste URLs, blank line to finish)
+
+Each question is mandatory. Invalid choices re-prompt. Answers are saved to `.ufme/DESIGN_SYSTEM.md` and `.ufme/design-choices.json`.
+
+### Non-Interactive Mode (OpenCode agent / CI / no TTY)
+
+When there's no TTY (e.g. OpenCode agent context), pass answers via CLI flags:
+
+```bash
+python3 universal-frontend-master-source/scripts/init-project.py . \
+  --project-name my-saas-app \
+  --type saas \
+  --profile advanced \
+  --palette "Stripe Gradient Blue" \
+  --font "IBM Plex Sans + Plex Mono" \
+  --style "Minimal Monochrome" \
+  --refs "https://stripe.com"
+```
+
+**All required flags must be provided.** If any are missing, the script prints all questions and exits with code 2 — no code is scaffolded.
+
+List available options:
+```bash
+python3 init-project.py --list-palettes
+python3 init-project.py --list-fonts  
+python3 init-project.py --list-styles
+```
+
+### Step 2 — Scaffold (only after questions answered)
+
+```bash
+python3 universal-frontend-master-source/scripts/init-frontend.sh my-saas-app saas
+# or:
+ufmw init-frontend my-saas-app saas
+```
+
+The scaffold reads `.ufme/design-choices.json` to apply your chosen palette, font, style, and profile to the generated tokens and project structure.
 
 ---
 
