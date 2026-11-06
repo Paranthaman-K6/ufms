@@ -369,7 +369,6 @@ Registry entries may also carry a `theme` object (`bg`, `surface`, `text`, `mute
 - [Testing](skills/universal-frontend-master/docs/testing.md)
 - [Compatibility](skills/universal-frontend-master/docs/compatibility.md)
 - [Troubleshooting](skills/universal-frontend-master/docs/troubleshooting.md)
-- [MCP integration](skills/universal-frontend-master/docs/mcp-integration.md)
 - [System architecture](skills/universal-frontend-master/core/SYSTEM_ARCHITECTURE.md)
 
 ## Contributing
