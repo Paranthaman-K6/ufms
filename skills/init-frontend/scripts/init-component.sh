@@ -86,7 +86,7 @@ cat > "$COMPONENT_DIR/$COMPONENT_NAME.states.md" <<MD
 | Error | \`.state-error\` | Error state |
 
 ## Accessibility
-- `focus-visible` ring applied
+- \`focus-visible\` ring applied
 - Keyboard navigable
 - Contrast ≥ 4.5:1 text / ≥ 3:1 UI
 MD

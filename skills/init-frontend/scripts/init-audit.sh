@@ -29,9 +29,9 @@ echo "=== UFMW Init-Frontend Audit ==="
 
 # Token audit
 check "design tokens exist" "[ -d '$PROJECT_DIR/src/tokens' ]"
-check "color tokens" "[ -f '$PROJECT_DIR/src/tokens/color.json' ]"
-check "typography tokens" "[ -f '$PROJECT_DIR/src/tokens/typography.json' ]"
-check "spacing tokens" "[ -f '$PROJECT_DIR/src/tokens/spacing.json' ]"
+check "color tokens" "[ -f '$PROJECT_DIR/src/tokens/colors.css' ] || [ -f '$PROJECT_DIR/src/tokens/color.json' ]"
+check "typography tokens" "[ -f '$PROJECT_DIR/src/tokens/typography.css' ] || [ -f '$PROJECT_DIR/src/tokens/typography.json' ]"
+check "spacing tokens" "[ -f '$PROJECT_DIR/src/tokens/spacing.css' ] || [ -f '$PROJECT_DIR/src/tokens/spacing.json' ]"
 
 # Accessibility checks
 check "base CSS has focus-visible" "grep -q 'focus-visible' '$PROJECT_DIR/src/styles/base.css'"
