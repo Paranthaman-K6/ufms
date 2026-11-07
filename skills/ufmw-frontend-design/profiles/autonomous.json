@@ -1,22 +1,15 @@
 {
   "name": "autonomous",
-  "description": "Every specialist role available at full concurrency (five delegates; the primary coordinates) with exhaustive verification.",
-  "primaryAgent": "ufmw-frontend-design",
-  "maxConcurrentDelegates": 5,
-  "allowedAgents": [
-    "ufmw-frontend-design",
-    "ufmw-orchestrator",
-    "ufmw-designer",
-    "ufmw-builder",
-    "ufmw-backend-analyst",
-    "ufmw-auditor"
-  ],
+  "description": "Autonomous end-to-end execution with deep research and exhaustive verification. Agents decide collaboration, tools, delegation, and parallelism from task needs.",
   "researchDepth": "deep",
-  "allowedParallelism": true,
   "verificationDepth": "exhaustive",
   "resourceBudget": "maximum",
   "browserTestingLevel": "comprehensive",
   "selfImprovement": true,
+  "primaryAgent": "ufmw-frontend-design",
+  "collaborationPolicy": "agent-decides",
+  "delegationLimits": "none",
+  "parallelism": "agent-decides",
   "securityConstraints": {
     "noSudo": true,
     "noPacman": true,

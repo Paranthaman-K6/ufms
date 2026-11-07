@@ -86,6 +86,18 @@ def load(name):
     return json.loads((PROFILES / f"{name}.json").read_text(encoding="utf-8"))
 
 
+@test("UFMW profiles leave collaboration and parallelism to the agents")
+def _():
+    ufmw_dir = ROOT / "skills/ufmw-frontend-design/profiles"
+    for name in ("lite", "standard", "advanced", "autonomous"):
+        data = json.loads((ufmw_dir / f"{name}.json").read_text(encoding="utf-8"))
+        assert data["collaborationPolicy"] == "agent-decides", name
+        assert data["delegationLimits"] == "none", name
+        assert data["parallelism"] == "agent-decides", name
+        for restricted in ("maxConcurrentDelegates", "allowedAgents", "allowedParallelism"):
+            assert restricted not in data, f"{name}: {restricted} must not cap UFMW agents"
+
+
 @test("every profile has the new schema and no legacy maxAgents")
 def _():
     for name in ("lite", "standard", "advanced", "autonomous"):

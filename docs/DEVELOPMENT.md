@@ -118,7 +118,7 @@ flowchart TB
 | Detail | Value |
 |--------|-------|
 | Workflow | `.github/workflows/ufme-ci.yml` |
-| Triggers | Push and pull request to `main` |
+| Triggers | Push to `main` and `Harding-the-whole-skill`; pull requests targeting `main` or `Harding-the-whole-skill` |
 | Node | 24 |
 | Timeout | 45 minutes |
 | Evidence | Uploaded as `ufme-evidence-<sha>` |
@@ -152,8 +152,9 @@ python3 scripts/catalog.py
 npm test
 ```
 
-Installed skills must stay self-contained: no imports from outside the skill
-folder, and no reliance on the repository layout.
+Skills that share helpers must declare them in SKILL.md metadata.depends_on. The
+installer resolves dependencies transitively and installs the required helper
+skills before the selected skill is used.
 
 ## 7. Adding an agent
 

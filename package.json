@@ -7,7 +7,7 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && node tests/visual/cross-commit.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/theme/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && bash tests/perf/run.sh && node registry-server/test/run.mjs && python3 scripts/build-agents.py --check && python3 scripts/catalog.py --check && bash tests/install/run.sh && bash tests/uninstall/run.sh && bash tests/e2e/run.sh",
+    "test": "node tests/browser/validate.js && node tests/browser/security.js && node tests/regression/run.js && node tests/visual/run.js && node tests/visual/cross-commit.js && python3 tests/agents/run.py && python3 tests/quality/run.py && python3 tests/theme/run.py && python3 tests/profiles/run.py && python3 tests/context/run.py && python3 tests/auditor/run.py && python3 tests/reference/run.py && bash tests/perf/run.sh && node registry-server/test/run.mjs && python3 scripts/build-agents.py --check && python3 scripts/catalog.py --check && bash tests/install/run.sh && bash tests/uninstall/run.sh && bash tests/e2e/run.sh",
     "test:validate": "node tests/browser/validate.js",
     "test:security": "node tests/browser/security.js",
     "test:regression": "node tests/regression/run.js",
@@ -27,7 +27,8 @@
     "catalog:check": "python3 scripts/catalog.py --check",
     "agents:build": "python3 scripts/build-agents.py",
     "test:e2e": "bash tests/e2e/run.sh",
-    "test:theme": "python3 tests/theme/run.py"
+    "test:theme": "python3 tests/theme/run.py",
+    "test:reference": "python3 tests/reference/run.py"
   },
   "keywords": [
     "opencode",

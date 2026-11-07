@@ -1,19 +1,15 @@
 ---
-description: Add a website URL as a design reference
+description: Add and inspect one or more website design references
 ---
-# ufmw design reference add <url>
+# /ufmw/reference-add
 
-Add a website URL as a design reference. UFMW will load the page in a real
-browser, inspect individual UI elements, and present them for selection.
+Use the URLs already supplied by the user. Ask for a URL only when none was provided and reference-driven design is relevant.
 
-Usage:
-  ufmw design reference add <url>
+For each URL:
+1. Validate HTTP or HTTPS.
+2. Run: node skills/universal-frontend-master/scripts/reference-inspect.js <url>
+3. Analyze its per-reference evidence: python3 skills/universal-frontend-master/scripts/reference-analyze.py .ufme/evidence reference-inspect-<referenceId>.json
+4. Preserve separate evidence and prior user mappings.
+5. Present candidate elements and ask which ones to adapt, their destination in the target project, and the intended aspects.
 
-Examples:
-  ufmw design reference add https://example.com
-  ufmw design reference add https://example.com/pricing
-
-After adding, UFMW will ask:
-  1. Which element would you like to adapt? (nav, hero, cards, buttons, etc.)
-  2. Where should I implement it? (homepage, existing header, product page, etc.)
-  3. What aspects? (visual appearance, behavior, animations, layout, combination)
+Do not implement every discovered candidate automatically. Missing browsers or dependencies must be reported as blockers; never fabricate inspection evidence.

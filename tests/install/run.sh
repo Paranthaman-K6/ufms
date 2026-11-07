@@ -188,6 +188,48 @@ check "UFME_SKILLS skips the other skills" \
   "[ ! -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
 rm -rf "$SEL_TMP"
 
+# Selecting UFMW must pull in its declared shared-helper dependency.
+SEL_TMP="$(mktemp -d)"
+mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \
+   UFME_SOURCE_DIR="$ROOT" UFME_SKIP_NPM=1 INSTALL_DIR="$SEL_TMP/project" \
+   INSTALL_SCOPE=both UFME_SKILLS=ufmw-frontend-design \
+   bash "$INSTALL" >"$SEL_TMP/install.log" 2>&1; then
+  pass "UFMW-only install exits 0"
+else
+  fail "UFMW-only install exits 0" "see $SEL_TMP/install.log"
+fi
+check "UFMW selection installs selected skill" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/ufmw-frontend-design/SKILL.md' ]"
+check "UFMW selection installs declared helper dependency" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "UFMW helper dependency is installed in project source tree" \
+  "[ -f '$SEL_TMP/project/skills/universal-frontend-master/scripts/reference-inspect.js' ]"
+check "unrelated skill remains uninstalled" \
+  "[ ! -f '$SEL_TMP/xdg/opencode/skills/init-frontend/SKILL.md' ]"
+check "installer explains added dependency" \
+  "grep -q 'Adding required skill dependency: universal-frontend-master' '$SEL_TMP/install.log'"
+rm -rf "$SEL_TMP"
+
+# SEO -> UFMW -> shared helper dependencies resolve transitively.
+SEL_TMP="$(mktemp -d)"
+mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
+if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \
+   UFME_SOURCE_DIR="$ROOT" UFME_SKIP_NPM=1 INSTALL_DIR="$SEL_TMP/project" \
+   INSTALL_SCOPE=both UFME_SKILLS=ufmw-seo-protocol \
+   bash "$INSTALL" >"$SEL_TMP/install.log" 2>&1; then
+  pass "SEO dependency-chain install exits 0"
+else
+  fail "SEO dependency-chain install exits 0" "see $SEL_TMP/install.log"
+fi
+check "SEO selected skill is installed" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
+check "SEO dependency UFMW design is installed" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/ufmw-frontend-design/SKILL.md' ]"
+check "transitive UFMW helper dependency is installed" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+rm -rf "$SEL_TMP"
+
 SEL_TMP="$(mktemp -d)"
 mkdir -p "$SEL_TMP/home" "$SEL_TMP/xdg" "$SEL_TMP/project"
 if HOME="$SEL_TMP/home" XDG_CONFIG_HOME="$SEL_TMP/xdg" UFME_USER_CONFIG="$SEL_TMP/ufme" \

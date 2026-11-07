@@ -1,12 +1,15 @@
 ---
-description: List all design references and their elements
+description: List stored design references and discovered elements
 ---
-# ufmw design reference list
+# /ufmw/reference-list
 
-List all design references that have been added and analyzed.
+Read .ufme/REFERENCES.md and .ufme/ELEMENT_MAP.md. Summarize registered reference URLs and discovered element candidates.
 
-Usage:
-  ufmw design reference list
+For every element, distinguish:
+- discovered candidate
+- selected for adaptation (destination and aspects supplied)
+- matched to source evidence
+- implemented in target code
+- verified against the live reference
 
-Output:
-  - .ufme/REFERENCES.md — full reference catalog
+Do not infer a later state from an earlier one. If the files are absent, report that no reference catalog has been created.

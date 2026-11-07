@@ -48,9 +48,9 @@ skipped or stale **blocks** delivery instead of passing quietly.
 
 | Piece | Detail |
 |-------|--------|
-| **4 skills** | `universal-frontend-master`, `ufmw-frontend-design`, `ufmw-seo-protocol`, `init-frontend` — each self-contained under `skills/<name>/` |
+| **4 skills** | `universal-frontend-master`, `ufmw-frontend-design`, `ufmw-seo-protocol`, `init-frontend` — dependencies resolved automatically at install |
 | **17 agents** | primaries plus specialist subagents, flat in `agents/`, invoked with `@agent-name` |
-| **31 commands** | `/ufme/*`, `/ufmw/*`, and `/profile/*` |
+| **34 commands** | `/ufme/*`, `/ufmw/*`, and `/profile/*` |
 | **4 profiles** | `lite` · `standard` · `advanced` · `autonomous` |
 | **Persistent memory** | `.ufme/` per project, `~/.config/ufme/` across projects |
 | **Evidence gate** | `.ufme/evidence/*.json` → `quality-report.json` |
@@ -74,7 +74,7 @@ skipped or stale **blocks** delivery instead of passing quietly.
 | `init-frontend` | primary | Project scaffolding entry point |
 | `ufme-orchestrator` / `ufmw-orchestrator` | subagent | Plan, enforce the profile, pack context, accept results |
 | `ufme-designer` / `ufmw-designer` | subagent | Research, PRD, sitemap, design system, critique |
-| `ufme-backend-analyst` / `ufmw-backend-analyst` | subagent | API map, auth map, capabilities, error handling |
+| `ufme-backend-analyst` | subagent | API map, auth map, capabilities, error handling |
 | `ufme-builder` / `ufmw-builder` | subagent | Architecture, pages, components, API client, integration |
 | `ufme-auditor` / `ufmw-auditor` | subagent | Visual, a11y, performance, and security audits from evidence |
 | `ufmw-seo-analyst` · `-technical` · `-content` · `-auditor` | subagent | Keyword, crawl, on-page, and SEO audit specialists |
@@ -85,15 +85,16 @@ The generated [CATALOG.md](CATALOG.md) has the exact path for every one.
 
 Run any time in any project:
 
-| Command | Delegation | Use for |
+| Command | Guidance | Use for |
 |---------|-----------|---------|
-| `/profile/lite` | primary + builder | Small edits, quick prototypes |
-| `/profile/standard` | balanced, includes backend + audit | Typical projects |
-| `/profile/advanced` | all roles, full audits | Complex projects |
-| `/profile/autonomous` | all roles, exhaustive verification | Unattended runs |
+| `/profile/lite` | shallow research, basic checks | Small edits, quick prototypes |
+| `/profile/standard` | balanced research and verification | Typical projects |
+| `/profile/advanced` | deep research, thorough checks | Complex projects |
+| `/profile/autonomous` | deep research, exhaustive checks | Unattended runs |
 
-`execution-profiles.sh --enforce` checks a proposed delegation against the active
-profile's allowed agents and concurrency cap.
+UFMW profiles are advisory guidance for research and verification depth. They never
+limit agent collaboration, delegation, tool or MCP use, or parallel execution; the
+entry agent chooses the strategy that fits the task.
 
 ### The audit loop
 
@@ -175,7 +176,7 @@ INSTALL_SCOPE=global UFME_SKIP_NPM=1 bash install.sh
 | `UFME_TAG` + `UFME_TARBALL_SHA256` | Pin and verify a release tarball |
 
 Repeat installs merge into existing directories and never overwrite project
-memory. Installed skills are self-contained, so
+memory. The installer resolves declared skill dependencies automatically, so
 `~/.config/opencode/skills/universal-frontend-master/scripts/` works outside a
 checkout.
 

@@ -1,21 +1,15 @@
 {
   "name": "standard",
-  "description": "Balanced delegation for typical frontend projects, including backend integration and independent audit.",
-  "primaryAgent": "ufmw-frontend-design",
-  "maxConcurrentDelegates": 2,
-  "allowedAgents": [
-    "ufmw-frontend-design",
-    "ufmw-designer",
-    "ufmw-builder",
-    "ufmw-backend-analyst",
-    "ufmw-auditor"
-  ],
+  "description": "Balanced research and verification guidance for typical frontend tasks. Collaboration remains agent-decided.",
   "researchDepth": "moderate",
-  "allowedParallelism": true,
   "verificationDepth": "standard",
   "resourceBudget": "medium",
   "browserTestingLevel": "standard",
   "selfImprovement": true,
+  "primaryAgent": "ufmw-frontend-design",
+  "collaborationPolicy": "agent-decides",
+  "delegationLimits": "none",
+  "parallelism": "agent-decides",
   "securityConstraints": {
     "noSudo": true,
     "noPacman": true,
