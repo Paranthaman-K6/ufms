@@ -184,8 +184,10 @@ else
 fi
 check "UFME_SKILLS installs the chosen skill" \
   "[ -f '$SEL_TMP/xdg/opencode/skills/init-frontend/SKILL.md' ]"
-check "UFME_SKILLS skips the other skills" \
-  "[ ! -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "UFME_SKILLS installs declared direct and transitive dependencies" \
+  "[ -f '$SEL_TMP/xdg/opencode/skills/ufmw-frontend-design/SKILL.md' ] && [ -f '$SEL_TMP/xdg/opencode/skills/universal-frontend-master/SKILL.md' ]"
+check "UFME_SKILLS skips unrelated skills" \
+  "[ ! -f '$SEL_TMP/xdg/opencode/skills/ufmw-seo-protocol/SKILL.md' ]"
 rm -rf "$SEL_TMP"
 
 # Selecting UFMW must pull in its declared shared-helper dependency.

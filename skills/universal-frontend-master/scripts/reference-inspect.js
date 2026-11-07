@@ -64,7 +64,8 @@ async function readElement(driver, element) {
           const classes = Array.from(node.classList || []).filter(Boolean).slice(0, 2);
           if (classes.length) {
             part += '.' + classes.map(escape).join('.');
-          } else if (node.parentElement) {
+          }
+          if (node.parentElement) {
             const sameTag = Array.from(node.parentElement.children)
               .filter(sibling => sibling.tagName === node.tagName);
             if (sameTag.length > 1) part += ':nth-of-type(' + (sameTag.indexOf(node) + 1) + ')';
