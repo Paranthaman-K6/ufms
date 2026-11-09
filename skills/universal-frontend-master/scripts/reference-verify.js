@@ -1,17 +1,5 @@
 #!/usr/bin/env node
-/*
- * reference-verify.js — Verify reference element implementation against target URL.
- *
- * Captures before/after screenshots of the target page and compares them
- * against the reference intent. Reports whether the implementation matches.
- *
- * Usage:
- *   node skills/universal-frontend-master/scripts/reference-verify.js <targetUrl> [referenceUrl]
- *
- * Output:
- *   .ufme/evidence/reference-verify.json  — verification results
- *   .ufme/evidence/reference-verify-screenshots/  — before/after PNGs
- */
+/* Verify selected target elements against the actual reference DOM and styles. */
 'use strict';
 
 const fs = require('fs');
@@ -20,133 +8,259 @@ const { Builder, By, until } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
+const EVIDENCE_DIR = path.resolve(process.env.UFME_EVIDENCE_DIR || path.join(ROOT, '.ufme', 'evidence'));
 const TARGET_URL = process.argv[2];
-const REF_URL = process.argv[3];
-const OUT_DIR = path.join(ROOT, '.ufme', 'evidence');
+const REF_URL_OVERRIDE = process.argv[3] || '';
+const RESULT_FILE = path.join(EVIDENCE_DIR, 'reference-verify.json');
+const SHOT_DIR = path.join(EVIDENCE_DIR, 'reference-verify-screenshots');
 
-if (!TARGET_URL) {
-  console.error('Usage: node reference-verify.js <targetUrl> [referenceUrl]');
-  process.exit(2);
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (error) { throw new Error('Cannot read ' + file + ': ' + error.message); }
 }
 
-fs.mkdirSync(OUT_DIR, { recursive: true });
-const SHOT_DIR = path.join(OUT_DIR, 'reference-verify-screenshots');
-fs.mkdirSync(SHOT_DIR, { recursive: true });
-
-async function getComputedStyle(driver, element) {
-  return await driver.executeScript((el) => {
-    const cs = window.getComputedStyle(el);
-    const rect = el.getBoundingClientRect();
-    return {
-      tagName: el.tagName,
-      className: el.className || '',
-      id: el.id || '',
-      styles: {
-        backgroundColor: cs.backgroundColor,
-        color: cs.color,
-        fontFamily: cs.fontFamily,
-        fontSize: cs.fontSize,
-        padding: cs.padding,
-        margin: cs.margin,
-        display: cs.display,
-      },
-      rect: { width: rect.width, height: rect.height, top: rect.top, left: rect.left },
-    };
-  }, element);
-}
-
-async function captureVerification() {
-  const options = new chrome.Options();
-  const extraFlags = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
-  if (!extraFlags.includes('--no-sandbox') && (!process.env.XDG_RUNTIME_DIR || process.env.CI)) {
-    extraFlags.push('--no-sandbox');
+function validHttpUrl(value, label) {
+  let parsed;
+  try { parsed = new URL(value); }
+  catch (_) { throw new Error(label + ' is not a valid URL: ' + value); }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error(label + ' must use http or https');
   }
-  options.addArguments('--headless=new', '--disable-dev-shm-usage', '--disable-gpu', '--window-size=1440,900', ...extraFlags);
+  return parsed.toString();
+}
 
-  const driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+function safeFilePart(value) {
+  return String(value || 'element').replace(/[^a-z0-9_-]+/gi, '-').slice(0, 70);
+}
 
+async function inspectSelector(driver, selector, screenshotPath) {
+  const elements = await driver.findElements(By.css(selector));
+  for (const element of elements) {
+    if (!(await element.isDisplayed())) continue;
+    const metrics = await driver.executeScript((el) => {
+      const cs = window.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return {
+        tagName: el.tagName,
+        text: (el.innerText || el.textContent || '').trim().slice(0, 200),
+        styles: {
+          backgroundColor: cs.backgroundColor,
+          color: cs.color,
+          fontFamily: cs.fontFamily,
+          fontSize: cs.fontSize,
+          fontWeight: cs.fontWeight,
+          lineHeight: cs.lineHeight,
+          letterSpacing: cs.letterSpacing,
+          padding: cs.padding,
+          margin: cs.margin,
+          borderRadius: cs.borderRadius,
+          boxShadow: cs.boxShadow,
+          display: cs.display,
+          gap: cs.gap,
+          alignItems: cs.alignItems,
+          justifyContent: cs.justifyContent
+        },
+        rect: {
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left
+        }
+      };
+    }, element);
+    try {
+      fs.writeFileSync(screenshotPath, Buffer.from(await element.takeScreenshot(), 'base64'));
+      metrics.screenshotFile = screenshotPath;
+    } catch (error) {
+      metrics.screenshotWarning = error.message;
+    }
+    return metrics;
+  }
+  return null;
+}
+
+function compareValue(property, expected, actual) {
+  if (expected === undefined || expected === null || expected === '') {
+    return { property, status: 'UNAVAILABLE', expected, actual };
+  }
+  if (property === 'width' || property === 'height') {
+    const a = Number(expected);
+    const b = Number(actual);
+    const tolerance = Math.max(4, Math.abs(a) * 0.2);
+    const pass = Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= tolerance;
+    return { property, status: pass ? 'PASS' : 'FAIL', expected: a, actual: b, tolerance };
+  }
+  const a = String(expected).trim().toLowerCase().replace(/\s+/g, ' ');
+  const b = String(actual === undefined ? '' : actual).trim().toLowerCase().replace(/\s+/g, ' ');
+  if (property === 'fontFamily') {
+    const first = a.split(',')[0].replace(/['"]/g, '').trim();
+    const pass = first && b.replace(/['"]/g, '').includes(first);
+    return { property, status: pass ? 'PASS' : 'FAIL', expected, actual };
+  }
+  return { property, status: a === b ? 'PASS' : 'FAIL', expected, actual };
+}
+
+function requestedProperties(aspects) {
+  const value = String(aspects || '').toLowerCase();
+  const visual = value.includes('visual') || value.includes('combination');
+  const layout = value.includes('layout') || value.includes('combination');
+  const properties = [];
+  if (visual) properties.push('backgroundColor', 'color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'borderRadius', 'boxShadow');
+  if (layout) properties.push('padding', 'margin', 'display', 'gap', 'alignItems', 'justifyContent', 'width', 'height');
+  return { properties: Array.from(new Set(properties)), unsupported: ['behavior', 'animation', 'animations'].filter(x => value.includes(x)) };
+}
+
+async function main() {
+  if (!TARGET_URL) {
+    console.error('Usage: node reference-verify.js <targetUrl> [referenceUrl]');
+    process.exit(2);
+  }
+
+  fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+  fs.mkdirSync(SHOT_DIR, { recursive: true });
+
+  const matchPath = path.join(EVIDENCE_DIR, 'reference-match.json');
+  const plan = readJson(matchPath);
+  if (!plan || plan.status !== 'MATCHED' || !Array.isArray(plan.elements) || !plan.elements.length) {
+    throw new Error('A MATCHED reference-match.json with selected elements is required; run reference-match.py first.');
+  }
+
+  const targetUrl = validHttpUrl(TARGET_URL, 'Target URL');
+  const defaultReferenceUrl = REF_URL_OVERRIDE ? validHttpUrl(REF_URL_OVERRIDE, 'Reference URL') : (plan.url ? validHttpUrl(plan.url, 'Reference URL') : '');
   const results = {
-    targetUrl: TARGET_URL,
-    referenceUrl: REF_URL || null,
+    targetUrl,
+    referenceUrl: defaultReferenceUrl,
+    referenceUrls: plan.urls || (plan.url ? [plan.url] : []),
+    referenceId: plan.referenceId || '',
     verifiedAt: new Date().toISOString(),
-    elements: [],
-    errors: [],
     status: 'RUNNING',
+    comparisons: [],
+    errors: [],
+    summary: {}
   };
 
+  const options = new chrome.Options();
+  const extraFlags = (process.env.UFME_CHROME_FLAGS || '').split(/\s+/).filter(Boolean);
+  options.addArguments('--headless=new', '--disable-dev-shm-usage', '--disable-gpu', '--window-size=1440,900', ...extraFlags);
+
+  let driver;
   try {
-    await driver.get(TARGET_URL);
-    await driver.wait(until.elementLocated(By.tagName('body')), 10000);
-    await new Promise((r) => setTimeout(r, 2000));
+    driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+    const selected = plan.elements.filter(item => item.status === 'matched');
+    for (const item of selected) {
+      const entry = {
+        elementId: item.elementId,
+        elementType: item.elementType,
+        referenceUrl: item.referenceUrl || defaultReferenceUrl,
+        referenceSelector: item.referenceSelector,
+        targetSelector: item.targetSelector || '',
+        aspects: item.aspects,
+        status: 'BLOCKED',
+        checks: [],
+        errors: []
+      };
 
-    const pageTitle = await driver.getTitle();
-    results.pageTitle = pageTitle;
-
-    // Inspect key elements on the target page
-    const elementTypes = [
-      { name: 'navigation', selector: 'nav, [role="navigation"], .navbar, .nav-menu, header nav' },
-      { name: 'header', selector: 'header, .header, .site-header, .masthead' },
-      { name: 'hero', selector: '.hero, .hero-section, .banner, [role="banner"]' },
-      { name: 'pricing', selector: '.pricing, .pricing-table, .pricing-card, .price-card' },
-      { name: 'card', selector: '.card, .card-component, .feature-card' },
-      { name: 'button', selector: 'button, .btn, .button, [role="button"]' },
-      { name: 'form', selector: 'form, .form, .contact-form, [role="form"]' },
-      { name: 'footer', selector: 'footer, .footer, .site-footer' },
-    ];
-
-    for (const { name, selector } of elementTypes) {
-      try {
-        const elements = await driver.findElements(By.css(selector));
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          const isDisplayed = await el.isDisplayed();
-          if (!isDisplayed) continue;
-
-          const info = await getComputedStyle(driver, el);
-          info.elementType = name;
-          info.selector = selector;
-          info.index = i;
-
-          // Capture screenshot of this element
-          try {
-            const screenshotBase64 = await el.takeScreenshot();
-            const shotFile = path.join(SHOT_DIR, `verify-${name}-${i}-${Date.now()}.png`);
-            fs.writeFileSync(shotFile, Buffer.from(screenshotBase64, 'base64'));
-            info.screenshotFile = shotFile;
-          } catch (e) {
-            // Not critical
-          }
-
-          results.elements.push(info);
-        }
-      } catch (e) {
-        results.errors.push(`${selector}: ${e.message}`);
+      if (!item.targetSelector) {
+        entry.errors.push('Target selector is missing; implement the element and record its selector in ELEMENT_MAP.md.');
+        results.comparisons.push(entry);
+        continue;
       }
+
+      const request = requestedProperties(item.aspects);
+      if (!request.properties.length) {
+        entry.errors.push('No measurable visual/layout aspect requested. Behavior and animation require explicit interaction tests.');
+        results.comparisons.push(entry);
+        continue;
+      }
+
+      let referenceMetrics;
+      let targetMetrics;
+      let itemReferenceUrl;
+      try {
+        itemReferenceUrl = validHttpUrl(REF_URL_OVERRIDE || item.referenceUrl || defaultReferenceUrl, 'Reference URL for ' + item.elementId);
+        entry.referenceUrl = itemReferenceUrl;
+      } catch (error) {
+        entry.errors.push(error.message);
+        results.comparisons.push(entry);
+        continue;
+      }
+      const fileBase = safeFilePart(item.elementId);
+      try {
+        await driver.get(itemReferenceUrl);
+        await driver.wait(until.elementLocated(By.tagName('body')), 10000);
+        await driver.sleep(500);
+        referenceMetrics = await inspectSelector(
+          driver, item.referenceSelector, path.join(SHOT_DIR, fileBase + '-reference.png')
+        );
+        if (!referenceMetrics) {
+          entry.errors.push('Reference selector did not match a visible element.');
+          results.comparisons.push(entry);
+          continue;
+        }
+
+        await driver.get(targetUrl);
+        await driver.wait(until.elementLocated(By.tagName('body')), 10000);
+        await driver.sleep(500);
+        targetMetrics = await inspectSelector(
+          driver, item.targetSelector, path.join(SHOT_DIR, fileBase + '-target.png')
+        );
+        if (!targetMetrics) {
+          entry.errors.push('Target selector did not match a visible element.');
+          results.comparisons.push(entry);
+          continue;
+        }
+      } catch (error) {
+        entry.errors.push(error.message);
+        results.comparisons.push(entry);
+        continue;
+      }
+
+      const expectedStyles = referenceMetrics.styles || {};
+      const actualStyles = targetMetrics.styles || {};
+      for (const property of request.properties) {
+        const expected = property === 'width' || property === 'height'
+          ? referenceMetrics.rect[property] : expectedStyles[property];
+        const actual = property === 'width' || property === 'height'
+          ? targetMetrics.rect[property] : actualStyles[property];
+        entry.checks.push(compareValue(property, expected, actual));
+      }
+
+      if (request.unsupported.length) {
+        entry.errors.push('Not verified by this style comparison: ' + request.unsupported.join(', ') + '. Add explicit interaction/animation checks before claiming full verification.');
+      }
+      const failed = entry.checks.some(check => check.status === 'FAIL');
+      const unavailable = entry.checks.some(check => check.status === 'UNAVAILABLE');
+      entry.status = failed ? 'FAIL' : (unavailable || request.unsupported.length ? 'PARTIAL' : 'PASS');
+      entry.reference = referenceMetrics;
+      entry.target = targetMetrics;
+      results.comparisons.push(entry);
     }
 
-    results.status = 'PASS';
-    results.summary = {
-      totalElements: results.elements.length,
-      elementTypes: {},
-    };
-    for (const el of results.elements) {
-      const t = el.elementType;
-      results.summary.elementTypes[t] = (results.summary.elementTypes[t] || 0) + 1;
-    }
-  } catch (e) {
-    results.status = 'FAIL';
-    results.errors.push(e.message);
+    const statuses = results.comparisons.map(item => item.status);
+    const passed = statuses.filter(status => status === 'PASS').length;
+    const failed = statuses.filter(status => status === 'FAIL').length;
+    const blocked = statuses.filter(status => status === 'BLOCKED').length;
+    const partial = statuses.filter(status => status === 'PARTIAL').length;
+    results.summary = { total: statuses.length, passed, failed, blocked, partial };
+    results.status = statuses.length && passed === statuses.length ? 'PASS'
+      : (failed ? 'FAIL' : (blocked ? 'BLOCKED' : 'PARTIAL'));
+  } catch (error) {
+    results.status = 'BLOCKED';
+    results.errors.push(error.message);
   } finally {
-    await driver.quit();
+    if (driver) {
+      try { await driver.quit(); } catch (_) {}
+    }
   }
 
-  fs.writeFileSync(path.join(OUT_DIR, 'reference-verify.json'), JSON.stringify(results, null, 2));
-  console.log(`[reference-verify] Verified ${results.elements.length} elements on ${TARGET_URL}`);
-  console.log(`[reference-verify] Results: ${path.join(OUT_DIR, 'reference-verify.json')}`);
+  fs.writeFileSync(RESULT_FILE, JSON.stringify(results, null, 2) + '\n');
+  console.log('[reference-verify] Status: ' + results.status);
+  console.log('[reference-verify] Summary: ' + JSON.stringify(results.summary));
+  console.log('[reference-verify] Evidence: ' + RESULT_FILE);
   process.exit(results.status === 'PASS' ? 0 : 1);
 }
 
-captureVerification().catch((e) => {
-  console.error(`[reference-verify] Fatal: ${e.message}`);
+main().catch(error => {
+  console.error('[reference-verify] Fatal: ' + error.message);
   process.exit(1);
 });

@@ -1,15 +1,16 @@
 ---
-description: Analyze all design references and extract UI elements
+description: Analyze stored design-reference inspections and update the element map
 ---
-# ufmw design reference analyze
+# /ufmw/reference-analyze
 
-Analyze all added design references using Selenium WebDriver. Extracts DOM
-structure, computed styles, and identifies individual UI elements.
+Analyze stored inspection evidence without re-opening pages unless fresh evidence is required.
 
-Usage:
-  ufmw design reference analyze
+For each .ufme/evidence/reference-inspect-<referenceId>.json, run:
+  python3 skills/universal-frontend-master/scripts/reference-analyze.py .ufme/evidence reference-inspect-<referenceId>.json
 
-Output:
-  - .ufme/REFERENCES.md — reference catalog
-  - .ufme/ELEMENT_MAP.md — element-to-location mapping
-  - .ufme/evidence/reference-analysis.json — machine-readable analysis
+If no per-reference evidence exists, use the compatibility file:
+  python3 skills/universal-frontend-master/scripts/reference-analyze.py .ufme/evidence
+
+Review .ufme/REFERENCES.md and .ufme/ELEMENT_MAP.md. Re-analysis must upsert each reference section and preserve the user's existing destination, aspects, and target selector.
+
+Do not treat placeholder rows as selected elements. Ask the user to select elements and specify destination and intended aspects before matching.

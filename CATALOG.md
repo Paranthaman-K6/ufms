@@ -5,14 +5,14 @@
 Every skill, agent, and command in this repo, in one place.
 Generated from the tree; run `python3 scripts/catalog.py` after moving files.
 
-**4 skills · 17 agents · 31 commands**
+**4 skills · 17 agents · 34 commands**
 
 ## Skills
 
 | Skill | What it does | Path |
 |-------|--------------|------|
 | `init-frontend` | Initialize frontend projects with a design system — tokens, component architecture, responsive layout, accessibility foundations, performance budgets, and template selection based on project type. Asks ALL design questions before writing any code. | `skills/init-frontend/SKILL.md` |
-| `ufmw-frontend-design` | Multi-agent frontend engineering skill for building responsive websites with reference-driven design, visual auditing, accessibility, performance, security, and production readiness. | `skills/ufmw-frontend-design/SKILL.md` |
+| `ufmw-frontend-design` | Autonomous multi-agent frontend engineering with reference-driven design, implementation, visual auditing, accessibility, performance, security, and production readiness. | `skills/ufmw-frontend-design/SKILL.md` |
 | `ufmw-seo-protocol` | Autonomous SEO engineering skill for technical SEO, on-page optimization, structured data, internal linking, crawlability, indexing, keyword research, and Google Search Console integration. | `skills/ufmw-seo-protocol/SKILL.md` |
 | `universal-frontend-master` | Multi-agent frontend engineering (multi-agent) for building and improving responsive frontend websites, with execution profiles (/profile/lite\|standard\|advanced\|autonomous) and evidence-driven auditors (a11y, perf, visual, security). | `skills/universal-frontend-master/SKILL.md` |
 
@@ -29,8 +29,8 @@ Generated from the tree; run `python3 scripts/catalog.py` after moving files.
 | `ufmw-auditor` | subagent | Evidence-first auditor for visual, accessibility, performance, security, and reference-implementation verification. Consumes script JSON evidence before reading screenshots. | `agents/ufmw-auditor.md` |
 | `ufmw-builder` | subagent | Reference-driven implementation specialist. Preserves existing architecture, builds pages/components, implements adapted reference elements, integrates backends, applies SEO fixes. | `agents/ufmw-builder.md` |
 | `ufmw-designer` | subagent | Reference-driven design specialist. Researches requirements, analyzes reference websites, identifies UI elements, extracts DOM structure and computed styles, creates design systems, and adapts reference elements to target project design systems. | `agents/ufmw-designer.md` |
-| `ufmw-frontend-design` | primary | Primary entry point for the ufmw-frontend-design skill. Classifies the project, applies the execution profile, delegates to ufmw-orchestrator subagent, and coordinates the full multi-agent frontend engineering pipeline with reference-driven design capabilities. | `agents/ufmw-frontend-design.md` |
-| `ufmw-orchestrator` | subagent | Orchestrates ufmw-frontend-design work including reference-driven design workflows. Applies execution profiles, packs context, delegates to specialists, tracks tasks/decisions/defects, resolves conflicts, enforces acceptance criteria. | `agents/ufmw-orchestrator.md` |
+| `ufmw-frontend-design` | primary | Primary entry point for autonomous reference-driven frontend engineering, implementation, integration, testing, and continuous improvement. | `agents/ufmw-frontend-design.md` |
+| `ufmw-orchestrator` | subagent | Coordinates UFMW frontend and reference-driven work, chooses useful specialist collaboration, tracks task state, resolves conflicts, and reviews delivery evidence. | `agents/ufmw-orchestrator.md` |
 | `ufmw-seo-analyst` | subagent | SEO analyst — keyword research, search-intent analysis, content-gap detection, keyword-to-page mapping, competitive analysis. | `agents/ufmw-seo-analyst.md` |
 | `ufmw-seo-auditor` | subagent | SEO audit specialist — consumes script JSON evidence (seo-results.json, seo-crawl.json, seo-plan.json), emits severity-ranked SEO audit report. | `agents/ufmw-seo-auditor.md` |
 | `ufmw-seo-content` | subagent | On-page SEO specialist — titles, meta descriptions, headings, content optimization, keyword-to-page mapping, content quality. | `agents/ufmw-seo-content.md` |
@@ -57,10 +57,13 @@ Generated from the tree; run `python3 scripts/catalog.py` after moving files.
 | `/ufmw/init-frontend-tokens` | Initialize design-token tier + Style Dictionary build | `commands/ufmw/init-frontend-tokens.md` |
 | `/ufmw/init-frontend` | Scaffold new frontend project with design system | `commands/ufmw/init-frontend.md` |
 | `/ufmw/init` | Initialize UFMW reference-driven design project | `commands/ufmw/init.md` |
-| `/ufmw/reference-add` | Add a website URL as a design reference | `commands/ufmw/reference-add.md` |
-| `/ufmw/reference-analyze` | Analyze all design references and extract UI elements | `commands/ufmw/reference-analyze.md` |
-| `/ufmw/reference-inspect` | Inspect a specific reference element's DOM and styles | `commands/ufmw/reference-inspect.md` |
-| `/ufmw/reference-list` | List all design references and their elements | `commands/ufmw/reference-list.md` |
+| `/ufmw/reference-adapt` | Prepare implementation briefs from validated reference mappings | `commands/ufmw/reference-adapt.md` |
+| `/ufmw/reference-add` | Add and inspect one or more website design references | `commands/ufmw/reference-add.md` |
+| `/ufmw/reference-analyze` | Analyze stored design-reference inspections and update the element map | `commands/ufmw/reference-analyze.md` |
+| `/ufmw/reference-inspect` | Inspect a design reference URL and list its visible UI elements | `commands/ufmw/reference-inspect.md` |
+| `/ufmw/reference-list` | List stored design references and discovered elements | `commands/ufmw/reference-list.md` |
+| `/ufmw/reference-match` | Validate selected reference elements and create a target mapping plan | `commands/ufmw/reference-match.md` |
+| `/ufmw/reference-verify` | Compare implemented elements with their live design references | `commands/ufmw/reference-verify.md` |
 | `/ufmw/report` | Generate final report | `commands/ufmw/report.md` |
 | `/ufmw/seo-analyze` | Analyze crawl data for SEO issues | `commands/ufmw/seo-analyze.md` |
 | `/ufmw/seo-crawl` | Crawl website and extract SEO data | `commands/ufmw/seo-crawl.md` |

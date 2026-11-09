@@ -212,6 +212,63 @@ skill_selected() {
   return 1
 }
 
+
+# Resolve transitive dependencies declared in each skill's SKILL.md.
+resolve_skill_dependencies() {
+  local index=0 skill dependency
+  while [ "$index" -lt "${#SELECTED_SKILLS[@]}" ]; do
+    skill="${SELECTED_SKILLS[$index]}"
+    local skill_file="$SRC/skills/$skill/SKILL.md"
+    if [ -f "$skill_file" ]; then
+      while IFS= read -r dependency; do
+        [ -n "$dependency" ] || continue
+        if ! skill_available "$dependency"; then
+          log "ERROR: skill '$skill' requires missing skill '$dependency'"
+          exit 1
+        fi
+        if ! skill_selected "$dependency"; then
+          SELECTED_SKILLS+=("$dependency")
+          log "Adding required skill dependency: $dependency (required by $skill)"
+        fi
+      done < <(python3 - "$skill_file" <<'PYDEPS'
+import re
+import sys
+from pathlib import Path
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+if not lines or lines[0].strip() != "---":
+    raise SystemExit(0)
+end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), len(lines))
+frontmatter = lines[1:end]
+for index, line in enumerate(frontmatter):
+    match = re.match(r"^(\s*)depends_on:\s*(.*)$", line)
+    if not match:
+        continue
+    inline = match.group(2).strip()
+    if inline.startswith("[") and inline.endswith("]"):
+        for item in inline[1:-1].split(","):
+            value = item.strip().strip("'\"")
+            if value:
+                print(value)
+        break
+    base_indent = len(match.group(1))
+    for item in frontmatter[index + 1:]:
+        if not item.strip():
+            continue
+        indent = len(item) - len(item.lstrip())
+        if indent <= base_indent:
+            break
+        found = re.match(r"^\s*-\s*([A-Za-z0-9][A-Za-z0-9_-]*)\s*$", item)
+        if found:
+            print(found.group(1))
+    break
+PYDEPS
+)
+    fi
+    index=$((index + 1))
+  done
+}
+
 # Environment selection: validates INSTALL_SCOPE and UFME_SKILLS, applies skips.
 select_from_env() {
   case "$INSTALL_SCOPE" in
@@ -465,6 +522,8 @@ else
   fi
   select_from_env
 fi
+
+resolve_skill_dependencies
 
 case "$INSTALL_SCOPE" in
   project) DO_PROJECT=1 ;;
