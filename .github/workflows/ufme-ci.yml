@@ -2,9 +2,9 @@ name: UFME CI
 
 on:
   push:
-    branches: [main, Harding-the-whole-skill]
+    branches: [main]
   pull_request:
-    branches: [main, Harding-the-whole-skill]
+    branches: [main]
 
 env:
   UFME_EVIDENCE_DIR: ${{ github.workspace }}/.ufme/evidence
